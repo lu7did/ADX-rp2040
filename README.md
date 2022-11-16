@@ -97,10 +97,8 @@ The rp2040 processor lacks the zero cross comparator interrupt used by the ADX t
 definition on one of the PIO of the processor (RISC processor).
 
 The main functionality is contained in the file ADX_rp2040.ino which is compiled by using the Arduino IDE supplied with the stated libraries, different subsystems
-are made dependent on configuration directives (#define on the microcode, typically at the pdx_common.h file) which mades the relevant sub-system to be
-included or excluded from the build process.
-Each major sub-system, at different level of implementation and stability, are contained on their own code file (extension .cpp), in this way a work in
-progress or incompletely tested functionality can be excluded from a particular build.
+are made dependent on configuration directives (#define on the microcode, typically to signal the introduction of a porting segment by means of the 
+#define RP2040 directive) which mades the relevant code segments  to be included or excluded from the build process.
 
 ```
 mandatory files
