@@ -173,19 +173,16 @@ The receiver, Si5351 clock, RF driver and final stages are identical to the stan
 accomodate the different signaling and voltages used.
 
 
-### rp2040 pinout
-For a quick reference follows the rp2040 pinout assignment
+
+### rp2040 pinout assignment
+For circuit design and future expansion several assignmentes has been made on the rp2040 pinout for the following assignment assignment
 ![Alt Text](docs/rp2040_pinout.jpg "rp2040 pinout")
 
-
-### PDX pinout assignment
-For circuit design and future expansion all boards at this point has been made using the following pinout assignment
-![Alt Text](docs/pdx_pinout.jpg "PDX pinout assignment")
 
 
 ### Power supply
 
-The Raspberry Pico operates with +3.3V logic as opposed to the Arduino Nano used by the ADX transceiver, still it has an internal +5V/+3.3V regulator which
+The Raspberry Pi Pico operates with +3.3V logic as opposed to the Arduino Nano used by the ADX transceiver, still it has an internal +5V/+3.3V regulator which
 is used by the design. 
 The standard +12Vcc voltage is used to feed only the final amplifier (3xBS170), a +12Vcc/+5Vcc regulator is used to obtain the voltage to feed the Raspberry
 Pico (VSYS) pin, the +3.3Vcc obtained from the board is then used to feed the receiver logic, the Si5351 clock, the 74ACT244 RF driver and the CD2003GP based 
