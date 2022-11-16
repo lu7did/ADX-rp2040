@@ -44,7 +44,8 @@ rp2040 processor instead of the ATMEGA328p are also options.
 
 ```
 Warning!
-At this time the ADX 2 PDX board is under test
+At this time the ADX 2 PDX board is under test, the TFT LCD display and serial debug shown in the picture are for development purposes only and aren't
+supported by the distributed firmware.
 ```
 
 # Firmware
@@ -80,6 +81,8 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 The main functionality is quite similar to the baseline ADX firmware used, there are three changes needed to adapt the firmware to the rp2040
 architecture.
+The code was made starting with the [ADX_UnO_V1.3](https://github.com/WB2CBA/ADX-UnO-V1.3) as available at the GitHub site by Nov,15th 2022,
+no automatic synchronization mechanism has been established with it.
 
 * I/O.
  A mapping between the Arduino I/O pin and the rp2040 GPIO ports has been made, symbolic names were adjusted and coding macros used to replace
@@ -127,11 +130,28 @@ the information of the frequencies is applied to the frequency output to achieve
 transceiver and it's assumed it's used to transmit some form of a weak signal mode such as WSPR, JS8, FT4 or FT8, it can be used for CW and in general with
 some limitations for any mode where the amplitude carries no information.
 Unfortunately the rp2040 doesn't have such a good resource, so the frequency needs to be measured using other strategy, this in turns become a great source
-of experimentation and the firmware carries not one but five (5) distinct ways to measure the frequency which can be selected (one at any given time).
-The overall description of the counting methods follows.
+of experimentation.
 
 
-### Build
+A PIO processor is configured to generate an interrupt with the rising flank of the signal, a high resolution timer (capable of +/- 1 uSec resolution)
+is used to compute how many ticks can be counted between two sucessive flanks. There is actually no "zero crossing" detection as the GPIO isn't capable to
+trigger interruptions with that condition, but it's triggered when the signal level achieves the ON condition of the input pin. It's assumed the trigger level
+is the same for all cycles at it is not a signal subject to fading, therefore the frequency can be counted by measuring the time elapsed between similar parts of sucessive cycles.
+In order for the algorithm to work a signal conditioning needs to be performed by means of external hardware, this can be made either thru a MOSFET or an IC comparator based
+ circuit (see hardware for details).
+The actual measurement accuracy is in the order of +/- 2 Hz in the worst case, which is accurate enough for digital modes.
+
+
+```
+
+Sources of error
+
+The counting has +/- 2 Hz error as the start and end of the counting window might include or exclude the starting and ending cycles. Also
+the trigger point might suffers some variations making the actual timing between sucessive cycles inaccurate. Finally the SNR of the signal
+might present noises which trigger false counts.
+
+```
+
 
 # Hardware
 
