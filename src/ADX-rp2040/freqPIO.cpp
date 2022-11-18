@@ -49,7 +49,7 @@ volatile uint32_t   t_previous;
 volatile uint32_t   t_current;
 volatile uint32_t   period;
 bool pioirq=false;
-#define FSK         27      //Frequency counter algorithm, signal input PIN
+#define FSKpin      27      //Frequency counter algorithm, signal input PIN
 
 
 
@@ -123,7 +123,7 @@ void load_pio_programs() {
  */
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &freqPIO_program);   
-    freqPIO_program_init(pio, 0, offset,FSK);
+    freqPIO_program_init(pio, 0, offset,FSKpin);
 }
 /*-------------------------------------------------------------------------*
  * PIO_init()

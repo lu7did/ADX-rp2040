@@ -102,7 +102,7 @@
  *---------------------------------------------------------------------------------------------*/
  #define RP2040
 
-#ifdef RP2040 "RP2040"
+#ifdef RP2040
  
  #define PROGNAME "ADX_rp2040"
  #define AUTHOR "Pedro E. Colla (LU7DZ)"
@@ -207,7 +207,7 @@ int Bdly = 250;
    Signal input pin
 */
 
-#define FSK            27      //Frequency counter algorithm, signal input PIN
+#define FSKpin         27      //Frequency counter algorithm, signal input PIN
 
 /*---
     I2C
@@ -287,8 +287,8 @@ void setup()
    gpio_set_dir(FT4, GPIO_OUT);
    gpio_set_dir(FT8, GPIO_OUT);
 
-   gpio_init(FSK);
-   gpio_set_dir(FSK, GPIO_IN);
+   gpio_init(FSKpin);
+   gpio_set_dir(FSKpin, GPIO_IN);
 
    Wire.setSDA(I2C_SDA);
    Wire.setSCL(I2C_SCL);
@@ -489,15 +489,16 @@ void loop()
  * The interrupt handler is defined in the freqPIO.cpp module and the PIO RISC ASM counting in freqPIO.pio.h
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
  #ifdef RP2040
- uint16_t n = VOX_MAXTRY;
- bool VOX=false;
+ int FSK=VOX_MAXTRY;
+ int FSKtx = 0;
+
  int k=0;
  
- while ( n > 0 ) {                                //Iterate up to 10 times looking for signal to transmit
+ while ( FSK > 0 ) {                                //Iterate up to 10 times looking for signal to transmit
 
     if (pioirq == true) {
       pioirq=false; 
-      n=VOX_MAXTRY;
+      FSK=VOX_MAXTRY;
       if (period>0) {             
          codefreq=FSK_USEC/period;
       } else {
@@ -508,16 +509,16 @@ void loop()
     ------------------------------------------------------*/
       if (codefreq >= uint32_t(FSKMIN) && codefreq <= uint32_t(FSKMAX)) {
     
-         n = VOX_MAXTRY;
+         FSK = VOX_MAXTRY;
 
       /*----------------------------------------------------*
        if VOX is off then pass into TX mode
        Frequency IS NOT changed on the first sample
        ----------------------------------------------------*/
-      if (VOX == false) {
+      if (FSKtx == 0) {
 
           #ifdef DEBUG
-          _INFOLIST("%s VOX activated n=%d f=%ld\n", __func__, n, codefreq);
+          _INFOLIST("%s VOX activated FSK=%d f=%ld\n", __func__, FSK, codefreq);
           #endif //DEBUG
 
           TX_State = 1;
@@ -527,9 +528,9 @@ void loop()
           si5351.output_enable(SI5351_CLK1, 0);   //RX off
           si5351.output_enable(SI5351_CLK0, 1);   // TX on
 
-          VOX=true;
+          FSKtx=1;
           prevfreq = 0;
-          n = VOX_MAXTRY;
+          FSK = VOX_MAXTRY;
           continue;
       }
       /*-----------------------------------------------------
@@ -568,7 +569,6 @@ void loop()
   si5351.output_enable(SI5351_CLK1, 1);   //RX on
   TX_State = 0;
   digitalWrite(RX,HIGH);
-  VOX=false;
      
 }
 //*********************[ END OF MAIN LOOP FUNCTION ]*************************
