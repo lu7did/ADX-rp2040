@@ -81,8 +81,11 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 The main functionality is quite similar to the baseline ADX firmware used, there are three changes needed to adapt the firmware to the rp2040
 architecture.
-The code was made starting with the [ADX_UnO_V1.3](https://github.com/WB2CBA/ADX-UnO-V1.3) as available at the GitHub site by Nov,15th 2022,
+The code port was made starting with the [ADX_UnO_V1.3](https://github.com/WB2CBA/ADX-UnO-V1.3) as available at the GitHub site by Nov,15th 2022,
 no automatic synchronization mechanism has been established with it.
+The overall logic cycle of the firmware can be seen in the following figure.
+![Alt Text](docs/ADX-rp2040_activity.png "ADX-rp2040 Activity")
+
 
 * I/O.
  A mapping between the Arduino I/O pin and the rp2040 GPIO ports has been made, symbolic names were adjusted and coding macros used to replace

@@ -1222,7 +1222,7 @@ void INIT() {
 #ifdef RP2040
   EEPROM.begin(512);
   _INFOLIST("%s EEPROM.begin()\n", __func__);
-#endif //RP2040 
+#endif //RP2040 The EEPROM emulation performed by the Arduino IDE core porting requires an initial reserve of flash space for it
 
 
 
