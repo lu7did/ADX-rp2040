@@ -123,13 +123,18 @@
 #include <WiFi.h>
 #include <Time.h>
 
-
+/*-------------------------------------------------
+ * IDENTIFICATION DIVISION.
+ * (just a programmer joke)
+ */
 #define PROGNAME "ADX_rp2040"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION 1.0
 #define BUILD     1
 
-
+/*-------------------------------------------------
+ * Macro expansions
+ */
 #define digitalWrite(x,y) gpio_put(x,y)
 #define digitalRead(x)  gpio_get(x)
 
@@ -137,24 +142,37 @@
 #undef  _NOP
 #define _NOP (byte)0
 
-#define DEBUG                1
+/*--------------------------------------------------
+ * Program configuration parameters
+ */
+//#define DEBUG                1
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
 #define FSK_ERROR            4
 #define FSKMIN             300    //Minimum FSK frequency computed
-#define FSKMAX            30  //Maximum FSK frequency computed
+#define FSKMAX            3000    //Maximum FSK frequency computed
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
 
+/*-----------------------------------------------------
+ * External references to freqPIO variables and methods
+ */
 extern volatile uint32_t   period;
 extern bool pioirq;
 extern void PIO_init();
 
+/*------------------------------------------------------
+ * Main variables
+ */
 char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
+/*-------------------------------------------------------
+ * Debug and development aid tracing
+ * only enabled if DEBUG is defined previously
+ */
 #ifdef DEBUG
 
 #ifdef  UART    //Can test with the IDE, USB based, serial port or the UART based external serial port
@@ -174,10 +192,10 @@ uint32_t prevfreq = 0;
 #else //!DEBUG
 #define _INFOLIST(...) (void)0
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
-
-
-
 #endif //RP2040 
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ *                                 End of porting definitions
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 //*******************************[ VARIABLE DECLERATIONS ]*************************************
 uint32_t val;
 int temp;
@@ -201,12 +219,13 @@ int DOWN_State;
 int TXSW_State;
 int Bdly = 250;
 // **********************************[ DEFINE's ]***********************************************
-//**********************************************************************************************
+//***********************************************************************************************
 //* The following defines the ports used to connect the hard switches (UP/DOWN/TX) and the LED
 //* to the rp2040 processor in replacement of the originally used for the ADX Arduino Nano or UNO
-//**********************************************************************************************
+//* (see documentation for the hardware schematic and pinout
+//***********************************************************************************************
 
-#ifndef RP2040
+#ifndef RP2040         //The following definitions are for the ADX_UnO and NOT used for the porting
 #define UP             2  //UP Switch
 #define DOWN           3  //DOWN Switch
 #define TXSW           4  //TX Switch
@@ -219,8 +238,8 @@ int Bdly = 250;
 
 #define RX             8   //RX SWITCH
 #endif //!RP2040
-
-#ifdef RP2040
+//***********************************************************************************************
+#ifdef RP2040          //The following definitions are for the ADX_rp2040 porting
 /*----
    Output control lines
 */
@@ -247,7 +266,7 @@ int Bdly = 250;
    Signal input pin
 */
 
-#define FSKpin         27      //Frequency counter algorithm, signal input PIN
+#define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
 
 /*---
     I2C
@@ -291,7 +310,7 @@ void setup()
 #endif //DEBUG
 
 
-#ifndef RP2040
+#ifndef RP2040         //This is the original ADX_UnO port definitions, nullified by the porting
   pinMode(UP, INPUT);
   pinMode(DOWN, INPUT);
   pinMode(TXSW, INPUT);
@@ -306,7 +325,10 @@ void setup()
   pinMode(7, INPUT); //PD7 = AN1 = HiZ, PD6 = AN0 = 0
 #endif //!RP2040
 
-#ifdef RP2040
+/*-----------------------------
+ * Port definitions (pinout, direction and pullups used
+ */
+#ifdef RP2040   
 
   gpio_init(UP);
   gpio_init(DOWN);
@@ -338,6 +360,7 @@ void setup()
 
   gpio_init(FSKpin);
   gpio_set_dir(FSKpin, GPIO_IN);
+  gpio_pull_up(FSKpin);
 
   Wire.setSDA(I2C_SDA);
   Wire.setSCL(I2C_SCL);
@@ -361,7 +384,6 @@ void setup()
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);// SET For Max Power
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_2MA); // Set for reduced power for RX
   si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
-
   _INFOLIST("%s si5351 clock initialization completed\n", __func__);
 
 
@@ -389,8 +411,14 @@ void setup()
   _INFOLIST("%s PIO sub-system initialized\n", __func__);
 #endif //Initialize the PIO based counting method used on rp2040
 
+/*--------------------
+ * Place the receiver in reception mode
+ */
   digitalWrite(RX, LOW);
 
+/*--------------------
+ * Assign initial mode
+ */
   Mode_assign();
   _INFOLIST("%s setup completed successfully\n", __func__);
 
@@ -402,6 +430,10 @@ void setup()
 void loop()
 {
 
+/*------------------------------------------------
+ * Explore and handle interactions with the user
+ * thru the UP/DOWN or TX buttons
+ */
   UP_State = digitalRead(UP);
   DOWN_State = digitalRead(DOWN);
 
@@ -559,7 +591,7 @@ void loop()
 
   int k = 0;
 
-  while ( FSK > 0 ) {                                //Iterate up to 10 times looking for signal to transmit
+  while ( FSK > 0 ) {                                //Iterate up to MAX_TRY times looking for signal to transmit
 
     if (pioirq == true) {
 
@@ -640,6 +672,7 @@ void loop()
 
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                                       Support functions                                                    *
+//                       (mostly original from ADX_UnO except few debug messages)                             *
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 
@@ -693,7 +726,6 @@ void Mode_assign() {
   }
   freq = freq1;
   //freq = freq1 - 1000;
-
   _INFOLIST("%s mode=%d freq=%ld\n", __func__, mode, freq);
 }
 
@@ -868,15 +900,12 @@ void ManualTX() {
 
   digitalWrite(RX, LOW);
   si5351.output_enable(SI5351_CLK1, 0);   //RX off
-
   _INFOLIST("%s TX+\n", __func__);
 
 
 TXON:
 
   TXSW_State = digitalRead(TXSW);
-
-
   digitalWrite(TX, 1);
   si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
   si5351.output_enable(SI5351_CLK0, 1);   //TX on
