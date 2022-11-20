@@ -24,28 +24,30 @@ the architecture differences between both platforms.
 # Hardware
 
 
-I started the porting of the firmware assuming an ADX transceiver board, no more but no less features, but being powered by a Raspberry Pico board; the porting of
-the software was a great deal of a learning curve not only for the rp2040 architecture being different from the ATMEGA382p and being more powerful, but also
-a substantially different build chain which in some cases is implementing partially some features. For migration purposed the Raspberry Pi Pico board was used.
+I started the porting of the firmware assuming an ADX transceiver board, no more but no less features, but being powered
+ by a Raspberry Pico board; the porting of the software was a great deal of a learning curve not only for the rp2040
+ architecture being different from the ATMEGA382p and being more powerful, but also a substantially different build chain
+ which in some cases is implementing partially some features. For migration purposed the Raspberry Pi Pico board was used.
 
 ![ADX2PDX](docs/PDX_ADX2PDX.jpeg "ADX2PDX daughter board") 
 
-Although the first version of the new transceiver board was made after a wired (but functional) version of it Barb helped very substantially by creating the 
-PCB design for the ADX2PDX board (included in this site).
+Although the first version of the new transceiver board was made after a wired (but functional) version of it Barb helped
+ very substantially by creating the PCB design for the ADX2PDX board (included in this site).
 
 
-The ADX2PDX daughter board connect with an ADX board with minimal modifications using the Arduino Nano socket and provides a functionality similar to the
-main board.
+The ADX2PDX daughter board connect with an ADX board with minimal modifications using the Arduino Nano socket and provides
+ a functionality similar to the main board.
 
-This approach allows an existing ADX board to be upgraded with the new processor but to develop either a wired prototype or a custom board using the
-rp2040 processor instead of the ATMEGA328p are also options.
+This approach allows an existing ADX board to be upgraded with the new processor but to develop either a wired prototype
+ or a custom board using the rp2040 processor instead of the ATMEGA328p are also options.
 
 ![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
 
 ```
 Warning!
-At this time the ADX 2 PDX board is under test, the TFT LCD display and serial debug shown in the picture are for development purposes only and aren't
-supported by the distributed firmware.
+At this time the ADX 2 PDX board is under test, the unit test of the firmware has been conducted with a full wired
+version of the transceiver shown in a picture above.  The TFT LCD display and serial debug shown in the picture are for development
+ purposes only and aren't supported by the distributed firmware.
 ```
 
 # Firmware
@@ -81,11 +83,6 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 The main functionality is quite similar to the baseline ADX firmware used, there are three changes needed to adapt the firmware to the rp2040
 architecture.
-The code port was made starting with the [ADX_UnO_V1.3](https://github.com/WB2CBA/ADX-UnO-V1.3) as available at the GitHub site by Nov,15th 2022,
-no automatic synchronization mechanism has been established with it.
-The overall logic cycle of the firmware can be seen in the following figure.
-![Alt Text](docs/ADX-rp2040_activity.png "ADX-rp2040 Activity")
-
 
 * I/O.
  A mapping between the Arduino I/O pin and the rp2040 GPIO ports has been made, symbolic names were adjusted and coding macros used to replace
@@ -99,9 +96,14 @@ on flash memory, however additional definitions to initialize and commit values 
 The rp2040 processor lacks the zero cross comparator interrupt used by the ADX transceiver and thus it has been replaced using a firmware
 definition on one of the PIO of the processor (RISC processor).
 
-The main functionality is contained in the file ADX_rp2040.ino which is compiled by using the Arduino IDE supplied with the stated libraries, different subsystems
-are made dependent on configuration directives (#define on the microcode, typically to signal the introduction of a porting segment by means of the 
-#define RP2040 directive) which mades the relevant code segments  to be included or excluded from the build process.
+The code port was made starting with the [ADX_UnO_V1.3](https://github.com/WB2CBA/ADX-UnO-V1.3) as available at the GitHub site by Nov,15th 2022,
+no automatic synchronization mechanism has been established with it. The overall logic cycle of the firmware can be seen in the following figure.
+![Alt Text](docs/ADX-rp2040_activity.png "ADX-rp2040 Activity")
+
+The main functionality is contained in the file ADX_rp2040.ino which is compiled by using the Arduino IDE supplied with the stated
+libraries, different subsystems are made dependent on configuration directives (#define on the microcode, typically to signal the
+introduction of a porting segment by means of the #define RP2040 directive) which mades the relevant code segments  to be included
+or excluded from the build process.
 
 ```
 mandatory files
@@ -174,7 +176,6 @@ The receiver, Si5351 clock, RF driver and final stages are identical to the stan
 accomodate the different signaling and voltages used.
 
 
-
 ### rp2040 pinout assignment
 For circuit design and future expansion several assignmentes has been made on the rp2040 pinout for the following assignment assignment
 
@@ -202,9 +203,9 @@ Like the standard ADX transceiver the design carries three (3) push (normally op
 
 ```
 ¡WARNING!
-The three resistors pulling up the switch voltage from +5Vcc in the ADX transceiver needs to be omitted (not populated) on the PDX transceiver as they
-will feed the corresponding GPIO pins with +5Vcc instead of +3.3Vcc and might result in the damage of the processor. The firmware uses internal pull up
-resistors to replace them.
+The three resistors pulling up the switch voltage from +5Vcc in the ADX transceiver **needs to be omitted (not populated)**
+on the PDX transceiver as they will feed the corresponding GPIO pins with +5Vcc instead of +3.3Vcc and might result in the
+**damage** of the processor. The firmware uses internal pull up resistors to replace them.
 ```
 
 ### LED
@@ -231,7 +232,8 @@ Operation of the Si5351 clock generator is identical as in the ADX transceiver w
 
 ```
 ¡WARNING!
-The calibration process is manual as per the ADX transceiver (see the original method as described on Barb's web page and blog).
+The calibration process is manual as per the ADX transceiver (see the original method as described on Barb's web page and blog), the hardware
+support a future implementation of an automatic calibration procedure which isn't been implemented in the firmware.
 ```
 
 ### Receiver
@@ -274,6 +276,12 @@ minimal modifications.
 The daughterboard schematic is as follows:
 
 ![Alt Text](docs/PDX2ADX_DaughterBoard_V1.1_Schematic.jpg "ADX2PDX Schematic")
+
+```
+¡WARNING!
+**ADX2PDX daughter board is still under development and test**
+```
+
 
 ```
 ¡WARNING!
