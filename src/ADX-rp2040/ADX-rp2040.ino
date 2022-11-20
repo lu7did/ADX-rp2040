@@ -145,7 +145,7 @@
 /*--------------------------------------------------
  * Program configuration parameters
  */
-//#define DEBUG                1
+//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
@@ -330,11 +330,21 @@ void setup()
  */
 #ifdef RP2040   
 
+/*--------
+ * Initialize switches
+ */
   gpio_init(UP);
   gpio_init(DOWN);
   gpio_init(TXSW);
 
+/*---- 
+ * Initialize RX command
+ */
   gpio_init(RX);
+
+ /*---
+  * Initialize LED
+  */
 
   gpio_init(WSPR);
   gpio_init(JS8);
@@ -342,15 +352,25 @@ void setup()
   gpio_init(FT8);
   gpio_init(TX);
 
-
+/*-----
+ * Set direction of input ports
+ */
   gpio_set_dir(UP, GPIO_IN);
   gpio_set_dir(DOWN, GPIO_IN);
   gpio_set_dir(TXSW, GPIO_IN);
+
+/*-----
+ * Pull-up for input ports 
+ * (Warning! See hardware instructions
+ */
 
   gpio_pull_up(TXSW);
   gpio_pull_up(DOWN);
   gpio_pull_up(UP);
 
+/*---
+ * Set output ports
+ */
   gpio_set_dir(RX, GPIO_OUT);
   gpio_set_dir(TX, GPIO_OUT);
   gpio_set_dir(WSPR, GPIO_OUT);
@@ -358,9 +378,17 @@ void setup()
   gpio_set_dir(FT4, GPIO_OUT);
   gpio_set_dir(FT8, GPIO_OUT);
 
+/*----  
+ * Digital input pin, it's an ADC port to allow further development of DSP based inputs
+ */
+
   gpio_init(FSKpin);
   gpio_set_dir(FSKpin, GPIO_IN);
   gpio_pull_up(FSKpin);
+
+/*---  
+ * Initialice I2C sub-system
+ */
 
   Wire.setSDA(I2C_SDA);
   Wire.setSCL(I2C_SCL);
@@ -437,12 +465,10 @@ void loop()
   UP_State = digitalRead(UP);
   DOWN_State = digitalRead(DOWN);
 
-#ifdef DEBUG
-  if (UP_State == LOW || DOWN_State == LOW) {
-    _INFOLIST("%s UP_State=%d DOWN_State=%d\n", __func__, UP_State, DOWN_State);
-  }
-#endif //DEBUG
-
+/*----
+ * UP(Pressed) && DOWN(Pressed) && !Transmitting
+ * Start band selection mode
+ */
 
   if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
     delay(100);
@@ -453,7 +479,10 @@ void loop()
     }
   }
 
-
+/*----
+ * UP(Pressed) && DOWN(!Pressed) and !Transmitting
+ * Increase mode in direct sequence
+ */
 
   if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0)) {
     delay(100);
@@ -464,9 +493,7 @@ void loop()
         mode = 4;
       }
 
-
-
-      addr = 40;
+      addr = 40;                   //Save current mode in EEPROM
       EEPROM.put(addr, mode);
 
 #ifdef RP2040
@@ -476,8 +503,12 @@ void loop()
     }
   }
 
+/*----
+ * UP(!Pressed) && DOWN(Pressed) && !Transmitting
+ * Change mode in the opposite sequence
+ * 
+ */
   DOWN_State = digitalRead(DOWN);
-
   if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0)) {
     delay(50);
 
@@ -501,6 +532,9 @@ void loop()
     }
   }
 
+/*----
+ * If the TX button is pressed then activate the transmitter until the button is released
+ */
   TXSW_State = digitalRead(TXSW);
 
   if ((TXSW_State == LOW) && (TX_State == 0)) {
@@ -592,13 +626,11 @@ void loop()
   int k = 0;
 
   while ( FSK > 0 ) {                                //Iterate up to MAX_TRY times looking for signal to transmit
-
-    if (pioirq == true) {
-
-      pioirq = false;
-      FSK = VOX_MAXTRY;
-      if (period > 0) {
-        codefreq = FSK_USEC / period;
+    if (pioirq == true) {                            //The interrupt handler produced a new period value
+      pioirq = false;                                //clear the condition to allow the next to happen
+      FSK = VOX_MAXTRY;                              //restore the "silence counter", a valid frequency reading extends it
+      if (period > 0) {                              //If the period is above zero compute the frequency
+        codefreq = FSK_USEC / period;                 
       } else {
         codefreq = 0;
       }
@@ -612,7 +644,6 @@ void loop()
           Frequency IS NOT changed on the first sample
           ----------------------------------------------------*/
         if (FSKtx == 0) {
-
           TX_State = 1;
           digitalWrite(TX, HIGH);
           digitalWrite(RX, LOW);
@@ -631,7 +662,9 @@ void loop()
            by less than 4 Hz.
         */
         if (abs(int(codefreq - prevfreq)) >= FSK_ERROR) {
-          si5351.set_freq(((freq + codefreq) * 100ULL), SI5351_CLK0);
+          unsigned long fx=((unsigned long)(freq+codefreq))*100ULL;
+          _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n",__func__,freq,codefreq,fx);
+          si5351.set_freq(fx, SI5351_CLK0);
           prevfreq = codefreq;
         }
       }
