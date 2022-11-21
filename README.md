@@ -226,8 +226,8 @@ Due to the smaller drawing capability and lower output voltage of the GPIO pins 
 
 Operation of the Si5351 clock generator is identical as in the ADX transceiver with minor differences, it's being used as:
 
-* CLK0, receiver oscillator.
-* CLK1, transmitter oscilator and FSK generator.
+* CLK0, transmitter oscilator and FSK generator.
+* CLK1, receiver oscillator.
 * CLK2, calibration reference signal.
 
 ```
