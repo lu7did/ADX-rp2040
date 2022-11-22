@@ -299,6 +299,7 @@ The following fixes needs to be applied to the prototype daughterboard
 Connect Raspberry Pico +3.3V (pin 36) to the +3.3V pin on the Arduino socket.
 Cut the trace between Raspberry Pico GP15 (pin 20) to the pin header labeled as ATU
 Run a wire from the Raspberry Pico GP27 (pin 32) to the pin header labeled as ATU
+Solder pin 5 & 6 of the LM393 chip together and wire them to ground.
 Solder with a small blob of tin the proper connection of the JP1 and JP2 according with the comparator to be used.
 ```
 
