@@ -240,23 +240,6 @@ The Low Pass Filter (actually more than that) is needed to suppress unwanted spu
 The design is identical than the ADX Transceiver.
 
 
-#### MOSFET based comparator
-
-This is the simplest one as the incoming signal, close to a senoidal form is used to trigger the conduction of a simple MOSFET, the resulting signal is
-as follows as measured in the drain of the MOSFET (JP2-1)
-
-![Alt Text](docs/MAP007_FET_10K_SC.jpg "Digital input signal (FSK), MOSFET")
-
-Some mods are needed in both the PDX board and the ADX board for this comparator to properly work:
-
-```
-Modifications on the PDX board or ADX board or ADX2PDX board.
-* R1 needs to be changed to 10K.
-* JP1 needs to be shorted between pins 2-3.
-* JP2 needs to be shorted between pins 1-2.
-```
-
-
 ### ADX2PDX daughter board
 
 Barb (WB2CBA) created a small daughterboard, dubbed as ADX2PDX, which can be used to transform a standard ADX transceiver into a PDX transceiver with 
