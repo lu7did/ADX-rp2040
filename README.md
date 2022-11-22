@@ -31,7 +31,10 @@ which in some cases is implementing partially some features. For migration purpo
 
 
 Although the first version of the new transceiver board was made after a wired (but functional) version of it Barb helped
- very substantially by creating the PCB design for the ADX2PDX board (included in this site).
+very substantially by creating the PCB design for the ADX2PDX board (included in this site). The following illustration
+shows the wired prototype used for the firmware development and other evaluation purposes for future projects.
+
+![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
 
 The ADX2PDX daughter board connect with an ADX board with minimal modifications using the Arduino Nano socket and provides
 a functionality similar to the main board.
@@ -281,7 +284,6 @@ In order to accomodate the daughterboard on top of the standard ADX board some c
 This approach allows an existing ADX board to be upgraded with the new processor but to develop either a wired prototype
  or a custom board using the rp2040 processor instead of the ATMEGA328p are also options.
 
-![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
 
 ```
 Construction note
