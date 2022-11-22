@@ -25,47 +25,17 @@ the architecture differences between both platforms.
 
 
 I started the porting of the firmware assuming an ADX transceiver board, no more but no less features, but being powered
- by a Raspberry Pico board; the porting of the software was a great deal of a learning curve not only for the rp2040
- architecture being different from the ATMEGA382p and being more powerful, but also a substantially different build chain
- which in some cases is implementing partially some features. For migration purposed the Raspberry Pi Pico board was used.
+by a Raspberry Pico board; the porting of the software was a great deal of a learning curve not only for the rp2040
+architecture being different from the ATMEGA382p and being more powerful, but also a substantially different build chain
+which in some cases is implementing partially some features. For migration purposed the Raspberry Pi Pico board was used.
 
 ![ADX2PDX](docs/PDX_ADX2PDX.jpeg "ADX2PDX daughter board") 
 
 Although the first version of the new transceiver board was made after a wired (but functional) version of it Barb helped
  very substantially by creating the PCB design for the ADX2PDX board (included in this site).
 
-
 The ADX2PDX daughter board connect with an ADX board with minimal modifications using the Arduino Nano socket and provides
- a functionality similar to the main board.
-
-This approach allows an existing ADX board to be upgraded with the new processor but to develop either a wired prototype
- or a custom board using the rp2040 processor instead of the ATMEGA328p are also options.
-
-![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
-
-## MOSFET comparator
-
-In order for the ADX2PDX daughter board to work properly using the MOSFET comparator the following connections needs
-to be made on it.
-
-* JP1 2-3
-* JP2 1-2
-
-Also the following modifications (mods) are required on the ADX board
-
-```
-MODS
-
-* Replace R4 by a wire (short circuit).
-* Replace R1 by 1K (instead of 1M).
-* Replace R2 by 10K (instead of 4K7).
-
-```
-The above changes ensures that the MOSFET in the daughter board (Q1 BS170) is  polarized in a way that a 1V pk-pk
-audio signal will make it conduct as shown in the following picture where the signals at the gate and drain of Q1
-are shown.
-
-![Alt Text](docs/AUDIO_FSK.png "MOSFET Signal")
+a functionality similar to the main board.
 
 
 
@@ -310,12 +280,61 @@ In order to accomodate the daughterboard on top of the standard ADX board some c
 * Remove R12,R13 and R14 to avoid +5Vcc to reach the GPIO pins of the rp2040 rated for operation at +3.3V and prevent potential damage. 
 ```
 
+
+This approach allows an existing ADX board to be upgraded with the new processor but to develop either a wired prototype
+ or a custom board using the rp2040 processor instead of the ATMEGA328p are also options.
+
+![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
+
 ```
 Construction note
 For building flexibility both the MOSFET and CI based comparators are provided in the daughter board but only one
 must be connected, even if both can physically be present the selections of the JP1 and JP2 jumpers will define
 which one is actually used.
 ```
+
+## MOSFET comparator
+
+In order for the ADX2PDX daughter board to work properly using the MOSFET comparator the following connections needs
+to be made on it.
+
+* JP1 2-3
+* JP2 1-2
+
+Also the following modifications (mods) are required on the ADX board
+
+```
+MODS
+
+* Replace R4 by a wire (short circuit).
+* Replace R1 by 1K (instead of 1M).
+* Replace R2 by 10K (instead of 4K7).
+
+```
+The above changes ensures that the MOSFET in the daughter board (Q1 BS170) is  polarized in a way that a 1V pk-pk
+audio signal will make it conduct as shown in the following picture where the signals at the gate and drain of Q1
+are shown.
+
+![Alt Text](docs/AUDIO_FSK.png "MOSFET Signal")
+
+
+## LM393 comparator
+In order for the ADX2PDX board to work properly using the LM393 comparator the following connections needs
+to be made on it.
+
+* JP1 1-2
+* JP2 2-3
+
+No modifications are needed on the ADX board.
+
+The above changes ensures that the LM393 in the daughter board (U1A LM393) is  polarized in a way that a 1V pk-pk
+audio signal will make it conduct as shown in the following picture where the signals at pin 2 (input) and pin 1
+(output) are shown.
+
+![Alt Text](docs/AUDIO_FSK_COMPA.png "LM393 Signal")
+
+
+
 
 # Testing
 
@@ -328,7 +347,10 @@ Test Setup
                 Oscilloscope UNI-T UTD2052CL 50 MHz
                  
    ADX-QUAD-V1.5 running on a ADX transceiver, WSJT-X on a Raspberry Pi
-   **ADX2PDX daughter board NOT tested as it is still under development and test**
+   The above test were repeated with the following setup
+   ADX-rp2040 running on a standard ADX board, WSJT-X on a MacOS, the set is
+   repeated with both the MOSFET and LM393 comparator setups (with the mods 
+   applied as documented in the hardware section).
 ```
 
 * Unit test.
@@ -378,3 +400,6 @@ Using WSJT-X as a 1800 Hz tone generator, received TEST TONE 1800 Hz (generated 
 	*	Communication, Send a CQ and being answered by another station.
 ![Alt Text](docs/LT7D-LU2EIC_MaidenQSO.png "FT8 answer CQ")
 
+* Results with ADX2PDX daughter board
+
+Results using the ADX2PDX daughter board were identical as per the wired PDX prototype.
