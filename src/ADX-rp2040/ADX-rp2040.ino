@@ -146,6 +146,7 @@
  * Program configuration parameters
  */
 //#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
