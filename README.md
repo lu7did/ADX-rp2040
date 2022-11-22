@@ -72,15 +72,15 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 The main functionality is quite similar to the baseline ADX firmware used, there are three changes needed to adapt the firmware to the rp2040
 architecture.
 
-* I/O.
+* **I/O**.
  A mapping between the Arduino I/O pin and the rp2040 GPIO ports has been made, symbolic names were adjusted and coding macros used to replace
 the primitives to operate it. Proper initialization was initroduces for all ports used.
 
-* EEPROM.
+* **EEPROM**.
 The rp2040 based Raspberry Pi Pico board used to host the porting doesn't have EEPROM available, however the arduino core is able to emulate it
 on flash memory, however additional definitions to initialize and commit values is needed and thus included in the ported code.
  
-* Tone frequency counting.
+* **Tone frequency counting**.
 The rp2040 processor lacks the zero cross comparator interrupt used by the ADX transceiver and thus it has been replaced using a firmware
 definition on one of the PIO of the processor (RISC processor).
 
@@ -124,12 +124,13 @@ Unfortunately the rp2040 doesn't have such a good resource, so the frequency nee
 of experimentation.
 
 
-A PIO processor is configured to generate an interrupt with the rising flank of the signal, a high resolution timer (capable of +/- 1 uSec resolution)
-is used to compute how many ticks can be counted between two sucessive flanks. There is actually no "zero crossing" detection as the GPIO isn't capable to
-trigger interruptions with that condition, but it's triggered when the signal level achieves the ON condition of the input pin. It's assumed the trigger level
-is the same for all cycles at it is not a signal subject to fading, therefore the frequency can be counted by measuring the time elapsed between similar parts of sucessive cycles.
+A PIO processor (16 of them available with the rp2040 architecture) is configured to generate an interrupt with the rising flank of the signal, a high
+resolution timer (capable of +/- 1 uSec resolution) is used to compute how many ticks can be counted between two sucessive flanks. There is actually no
+"zero crossing" detection as the GPIO isn't capable to trigger interruptions with that condition, but it's triggered when the signal level achieves the
+ON condition of the input pin. It's assumed the trigger level is the same for all cycles at it is not a signal subject to fading, therefore the frequency
+can be counted by measuring the time elapsed between similar parts of sucessive cycles. 
 In order for the algorithm to work a signal conditioning needs to be performed by means of external hardware, this can be made either thru a MOSFET or an IC comparator based
- circuit (see hardware for details).
+circuit (see hardware for details).
 The actual measurement accuracy is in the order of +/- 2 Hz in the worst case, which is accurate enough for digital modes.
 
 
@@ -185,10 +186,12 @@ receiver as well as the miscellaneous circuitry such as LED indicators, switches
 ### Switches
 Like the standard ADX transceiver the design carries three (3) push (normally open) switches to signal:
 
-* UP up mode, up band in band setting mode and up frequency in CW mode. Also used to signal the start of the calibration mode on start-up (see below).
-* DOWN down mode, down band in band setting mode and down frequency in CW mode. Also used to signal start of serial configuration terminal on start-up (see below).
-* TX transmit mode, manually set the transceiver in transmission mode, also keyer in CW mode.
+* **UP** change mode, up band in band setting mode and up frequency in CW mode. Also used to signal the start of the calibration mode on start-up (see below).
+* **DOWN** change mode, down band in band setting mode and down frequency in CW mode. Also used to signal start of serial configuration terminal on start-up (see below).
+* **TX** manual transmit, manually set the transceiver in transmission mode, also keyer in CW mode.
 
+The UP/DOWN buttons can be used, if pressed simultaneously to place the transceiver in **Band change** mode, when pressed at the start they can be used
+to place the transceiver in calibration mode, this behavior is identical to the ADX transceiver with it's origiinal firmware.
 ```
 ¡WARNING!
 The three resistors pulling up the switch voltage from +5Vcc in the ADX transceiver **needs to be omitted (not populated)**
@@ -200,14 +203,15 @@ on the PDX transceiver as they will feed the corresponding GPIO pins with +5Vcc 
 
 Like the standard ADX transceiver the design carries four (4) LED to signal the transceiver state:
 
-* WSPR LED, to signal WSPR mode, band1 in band setting operation, calibration mode and terminal mode. Also frequency indicator in CW mode.
-* JS8 LED, to signal JS8 mode, band2 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
-* FT4 LED, to signal FT4 mode, band3 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
-* FT8 LED, to signal FT8 mode, band4 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
-* TX LED, to signal transmission, band setting operation, end of calibration mode and terminal mode, watchdog activated, also keying in CW mode.
+* **WSPR LED**, to signal WSPR mode, band1 in band setting operation, calibration mode and terminal mode. Also frequency indicator in CW mode.
+* **JS8 LED**, to signal JS8 mode, band2 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
+* **FT4 LED**, to signal FT4 mode, band3 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
+* **FT8 LED**, to signal FT8 mode, band4 in band setting operation, end of calibration mode and terminal mode. Also frequency indicator in CW mode.
+* **TX LED**, to signal transmission, band setting operation, end of calibration mode and terminal mode, watchdog activated, also keying in CW mode.
 ```
 ¡WARNING!
-Due to the smaller drawing capability and lower output voltage of the GPIO pins 3mm red LED are recommended for all four.
+Due to the smaller drawing capability and lower output voltage of the GPIO pins 3mm red LED are
+recommended for all five positions
 ```
 
 ### Si5351
@@ -382,6 +386,7 @@ The following tests were performed with DEBUG mode on (#define DEBUG 1):
 	*	Audio in, FSK in 
 Using WSJT-X as a 1800 Hz tone generator, Channel 1 Audio in (AF), Channel 2 Comparator out (FSK)
 Verified voltage levels and operation of the VOX algorithm 
+
 ![Alt Text](docs/AUDIO_IN_FSK_IN.png "Audio response")
 
 	*	Si5351 operation, transmission (CLK0 signal, 7.074 MHz, high level)
@@ -393,6 +398,7 @@ Verified voltage levels and frequency of the clock
 	*	Si5351 operation, reception (CLK1 signal, 7.074 MHz, low level).
 Using WSJT-X as a 1800 Hz tone generator, Channel 1 Si5351 CLK1 (RX), *not* pressing the TX button
 Verified voltage levels and frequency of the clock 
+
 ![Alt Text](docs/SI5351_CLK1.png "RX Clock generation")
 
 	*	Si5351 operation, calibration (CLK2 signal, 1 MHz, low level).
@@ -409,9 +415,11 @@ Using WSJT-X as a 1800 Hz tone generator, received TEST TONE 1800 Hz (generated 
 
 	* On the air test (OTA)
 	*	Communication, Answer a CQ from other station.
+
 ![Alt Text](docs/LU2EIC-LT7D_MaidenQSO.png "FT8 answer CQ")
 
 	*	Communication, Send a CQ and being answered by another station.
+
 ![Alt Text](docs/LT7D-LU2EIC_MaidenQSO.png "FT8 answer CQ")
 
 * Results with ADX2PDX daughter board
