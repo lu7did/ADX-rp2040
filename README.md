@@ -29,7 +29,6 @@ by a Raspberry Pico board; the porting of the software was a great deal of a lea
 architecture being different from the ATMEGA382p and being more powerful, but also a substantially different build chain
 which in some cases is implementing partially some features. For migration purposed the Raspberry Pi Pico board was used.
 
-![ADX2PDX](docs/PDX_ADX2PDX.jpeg "ADX2PDX daughter board") 
 
 Although the first version of the new transceiver board was made after a wired (but functional) version of it Barb helped
  very substantially by creating the PCB design for the ADX2PDX board (included in this site).
@@ -245,15 +244,26 @@ The design is identical than the ADX Transceiver.
 Barb (WB2CBA) created a small daughterboard, dubbed as ADX2PDX, which can be used to transform a standard ADX transceiver into a PDX transceiver with 
 minimal modifications.
 
+The board replaces the Arduino Nano on a standard ADX board, the signals in that socket are rerouted according with the rp2040 pin
+assignment. Additional support circuits are added as well:
+
+* +5Vcc regulator, the ADX depends on the +5Vcc regulator present on the Arduino Nano.
+* Comparators (MOSFET and LM393) needed to process the signal for the rp2040 firmware counting methods to process.
+* Miscellanea hardware needed for the rp2040 to operate.
+
+A picture of the prototype daughter board is shown
+
+![ADX2PDX](docs/PDX_ADX2PDX.jpeg "ADX2PDX daughter board") 
+
+
 The daughterboard schematic is as follows:
 
 ![Alt Text](docs/PDX2ADX_DaughterBoard_V1.1_Schematic.jpg "ADX2PDX Schematic")
 
 ```
 ¡WARNING!
-**ADX2PDX daughter board is still under development and test**
+**ADX2PDX daughter board is at the prototype stage**
 ```
-
 
 ```
 ¡WARNING!
@@ -274,7 +284,28 @@ Construction note
 For building flexibility both the MOSFET and CI based comparators are provided in the daughter board but only one
 must be connected, even if both can physically be present the selections of the JP1 and JP2 jumpers will define
 which one is actually used.
+Some modifications on the ADX2PDX daughter board and the ADX board needs to be applied depending on the 
+comparator used, please see text below for further details.
 ```
+
+## ADX2PDX daughter board prototype fixes
+
+The following fixes needs to be applied to the prototype daughterboard
+```
+Connect Raspberry Pico +3.3V (pin 36) to the +3.3V pin on the Arduino socket.
+Cut the trace between Raspberry Pico GP15 (pin 20) to the pin header labeled as ATU
+Run a wire from the Raspberry Pico GP27 (pin 32) to the pin header labeled as ATU
+Solder with a small blob of tin the proper connection of the JP1 and JP2 according with the comparator to be used.
+```
+
+## ADX2PDX PCB
+
+Barb (WBA2CBA) created an initial sketch for the PCB layout which is shown as follows
+![Alt Text](docs/PDX2ADX_Component_side_layout.jpg "ADX2PDX Component Side")
+![Alt Text](docs/PDX2ADX_Solder_side_layout.jpg "ADX2PDX Solder Side")
+
+The Gerber files for this board can be found in the following [link](http://www.github.com/WB2CBA/ADX).
+
 
 ## MOSFET comparator
 
