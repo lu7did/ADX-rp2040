@@ -385,12 +385,13 @@ The following tests were performed with DEBUG mode on (#define DEBUG 1):
 * Integration test.
 
 	*	Audio in, FSK in 
+
 Using WSJT-X as a 1800 Hz tone generator, Channel 1 Audio in (AF), Channel 2 Comparator out (FSK)
 Verified voltage levels and operation of the VOX algorithm 
 
-![Alt Text](docs/AUDIO_IN_FSK_IN.png "Audio response")
 
 	*	Si5351 operation, transmission (CLK0 signal, 7.074 MHz, high level)
+
 Using WSJT-X as a 1800 Hz tone generator, Channel 1 Si5351 CLK0 (TX), pressing the TX button
 Verified voltage levels and frequency of the clock 
 
