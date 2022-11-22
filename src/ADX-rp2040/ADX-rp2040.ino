@@ -145,7 +145,7 @@
 /*--------------------------------------------------
  * Program configuration parameters
  */
-#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
@@ -634,7 +634,6 @@ void loop()
       } else {
         codefreq = 0;
       }
-      _INFOLIST("%s FSK=%d f=%lu Hz\n",__func__,FSK,codefreq);
       /*------------------------------------------------------*
         Filter out frequencies outside the allowed bandwidth
         ------------------------------------------------------*/

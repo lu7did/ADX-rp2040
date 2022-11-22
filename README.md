@@ -43,12 +43,31 @@ This approach allows an existing ADX board to be upgraded with the new processor
 
 ![PDX wired prototype](docs/PDX_wiredprototype.jpeg "PDX wired prototype") 
 
+## MOSFET comparator
+
+In order for the ADX2PDX daughter board to work properly using the MOSFET comparator the following connections needs
+to be made on it.
+
+* JP1 2-3
+* JP2 1-2
+
+Also the following modifications (mods) are required on the ADX board
+
 ```
-Warning!
-At this time the ADX 2 PDX board is under test, the unit test of the firmware has been conducted with a full wired
-version of the transceiver shown in a picture above.  The TFT LCD display and serial debug shown in the picture are for development
- purposes only and aren't supported by the distributed firmware.
+MODS
+
+* Replace R4 by a wire (short circuit).
+* Replace R1 by 1K (instead of 1M).
+* Replace R2 by 10K (instead of 4K7).
+
 ```
+The above changes ensures that the MOSFET in the daughter board (Q1 BS170) is  polarized in a way that a 1V pk-pk
+audio signal will make it conduct as shown in the following picture where the signals at the gate and drain of Q1
+are shown.
+
+![Alt Text](docs/AUDIO_FSK.png "MOSFET Signal")
+
+
 
 # Firmware
 ## Build environment
