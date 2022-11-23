@@ -122,6 +122,7 @@
 #include "hardware/uart.h"
 #include <WiFi.h>
 #include <Time.h>
+#include "ADX-rp2040.h"
 
 /*-------------------------------------------------
  * IDENTIFICATION DIVISION.
@@ -132,37 +133,6 @@
 #define VERSION 1.0
 #define BUILD     1
 
-/*-------------------------------------------------
- * Macro expansions
- */
-#define digitalWrite(x,y) gpio_put(x,y)
-#define digitalRead(x)  gpio_get(x)
-
-#define BOOL2CHAR(x)  (x==true ? "True" : "False")
-#undef  _NOP
-#define _NOP (byte)0
-
-/*--------------------------------------------------
- * Program configuration parameters
- */
-//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
-
-#undef  UART
-#define BAUD            115200
-#define FSK_IDLE          1000    //Standard wait without signal
-#define FSK_ERROR            4
-#define FSKMIN             300    //Minimum FSK frequency computed
-#define FSKMAX            3000    //Maximum FSK frequency computed
-#define FSK_USEC       1000000    //Constant to convert T to f
-#define VOX_MAXTRY          15    //VOX control cycles
-
-/*-----------------------------------------------------
- * External references to freqPIO variables and methods
- */
-extern volatile uint32_t   period;
-extern bool pioirq;
-extern void PIO_init();
-
 /*------------------------------------------------------
  * Main variables
  */
@@ -170,29 +140,6 @@ char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
-/*-------------------------------------------------------
- * Debug and development aid tracing
- * only enabled if DEBUG is defined previously
- */
-#ifdef DEBUG
-
-#ifdef  UART    //Can test with the IDE, USB based, serial port or the UART based external serial port
-#define _SERIAL Serial1
-#else
-#define _SERIAL Serial
-#endif //UART
-
-#define _INFOLIST(...) \
-  do { \
-    strcpy(hi,"@"); \
-    sprintf(hi+1,__VA_ARGS__); \
-    _SERIAL.write(hi); \
-    _SERIAL.flush(); \
-  } while (false)
-//#define _INFOLIST(...)  strcpy(hi,"@");sprintf(hi+1,__VA_ARGS__);_SERIAL.write(hi);_SERIAL.flush();
-#else //!DEBUG
-#define _INFOLIST(...) (void)0
-#endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
  *                                 End of porting definitions
@@ -309,7 +256,6 @@ void setup()
   delay(200);
   _SERIAL.flush();
 #endif //DEBUG
-
 
 #ifndef RP2040         //This is the original ADX_UnO port definitions, nullified by the porting
   pinMode(UP, INPUT);
