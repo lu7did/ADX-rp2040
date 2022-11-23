@@ -93,36 +93,24 @@
 //     times which indicates that Calibration value is saved.
 // 10- Power off ADX.
 //*******************************[ LIBRARIES ]*************************************************
-#include <si5351.h>
-#include "Wire.h"
-#include <EEPROM.h>
 /*---------------------------------------------------------------------------------------------
                                  PORTING DEFINES
    The following defines are used for porting and testing purposes
   ---------------------------------------------------------------------------------------------*/
 #define RP2040    1
 
-#ifdef RP2040
+#ifndef RP2040
+#include <si5351.h>
+#include "Wire.h"
+#include <EEPROM.h>
+#endif //RP2040
 
+
+#ifdef RP2040
 /*-----------------------------------------------
-   Pico Arduino CORE includes
+   ADX-rp2040 includes, headers and definition
 */
-#include <stdint.h>
-#include "hardware/watchdog.h"
-#include "pico/stdlib.h"
-#include "pico/binary_info.h"
-#include "hardware/gpio.h"
-#include "hardware/sync.h"
-#include "hardware/structs/ioqspi.h"
-#include "hardware/structs/sio.h"
-#include <stdio.h>
-#include "hardware/pwm.h"
-#include "pico/multicore.h"
-#include "hardware/adc.h"
-#include "hardware/uart.h"
-#include <WiFi.h>
-#include <Time.h>
-#include "pico/util/datetime.h"
+
 #include "ADX-rp2040.h"
 
 /*-------------------------------------------------
@@ -144,9 +132,9 @@ uint32_t prevfreq = 0;
 /*------------------------------------------------------
  * Set internal time by default
  */
-struct tm timeinfo;
-struct tm timeprev;
-time_t t_ofs=0;
+struct tm timeinfo;        //current time
+struct tm timeprev;        //epoch time
+time_t t_ofs=0;            //time correction after sync (0 if not sync-ed)
 
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -443,10 +431,27 @@ void setup()
  * Assign initial mode
  */
   Mode_assign();
-  _INFOLIST("%s setup completed successfully\n", __func__);
+  _INFOLIST("%s transceiver mode set to (%d)\n", __func__,mode);
+
+
+/*---------------------
+ * test excerpt
+ * REMOVE AFTER TEST HAS BEEN PERFORMED
+ */
+ // Define LDPC parameters
+ 
+ #define FT8_LDPC_N (174)                        ///< Number of bits in the encoded message (payload with LDPC checksum bits)
+ #define FT8_LDPC_K (91)                         ///< Number of payload bits (including CRC)
+ #define FT8_LDPC_M (83)                         ///< Number of LDPC checksum bits (FT8_LDPC_N - FT8_LDPC_K)
+ #define FT8_LDPC_N_BYTES ((FT8_LDPC_N + 7) / 8) ///< Number of whole bytes needed to store 174 bits (full message)
+ #define FT8_LDPC_K_BYTES ((FT8_LDPC_K + 7) / 8) ///< Number of whole bytes needed to store 91 bits (payload + CRC only)
+ 
+ uint8_t a91[FT8_LDPC_K_BYTES];
+ uint16_t x=ft8_crc(a91, 96 - 14);
+
+  _INFOLIST("%s finalized Ok\n", __func__);
 
 }
-
 //**************************[ END OF SETUP FUNCTION ]************************
 
 //***************************[ Main LOOP Function ]**************************

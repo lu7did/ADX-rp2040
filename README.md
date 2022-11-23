@@ -111,9 +111,7 @@ freqPIO.pio.h
 
 ```
 
-
-
-### Transmission Algorithms
+## Transmission Algorithms
 
 The ADX transceiver by Barb (WB2CBA) owes in part it's popularity to it's simplicity, and no small part of it derives from the very simple, yet effective, way
 to process incoming audio signals to derive that is the PSK tone currently being sent by the host program and direct the transmitter to operate at a base
@@ -147,6 +145,18 @@ the trigger point might suffers some variations making the actual timing between
 might present noises which trigger false counts.
 
 ```
+
+## Manual time sync
+
+In order to operate with small signals an accurate clock capable of defining the boundaries of a transmission frame is needed.
+Without an RTC module or the capability to sync with an Internet based server (thru the NTP protocol) the internal clock of the
+Raspberry pico is accurate but not in sync, so a mechanism to sync that clock is provided.
+The synchronization is as follows.
+
+* Start the board by plugging it, keep the UP button pressed while doing that.
+* When during the setup the UP button is pressed a time sync procedure is started, this is signaled with all leds blinking.
+* When in that state use an accurate clock to wait till the top of the minute (sec 00 of each minute) and when there release the UP button.
+* From that moment on the internal clock will track the time with the seconds aligned with the reference provided (starting with 00:00:00).
 
 
 # Hardware
