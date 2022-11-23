@@ -24,7 +24,7 @@
 /*--------------------------------------------------
  * Program configuration parameters
  */
-//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 
 #undef  UART
 #define BAUD            115200

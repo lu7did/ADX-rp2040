@@ -122,6 +122,7 @@
 #include "hardware/uart.h"
 #include <WiFi.h>
 #include <Time.h>
+#include "pico/util/datetime.h"
 #include "ADX-rp2040.h"
 
 /*-------------------------------------------------
@@ -140,11 +141,18 @@ char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
+/*------------------------------------------------------
+ * Set internal time by default
+ */
+struct tm timeinfo;
+struct tm timeprev;
+time_t t_ofs=0;
+
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
  *                                 End of porting definitions
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-//*******************************[ VARIABLE DECLERATIONS ]*************************************
+//*******************************[ VARIABLE DECLARATIONS ]*************************************
 uint32_t val;
 int temp;
 uint32_t val_EE;
@@ -361,13 +369,53 @@ void setup()
   si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
   _INFOLIST("%s si5351 clock initialization completed\n", __func__);
 
-
+  /*--------
+   * If DOWN is found pressed on startup then enters calibration mode
+   */
+  
   if ( digitalRead(DOWN) == LOW ) {
 
     _INFOLIST("%s Calibration mode started\n", __func__);
     Calibration();
   }
 
+  /*-------[RP2040]------ Manual time-sync feature
+   * if UP is found pressed on startup then enters manual time sync mode
+   * 
+   */
+ 
+   if ( digitalRead(UP) == LOW ) {
+      _INFOLIST("%s Manual time-sync mode\n",__func__);
+      bool flipLED=true;
+      uint32_t ts=millis();
+      time_t now=time(nullptr)-t_ofs;
+      gmtime_r(&now,&timeprev);
+      _INFOLIST("%s Initial time=[%02d:%02d:%02d]\n",__func__,timeprev.tm_hour,timeprev.tm_min,timeprev.tm_sec);
+
+      while (digitalRead(UP)==LOW) {
+        delay(500);
+        if (millis()-ts > 500) {
+           digitalWrite(WSPR, flipLED);
+           digitalWrite(JS8, flipLED);
+           digitalWrite(FT4, flipLED);
+           digitalWrite(FT8, flipLED);
+           flipLED=!flipLED;
+           ts=millis();
+        }   
+      }
+      t_ofs=time(nullptr);
+      digitalWrite(WSPR, false);
+      digitalWrite(JS8, false);
+      digitalWrite(FT4, false);
+      digitalWrite(FT8, false);
+      _INFOLIST("%s Manual time-synced\n",__func__);
+      now=time(nullptr)-t_ofs;
+      gmtime_r(&now,&timeprev);
+      _INFOLIST("%s Sync time=[%02d:%02d:%02d]\n",__func__,timeprev.tm_hour,timeprev.tm_min,timeprev.tm_sec);
+
+    }
+  /*--- end of time-sync feature ----*/
+   
   /*-------[RP2040] The COMPA interrupt isn't present on the rp2040 and thus it's replaced
            by a PIO based counting mechanism
   */
@@ -405,6 +453,22 @@ void setup()
 void loop()
 {
 
+
+/*-----------------------------------------------------------------------------*
+ *                        Periodic dispatcher section                          *
+ * Housekeeping functions that needs to be run periodically (for not too long) *                        
+ *-----------------------------------------------------------------------------*/
+
+
+ /*---------------------------------------------------------*
+  * Periodic time synchronization test
+  */
+ time_t now=time(0)-t_ofs;
+ gmtime_r(&now,&timeinfo);
+ if (timeinfo.tm_min != timeprev.tm_min) {
+    _INFOLIST("%s time=[%02d:%02d:%02d]\n",__func__,timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec);
+    timeprev=timeinfo;
+ }
 /*------------------------------------------------
  * Explore and handle interactions with the user
  * thru the UP/DOWN or TX buttons
