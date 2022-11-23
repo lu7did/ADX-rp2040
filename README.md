@@ -1,6 +1,6 @@
 # ADX rp2040 Digital Transceiver (ADX_rp2040)
 
-# Overview to Version 1.0
+# Overview to Version 2.0
 
 A brief story of the project start with the excelent ADX Transceiver from Barb (WB2CBA) which can be found at
 
