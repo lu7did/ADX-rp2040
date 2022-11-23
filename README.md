@@ -1,4 +1,4 @@
-# ADX rp2040 Digital Transceiver (ADX_rp2040)
+# ADX rp2040 Digital Transceiver (ADX_rp2040) Version 1.0
 
 # Overview
 
