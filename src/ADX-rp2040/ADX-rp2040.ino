@@ -136,6 +136,9 @@ struct tm timeinfo;        //current time
 struct tm timeprev;        //epoch time
 time_t t_ofs=0;            //time correction after sync (0 if not sync-ed)
 
+
+bool stopCore1=true;
+
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
  *                                 End of porting definitions
@@ -434,20 +437,8 @@ void setup()
   _INFOLIST("%s transceiver mode set to (%d)\n", __func__,mode);
 
 
-/*---------------------
- * test excerpt
- * REMOVE AFTER TEST HAS BEEN PERFORMED
- */
- // Define LDPC parameters
- 
- #define FT8_LDPC_N (174)                        ///< Number of bits in the encoded message (payload with LDPC checksum bits)
- #define FT8_LDPC_K (91)                         ///< Number of payload bits (including CRC)
- #define FT8_LDPC_M (83)                         ///< Number of LDPC checksum bits (FT8_LDPC_N - FT8_LDPC_K)
- #define FT8_LDPC_N_BYTES ((FT8_LDPC_N + 7) / 8) ///< Number of whole bytes needed to store 174 bits (full message)
- #define FT8_LDPC_K_BYTES ((FT8_LDPC_K + 7) / 8) ///< Number of whole bytes needed to store 91 bits (payload + CRC only)
- 
- uint8_t a91[FT8_LDPC_K_BYTES];
- uint16_t x=ft8_crc(a91, 96 - 14);
+
+
 
   _INFOLIST("%s finalized Ok\n", __func__);
 

@@ -19,10 +19,6 @@
 /*----------------------------------------------------------*
  * Adaptation from an original C program into a C++ program *
  *----------------------------------------------------------*/
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
 #include <stdint.h>
 
 // Define FT8 symbol counts
@@ -69,6 +65,3 @@ extern const uint8_t kFT8_LDPC_Mn[FT8_LDPC_N][3];
 extern const uint8_t kFT8_LDPC_num_rows[FT8_LDPC_M];
 
 #endif // _INCLUDE_CONSTANTS_H_
-#ifdef __cplusplus
-    }
-#endif

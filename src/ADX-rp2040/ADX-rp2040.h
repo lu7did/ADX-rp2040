@@ -14,6 +14,9 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 //*                       External libraries used                                               *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <stdint.h>
 #include <si5351.h>
 #include "hardware/watchdog.h"
@@ -57,12 +60,24 @@
 #define FSKMAX            3000    //Maximum FSK frequency computed
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
+
+/*----------------------------------------------------
+ * ft8 definitions
+ */
+//Created by AA1GD Aug. 25, 2021
+//OCTOBER 18, 2021 AT 5:14 PM CDT FIRST ON AIR DECODES WITH THIS
+
+#define MY_CALLSIGN "LU7DZ"
+#define MY_GRID "GF05"
+
 /*-----------------------------------------------------
  * External references to freqPIO variables and methods
  */
 extern volatile uint32_t   period;
 extern bool pioirq;
 extern char hi[128];
+extern unsigned long freq;
+extern bool stopCore1;
 
 extern void PIO_init();
 extern void INIT();
