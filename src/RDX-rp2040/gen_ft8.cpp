@@ -28,8 +28,8 @@
 //CQ calls will always be manually generated
 
 void manual_gen_message(char message[], message_info Station, UserSendSelection stype, char *myCall, char *myGrid){
+  
     char snr_in_string[4];
-    //itoa(Station.self_rx_snr, snr_in_string, 10);
     sprintf(snr_in_string, "%d", Station.self_rx_snr);
 
     if (stype.call_cq){
@@ -128,23 +128,24 @@ void auto_gen_message(char message[], message_info Station, char *myCall, char *
 
 void generate_ft8(char message[], uint8_t tone_sequence[])
 {
-    //int message_length = strlen(message);
     // First, pack the text data into binary message
+
     uint8_t packed[FT8_LDPC_K_BYTES];
     int rc = pack77(message, packed);
 
     if (rc < 0)
     {
-        printf("Cannot parse message!\n");
-        printf("RC = %d\n", rc);
+        _INFOLIST("%s Cannot parse message! RC = %d\n", __func__,rc);
     }
 
-    printf("Packed data: ");
+    _INFOLIST("%s Packed data: ",__func__);
     for (int j = 0; j < 10; ++j)
     {
-        printf("%02x ", packed[j]);
+      
+        sprintf(hi,"%02x ", packed[j]);
+        _SERIAL.print(hi);
     }
-    printf("\n");
+    _SERIAL.print("\n");
 
     int num_tones = FT8_NN;
 
@@ -152,12 +153,13 @@ void generate_ft8(char message[], uint8_t tone_sequence[])
 
     genft8(packed, tone_sequence);
 
-    printf("FSK tones: ");
+    _INFOLIST("%s FSK tones: ",__func__);
     for (int j = 0; j < num_tones; ++j)
     {
-        printf("%d", tone_sequence[j]);
+        sprintf(hi,"%d", tone_sequence[j]);
+        _SERIAL.print(hi);
     }
-    printf("\n");
+    _SERIAL.print("\n");
 
     return;
 }

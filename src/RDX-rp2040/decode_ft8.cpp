@@ -32,9 +32,11 @@
 const float fft_norm = 2.0f / nfft;
 
 //AA1GD-added array of structures to store info in decoded messages 8/22/2021
+//LU7DZ-do not understant why, but until I do I left there         11/25/2022
 
 //setup fft freq output power, which will be accessible by both cores
 //maybe should be put in decode_ft8.c?
+
 uint8_t mag_power[num_blocks * kFreq_osr * kTime_osr * num_bins] = {0};
 waterfall_t power = {
     .num_blocks = num_blocks,
@@ -44,7 +46,6 @@ waterfall_t power = {
     .mag = mag_power};
 
 volatile int offset = 0;
-//volatile float max_mag = -120.0f;
 
 kiss_fftr_cfg fft_cfg;
 
@@ -81,8 +82,6 @@ void inc_extract_power(int16_t signal[])
         kiss_fft_scalar timedata[nfft];
         kiss_fft_cpx freqdata[nfft / 2 + 1];
         float mag_db[nfft / 2 + 1];
-
-        //printf("same sample in decode: %d\n", signal[420]); //this works
         // Extract windowed signal block
         for (int pos = 0; pos < nfft; ++pos)
         {
@@ -92,9 +91,7 @@ void inc_extract_power(int16_t signal[])
             //timedata[pos] = window[pos] * signal[(time_sub * subblock_size) + pos] / 2048.0f;
             timedata[pos] = signal[(time_sub * subblock_size) + pos] / 2048.0f;
         }
-        //printf("right before kiss_fftr\n");
         kiss_fftr(fft_cfg, timedata, freqdata);
-        //printf("right after kiss_fftr\n");
 
         // Compute log magnitude in decibels
         for (int idx_bin = 0; idx_bin < nfft / 2 + 1; ++idx_bin)
@@ -103,15 +100,14 @@ void inc_extract_power(int16_t signal[])
             mag_db[idx_bin] = 10.0f * log10f(1E-12f + mag2 * fft_norm * fft_norm);
         }
         
-        //printf("computed log magnitude\n");
         // Loop over two possible frequency bin offsets (for averaging)
         for (int freq_sub = 0; freq_sub < power.freq_osr; ++freq_sub)
         {
             for (int pos = 0; pos < power.num_bins; ++pos)
             {
                 
-                //printf("ith loop of pos is: %d\n",pos);
                 float db = mag_db[pos * power.freq_osr + freq_sub];
+
                 // Scale decibels to unsigned 8-bit range and clamp the value
                 // Range 0-240 covers -120..0 dB in 0.5 dB steps
 
@@ -119,13 +115,10 @@ void inc_extract_power(int16_t signal[])
                 power.mag[offset] = (scaled < 0) ? 0 : ((scaled > 255) ? 255 : scaled);
                 power.mag[offset] = scaled;
                 offset++;
-                //printf("offset: %d\n", *offset);
                 
             }
         }
     }
-    //printf("the counter offset:%d \n",offset);
-    //printf("finished an extraction\n");
     
     return;
 }
@@ -134,12 +127,13 @@ void inc_extract_power(int16_t signal[])
 // Oct. 1, 2021 trying to implement again
 // the signal needs to be 3/2 (1.5) times as long as nfft
 // Oct. 2, 2021 got time_osr = 1 incremental decoding working
+
 void inc_collect_power(){
     size_t fft_work_size;
     kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
 
-    printf("Sample rate %d Hz, %d blocks, %d bins\n", sample_rate, num_blocks, num_bins);
-    printf("This is size of array mag_power in bytes: %d\n", num_blocks * kFreq_osr * kTime_osr * num_bins);
+    _INFOLIST("%s Sample rate %d Hz, %d blocks, %d bins\n", sample_rate, num_blocks, num_bins);
+    _INFOLIST("%s This is size of array mag_power in bytes: %d\n", num_blocks * kFreq_osr * kTime_osr * num_bins);
 
     void *fft_work = malloc(fft_work_size);
     fft_cfg = kiss_fftr_alloc(nfft, 0, fft_work, &fft_work_size);
@@ -149,16 +143,14 @@ void inc_collect_power(){
     for (uint idx_block = 0; idx_block < num_blocks; idx_block++){
         collect_adc();
         uint32_t fdx_block= (uint32_t)idx_block;
-        rp2040.fifo.push(fdx_block);
-        
-        //multicore_fifo_push_blocking(idx_block);
+        rp2040.fifo.push(fdx_block);    //LU7DZ-Fix to accomodate the Arduino IDE core API
     }
 
     //may want to wait or get a message back from core 1 before memory is freed
+    
     busy_wait_ms(160); //waits a bit for fft to finish. May want to replace with a confirmation back from core 1
     free(fft_work);
-    printf("done collecting power\n");
-    printf("resetting offset and max mag\n");
+    _INFOLIST("%s done collecting power, rest offset and max mag\n",__func__);
     offset = 0;
     return;
 }
@@ -176,7 +168,7 @@ int decode_ft8(message_info message_list[])
 
     //if using calc_noise type 1 or 2 use the below two funcions. type 3 goes right before calc_snr
     int noise_avg = calc_noise(&power,NULL);
-    printf("Noise average: %d \n", noise_avg);
+    _INFOLIST("%s Noise average: %d \n", noise_avg);
 
     // Initialize hash table pointers
     for (int i = 0; i < kMax_decoded_messages; ++i)
@@ -188,10 +180,8 @@ int decode_ft8(message_info message_list[])
     for (int idx = 0; idx < num_candidates; ++idx)
     {
         //AA1GD added to try correctly stop program when decoded>kMax_decoded_messages
-        //printf("num decoded %d \n",num_decoded);
         if(num_decoded >= kMax_decoded_messages){
-            printf("decoded more than kMax_decoded_messages\n");
-            printf("Decoded %d messages and force ended\n", num_decoded);
+            _INFOLIST("%s decoded more than kMax_decoded_messages, Decoded %d messages and force ended\n", __func__,num_decoded);
             return(num_decoded);
         }
 
@@ -209,15 +199,15 @@ int decode_ft8(message_info message_list[])
         {
             if (status.ldpc_errors > 0)
             {
-                //printf("LDPC decode: %d errors\n", status.ldpc_errors);
+                _INFOLIST("%s LDPC decode: %d errors\n", __func__,status.ldpc_errors);
             }
             else if (status.crc_calculated != status.crc_extracted)
             {
-                //printf("CRC mismatch!\n");
+                _INFOLIST("%s  CRC mismatch!\n",__func__);
             }
             else if (status.unpack_status != 0)
             {
-                //printf("Error while unpacking!\n");
+                _INFOLIST("%s Error while unpacking!\n",__func__);
             }
             continue;
         }
@@ -230,17 +220,14 @@ int decode_ft8(message_info message_list[])
         {
             if (decoded_hashtable[idx_hash] == NULL)
             {
-                //printf("Found an empty slot\n");
                 found_empty_slot = true;
             }
             else if ((decoded_hashtable[idx_hash]->hash == message.hash) && (0 == strcmp(decoded_hashtable[idx_hash]->text, message.text)))
             {
-                //printf("Found a duplicate [%s]\n", message.text);
                 found_duplicate = true;
             }
             else
             {
-                //printf("Hash table clash!\n");
                 // Move on to check the next entry in hash table
                 idx_hash = (idx_hash + 1) % kMax_decoded_messages;
             }
@@ -254,14 +241,12 @@ int decode_ft8(message_info message_list[])
 
             int snr = calc_snr(&power,cand,noise_avg);
 
-            //printf("%x     %3d %+4.2f %4d ~  %s\n", num_decoded, cand->score, time_sec, freq_hz, message.text);
-            //printf("about to ");
-            printf("%x   %3d  %+3.1f %4d ~  %s\n", num_decoded, snr, time_sec, (int) freq_hz, message.text);
-
-            //printf("estimated snr: %d \n \n", snr);
+            _INFOLIST("%s %x   %3d  %+3.1f %4d ~  %s\n", __func__,num_decoded, snr, time_sec, (int) freq_hz, message.text);
+            _INFOLIST("%s estimated snr: %d \n \n", __func__,snr);
 
             //AA1GD-add message info to the global variable message_list
             //message_list[num_decoded].self_rx_snr = snr;
+            
             message_list[num_decoded].self_rx_snr = snr;
             message_list[num_decoded].af_frequency = (uint16_t) freq_hz;
             message_list[num_decoded].time_offset = time_sec;
@@ -270,8 +255,7 @@ int decode_ft8(message_info message_list[])
             ++num_decoded;
         }
     }
-    printf("Decoded %d messages\n", num_decoded);
-
+    _INFOLIST("%s Decoded %d messages\n", __func__,num_decoded);
     return num_decoded;
 }
 
@@ -307,20 +291,16 @@ void identify_message_types(message_info message_list[], char *my_callsign){
 
         char *first_word;
         first_word = strtok(message_buffer,delim);
-        //printf("%d first %s\n",i, first_word);
 
         char *second_word;
         second_word = strtok(NULL,delim);
-        //printf("%d second %s\n",i, second_word);
 
         char *third_word;
         third_word = strtok(NULL,delim);
-        //printf("%d third %s\n",i, third_word);
 
         //fourth word supports CQ extra tags like DX, POTA, QRP
         char *fourth_word;
         fourth_word = strtok(NULL,delim);
-        //printf("%d fourth %s\n",i, fourth_word);
 
         if (strlen(second_word) > 3 && !fourth_word){
             strcpy(message_list[i].station_callsign, second_word);
@@ -354,7 +334,7 @@ void identify_message_types(message_info message_list[], char *my_callsign){
             strcpy(message_list[i].snr_report, third_word);
         }
 
-        //printf("station callsign: %s grid square: %s snr report: %s\n\n",message_list[i].station_callsign, message_list[i].grid_square, message_list[i].snr_report);
+        _INFOLIST("%s station callsign: %s grid square: %s snr report: %s\n",__func__,message_list[i].station_callsign, message_list[i].grid_square, message_list[i].snr_report);
     }
     return;
 }

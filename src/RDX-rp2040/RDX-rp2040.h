@@ -89,7 +89,8 @@
 */
 
 #define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
-#define AFpin          26  //Audio received (centered at Vcc/2)
+#define ADC0           26  //Audio received (centered at Vcc/2)
+#define ADC_CHANNEL     0
 /*---
     I2C
 */

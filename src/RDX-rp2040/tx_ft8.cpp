@@ -14,10 +14,6 @@
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 #include "tx_ft8.h"
 #include "pico/stdlib.h"
-//#include "GUI.h"
-
-//#include "../peripheral_util/pico_si5351/si5351.h"
-//#include "../peripheral_util/pico_keypad4x4/pico_keypad4x4.h"
 
 void tune(int RF_freq){
 
@@ -30,11 +26,14 @@ void send_ft8(uint8_t tones[], uint32_t RF_freq, uint16_t AF_freq){
 
     uint32_t tx_freq;
     for (uint8_t i = 0; i < 79; i++){
+      
         //uint32_t tone_start_time = time_us_32();
         //tone_wait_time._private_us_since_boot = tone_start_time + 160000;
+        
         tone_wait_time._private_us_since_boot = time_us_32() + 160000;
         tx_freq = 4 * (RF_freq + AF_freq + tones[i] * 6.25);
-        printf("%d ", tones[i]);
+        sprintf(hi,"%d ", tones[i]);
+        _SERIAL.print(hi);
         
         //@@@ SI_SETFREQ(1, tx_freq);
     	  //@@@ si_evaluate();
@@ -53,8 +52,7 @@ void send_ft8(uint8_t tones[], uint32_t RF_freq, uint16_t AF_freq){
         //sleep_ms(160);
         busy_wait_until(tone_wait_time);
     }
-
-    printf("\ndone sending\n");
+    _SERIAL.print(" done\n");
 }
 
 float get_swr(){

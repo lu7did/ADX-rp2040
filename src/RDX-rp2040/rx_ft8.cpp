@@ -2,8 +2,8 @@
 #include "RDX-rp2040.h"
 #include "constants.h"
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
- * constants.c
- * Constats definitions for ft8 libraries
+ * rx_ft8
+ * Setup the ADC and start conversions
  * Code excerpts from
  * originally from ft8_lib by Karlis Goba (YL3JG)
  * excerpts taken from pi_ft8_xcvr by Godwin Duan (AA1GD) 2021
@@ -18,20 +18,29 @@
 #include "hardware/dma.h"
 
 #include "decode_ft8.h"
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*  Variables                                                                               *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 const int CAPTURE_DEPTH = block_size;
-
 int16_t fresh_signal[block_size] = {0};
-
 uint dma_chan;
 dma_channel_config cfg;
 
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*  Setup and operate ADC                                                                   *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*---------------------------
+ * setup_adc()
+ * initial setup of the ADC conversion and DMA transfer
+ */
 void setup_adc(){
 // Set up the adc
+
     // Init GPIO for analogue use: hi-Z, no pulls, disable digital input buffer.
-    adc_gpio_init(26 + CAPTURE_CHANNEL);
+    adc_gpio_init(ADC0 + ADC_CHANNEL);
     adc_init();
-    adc_select_input(CAPTURE_CHANNEL);
+    adc_select_input(ADC_CHANNEL);
     adc_fifo_setup(
         true,    // Write each completed conversion to the sample FIFO
         true,    // Enable DMA data request (DREQ)
@@ -47,8 +56,10 @@ void setup_adc(){
     // continuously) or > 95 (take samples less frequently than 96 cycle
     // intervals). This is all timed by the 48 MHz ADC clock.
     adc_set_clkdiv(48000000 / sample_rate); //6khz sampling
-    printf("Arming DMA\n");
+    
+    _INFOLIST("%s Arming DMA\n",__func__);
     sleep_ms(1000);
+
     // Set up the DMA to start transferring data as soon as it appears in FIFO
     dma_chan = dma_claim_unused_channel(true);
     cfg = dma_channel_get_default_config(dma_chan);
@@ -62,8 +73,12 @@ void setup_adc(){
     channel_config_set_dreq(&cfg, DREQ_ADC);
 }
 
+/*-----------------
+ * collect_adc()
+ * periodically collect samples at the defined sample rate
+ */
 void collect_adc(){
-        //printf("Starting capture\n");
+
         dma_channel_configure(dma_chan, &cfg,
             fresh_signal,    // dst
             &adc_hw->fifo,  // src
@@ -71,12 +86,11 @@ void collect_adc(){
             true            // start immediately
         );
         adc_run(true);
+        
         // Once DMA finishes, stop any new conversions from starting, and clean up
         // the FIFO in case the ADC was still mid-conversion.
-
         //right here it's gonna wait for 160 ms. can run some things on this core while it's working
         dma_channel_wait_for_finish_blocking(dma_chan);
-        //printf("Capture finished\n");
         adc_run(false);
         adc_fifo_drain();
 }

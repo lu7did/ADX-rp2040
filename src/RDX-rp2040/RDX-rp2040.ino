@@ -6,8 +6,16 @@
 // Version 1.0
 //
 // This is the implementation of a rp2040 firmware for a monoband, self-contained FT8 transceiver based on
-// the ADX hardware architecture.
+// the ADX hardware architecture, using Karliss Goba's ft8lib and leveraging on several other projects
 //
+//*********************************************************************************************************
+//* 
+//* Code excerpts from different sources
+//*
+//* originally from ft8_lib by Karlis Goba (YL3JG), great library and the only one beyond WSJT-X itself
+//* excerpts taken from pi_ft8_xcvr by Godwin Duan (AA1GD) 2021
+//* excerpts taken from Orange_Thunder by Pedro Colla (LU7DZ) 2018
+//* 
 //*********************************************************************************************************
 // Required Libraries and build chain components
 //
@@ -298,6 +306,10 @@ void setup1(void)
     
 } //end of the ft8 setup
 
+/*---------------------------------------
+ * this is the main ft8 decoding cycle, 
+ * called once per loop() execution
+ */
 void ft8_run() {
     
         char message[25] = {0};
@@ -307,8 +319,7 @@ void ft8_run() {
         {
             if (autosend)
             {
-                printf("autosending\n");
-                printf("still here? %s\n", CurrentStation.station_callsign);
+                _INFOLIST("%s autosending station %s\n",__func__,CurrentStation.station_callsign);
                 auto_gen_message(message, CurrentStation, MY_CALLSIGN, MY_GRID);
             }
             else
@@ -318,70 +329,39 @@ void ft8_run() {
                 sendChoices.call_cq = sendChoices.send_73 = sendChoices.send_grid = sendChoices.send_RR73 = sendChoices.send_RRR = sendChoices.send_Rsnr = sendChoices.send_snr = false;
             }
 
-            printf("message to be sent: %s\n", message);
+            _INFOLIST("%s message to be sent: %s\n",__func__,message);
             generate_ft8(message, tones);
-            //display message in my messages in yellow
-            //add_to_my_messages(message, 0xFFE0);
-
-            printf("SENDING FOR 12.64 SECONDS\n\n");
-            //gpio_put(LED_PIN, 1);
-            // ---> send_ft8(tones, rf_freq, CurrentStation.af_frequency);
-            /*-----[ADX-rp2004-plus]--------
-             * integration fix with ADX, freq held the base frequency
-             */
+            _INFOLIST("%s sending for 12.64 secs\n",__func__);
             send_ft8(tones, freq, CurrentStation.af_frequency);
-            //gpio_put(LED_PIN, 0);
             send = false;
             justSent = true;
         }
 
         else
         {
-            printf("RECIEVING FOR 12.8 SECONDS\n\n");
-
+            _INFOLIST("%s receiving for 12.8 secs\n",__func__);
             inc_collect_power();
-
-            printf("Handler max time: %d\n", handler_max_time);
-        
+            _INFOLIST("%s handler max time: %d\n",__func__,handler_max_time);        
             uint32_t decode_begin = time_us_32();
             uint8_t num_decoded = decode_ft8(message_list);
-            printf("decoding took this long: %d us\n", time_us_32() - decode_begin);
-
+            _INFOLIST("%s decoding took this long: %ul us\n", time_us_32() - decode_begin);
             decode_begin = time_us_32(); //i'll just reuse this variable
-
-            //testing example
-/*             message_list[0].self_rx_snr = -23;
-            message_list[0].time_offset = -0.1;
-            message_list[0].af_frequency = 2222;
-            strcat(message_list[0].full_text, "AA1GD KI5KGU R+04"); */
-            
-            //message_list[0].addressed_to_me = true;
-
             identify_message_types(message_list, MY_CALLSIGN);
-            printf("identification took this long: %d us\n", time_us_32() - decode_begin);
-            printf("finished identifying message types\n");
+            
+            _INFOLIST("%s identification took this long: %ul us\n", time_us_32() - decode_begin);
             justSent = false;
-
-            //reset_progress_bar(); 
-            //update_current_time(&current_hms, &config_hms, config_us);
-            //update_time_display(&current_hms);
-
-           // update_main_messages(message_list, num_decoded, cq_only, &current_hms);
-
-            //update_main_messages(message_list,1,false,&current_hms);
         }
 
         int selected_station = -1; //default is no response
         int rTB = -1;              //rTB stands for responseTypeBuffer
 
-        printf("\nWAITING 2 SECONDS FOR USER INPUT\n");
-        printf("Enter station to respond to: ");
+        _INFOLIST("%s Waiting 2 secs for user input\n",__func__);
 
         if (autosend){
             for (int i = 0; i < kMax_decoded_messages; i++){
                 if (message_list[i].addressed_to_me){
                     selected_station = i; //if autosending, finds the first occurence of callsign and automatically responds
-                    printf("autoselected to %d\n", selected_station);
+                    _INFOLIST("%s autoselected to %d\n",__func__,selected_station);
                     send = true;
                     break;
                 }
@@ -389,7 +369,7 @@ void ft8_run() {
         }
         else
         {
-            printf("Enter response type: 0 for CQ, 1 for grid, 2 for snr, 3 for Rsnr, 4 for RRR, 5 for RR73, 6 for 73, 7+ for no choice:\n");
+            _INFOLIST("%s Enter response type: 0 for CQ, 1 for grid, 2 for snr, 3 for Rsnr, 4 for RRR, 5 for RR73, 6 for 73, 7+ for no choice:\n",__func__);
         }
 
         //while modulo greater than 12.8, OR aborted
@@ -488,9 +468,9 @@ void ft8_run() {
         }
 */
         //reset message_list
-        printf("clearing %d bytes of message_list\n", sizeof(message_list));
+        _INFOLIST("%s clearing %d bytes of message_list\n", __func__,sizeof(message_list));
         memset(message_list, 0, sizeof(message_list));
-        printf("done a loop!\n");
+        _INFOLIST("%s done a loop!\n",__func__);
         return;
 }        
 

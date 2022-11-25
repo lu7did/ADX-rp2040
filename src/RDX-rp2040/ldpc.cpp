@@ -272,10 +272,6 @@ static float fast_tanh(float x)
         return 1.0f;
     }
     float x2 = x * x;
-    //float a = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
-    //float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
-    //float a = x * (10395.0f + x2 * (1260.0f + x2 * 21.0f));
-    //float b = 10395.0f + x2 * (4725.0f + x2 * (210.0f + x2));
     float a = x * (945.0f + x2 * (105.0f + x2));
     float b = 945.0f + x2 * (420.0f + x2 * 15.0f);
     return a / b;
@@ -284,10 +280,6 @@ static float fast_tanh(float x)
 static float fast_atanh(float x)
 {
     float x2 = x * x;
-    //float a = x * (-15015.0f + x2 * (19250.0f + x2 * (-5943.0f + x2 * 256.0f)));
-    //float b = (-15015.0f + x2 * (24255.0f + x2 * (-11025.0f + x2 * 1225.0f)));
-    //float a = x * (-1155.0f + x2 * (1190.0f + x2 * -231.0f));
-    //float b = (-1155.0f + x2 * (1575.0f + x2 * (-525.0f + x2 * 25.0f)));
     float a = x * (945.0f + x2 * (-735.0f + x2 * 64.0f));
     float b = (945.0f + x2 * (-1050.0f + x2 * 225.0f));
     return a / b;
