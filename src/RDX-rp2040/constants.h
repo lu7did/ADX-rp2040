@@ -14,7 +14,7 @@
 #define _INCLUDE_CONSTANTS_H_
 
 #include <stdint.h> 
-#include "ADX-rp2040.h"
+#include "RDX-rp2040.h"
 
 /*----------------------------------------------------------*
  * Adaptation from an original C program into a C++ program *

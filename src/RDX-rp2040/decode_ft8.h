@@ -1,6 +1,6 @@
 #pragma once
 #include "decode.h"
-#include "./fft/kiss_fftr.h"
+#include "kiss_fftr.h"
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                      Decoding parameters                                                              *
 /*                              Tune for performance and capacity considerations                                         *

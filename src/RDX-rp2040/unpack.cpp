@@ -2,7 +2,7 @@
 // Common configuration resources and definitions
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 #include <Arduino.h>
-#include "ADX-rp2040.h"
+#include "RDX-rp2040.h"
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * unpack.cpp 
  * unpack ft8 message functions

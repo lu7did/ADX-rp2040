@@ -2,7 +2,7 @@
 // Common configuration resources and definitions
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 #include <Arduino.h>
-#include "ADX-rp2040.h"
+#include "RDX-rp2040.h"
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * decode_ft8.cpp 
  * ft8 decoding functions
@@ -21,7 +21,7 @@
 #include "constants.h"
 #include "crc.h"
 
-#include "./fft/kiss_fftr.h"
+#include "kiss_fftr.h"
 
 #include "decode_ft8.h"
 #include "rx_ft8.h"

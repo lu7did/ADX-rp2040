@@ -1,5 +1,5 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//                                              ADX_rp2040                                                 *
+//                                              RDX_rp2040                                                 *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 // Pedro (Pedro Colla) - LU7DZ - 2022
 //
@@ -61,6 +61,43 @@
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
 
+
+/*----
+   Output control lines
+*/
+#define RX              2  //RX Switch
+
+/*---
+   LED
+*/
+#define WSPR            7  //WSPR LED
+#define JS8             6  //JS8 LED
+#define FT4             5  //FT4 LED
+#define FT8             4  //FT8 LED
+
+#define TX              3  //TX LED
+
+/*---
+   Switches
+*/
+#define UP             10  //UP Switch
+#define DOWN           11  //DOWN Switch
+#define TXSW            8  //RX-TX Switch
+
+/*---
+   Signal input pin
+*/
+
+#define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
+#define AFpin          26  //Audio received (centered at Vcc/2)
+/*---
+    I2C
+*/
+#define I2C_SDA        16  //I2C SDA
+#define I2C_SCL        17  //I2C SCL
+
+#define SI5351_REF     25000000UL  //change this to the frequency of the crystal on your si5351’s PCB, usually 25 or 27 MHz
+
 /*----------------------------------------------------
  * ft8 definitions
  */
@@ -69,17 +106,16 @@
 
 #define MY_CALLSIGN "LU7DZ"
 #define MY_GRID "GF05"
-
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                         External References                                              *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 /*-----------------------------------------------------
  * External references to freqPIO variables and methods
  */
-extern volatile uint32_t   period;
-extern bool pioirq;
 extern char hi[128];
 extern unsigned long freq;
 extern bool stopCore1;
 
-extern void PIO_init();
 extern void INIT();
 extern void Calibration();
 extern void Band_Select();
