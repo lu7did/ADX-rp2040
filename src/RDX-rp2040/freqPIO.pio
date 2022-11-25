@@ -1,0 +1,93 @@
+; MIT License
+; 
+; Copyright (c) 2022 Daniel Garcia-Briseno
+; 
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+; 
+; The above copyright notice and this permission notice shall be included in all
+; copies or substantial portions of the Software.
+; 
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+; SOFTWARE.
+
+.program freqPIO
+
+; Stall on rising edge of signal of port GPIO 27 and send an IRQ to be
+; served by main system
+
+; Wait for rising edge
+
+wait 1 pin 0
+
+; Notify the system software via irq that a rising edge had occur
+; irq wait means to wait for software to acknowledge the irq before
+; continuing. rel means let the irq be relative to the state machine.
+; by using "0 rel" on all state machines, software will see a different
+; interrupt source for each state machine. Technically state machines
+; can set any irq source, so in order to know where the irq is coming from
+; it's best to set 0 rel
+
+irq wait 0 rel
+
+; Wait now for the falling edge in order to avoid fast responses leading
+; to false counts
+
+wait 0 pin 0
+
+% c-sdk {
+    /**
+     * Initializer for the freqPIO program
+     * @param[in] pio the PIO instance to use
+     * @param[in] sm state machine to use for the PIO instance
+     * @param[in] offset Offset into PIO memory to place the program into
+     * @param[in] pin used to receive the signal to watch
+     */
+
+    static inline void freqPIO_program_init(PIO pio, uint sm, uint offset, uint pin) {
+
+        // Enable the IRQ source
+        // The reason for doing interrupt0 + sm:
+        // IRQ sources are enabled per irq flag. Since the irq flag being set depends on the state
+        // machine because of the "0 rel", we want to make sure we're enabling the correct interrupt
+        // source for the state machine the program is loaded into. 
+
+        pio_set_irq0_source_enabled(pio, (pio_interrupt_source)(pis_interrupt0 + sm), true);
+
+        // Make sure the interrupt starts cleared. It should already be cleared, so this should
+        // basically be a no-op. I call it defensive programming.
+
+        pio_interrupt_clear(pio, sm);
+
+        // Build the configuration for the state machine
+
+        pio_sm_config config = freqPIO_program_get_default_config(offset);
+
+        // Set up autopull to pull the TX Fifo into the OSR
+        // This is what actually makes the "out" instruction wait
+        // for input from software.
+        // params are (config, shift_right (ignored here), autopull (true), pull threshold (1 bit))
+
+        sm_config_set_out_shift(&config, true, true, 1);
+
+        // Map the GPIO pin to be used to the state machine running the firmware
+
+        sm_config_set_in_pins(&config, pin);
+        pio_gpio_init(pio, pin);
+
+        // Load the config and execute the state machine
+
+
+        pio_sm_init(pio, sm, offset, &config);
+        pio_sm_set_enabled(pio, sm, true);
+    }
+%}
