@@ -9,13 +9,13 @@
 // the ADX hardware architecture, using Karliss Goba's ft8lib and leveraging on several other projects
 //
 //*********************************************************************************************************
-//* 
+//*
 //* Code excerpts from different sources
 //*
 //* originally from ft8_lib by Karlis Goba (YL3JG), great library and the only one beyond WSJT-X itself
 //* excerpts taken from pi_ft8_xcvr by Godwin Duan (AA1GD) 2021
 //* excerpts taken from Orange_Thunder by Pedro Colla (LU7DZ) 2018
-//* 
+//*
 //*********************************************************************************************************
 // Required Libraries and build chain components
 //
@@ -136,6 +136,8 @@
 char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
+char my_callsign[16];
+char my_grid[8];
 
 /*------------------------------------------------------
    Set internal time by default
@@ -146,9 +148,9 @@ time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
 bool stopCore1 = true;
 
 /*-------------------------------------------------------
- * ft8 definitions
- */
- 
+   ft8 definitions
+*/
+
 message_info CurrentStation;
 UserSendSelection sendChoices;
 message_info message_list[kMax_decoded_messages]; // probably needs to be memset cleared before each decode
@@ -156,8 +158,12 @@ message_info message_list[kMax_decoded_messages]; // probably needs to be memset
 
 bool send = false;
 bool justSent = false; //must recieve right after sending
-bool autosend = true;
+
+//bool autosend = true;
+bool autosend=false;   //this will force receiving only for testing purposes
+
 bool cq_only = false;
+
 uint64_t config_us;
 uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
@@ -196,283 +202,311 @@ Si5351 si5351;
 void core1_irq_handler()
 {
 
-/*-------------------------------------
- * 
- * Copy capture_buf to signal_for_processing array, take fft and save to power, check for user keypad input
- */
-    while (rp2040.fifo.available())
-    
-    {   
-        uint32_t handler_start = time_us_32();
-        uint32_t fdx = rp2040.fifo.pop();
-        uint16_t idx = (uint16_t) fdx;
+  /*-------------------------------------
 
-/*-------
- * extract signal for processing
- */
-        for(int i = 0; i < nfft; i++){
-            fresh_signal[i] -= DC_BIAS;
-        }
-        inc_extract_power(fresh_signal);
-/*-------
- * processing shouldn't last more than 160 mSecs
- */
-        uint32_t handler_time = (time_us_32() - handler_start)/1000;
-        if (handler_time > handler_max_time){
-            handler_max_time = handler_time;
-        }
+     Copy capture_buf to signal_for_processing array, take fft and save to power, check for user keypad input
+  */
+
+  _INFOLIST("%s starting\n",__func__);
+  
+  while (rp2040.fifo.available())
+
+  {
+    _INFOLIST("%s fifo.available()\n",__func__);
+
+    uint32_t handler_start = time_us_32();
+    uint32_t fdx = rp2040.fifo.pop();
+    uint16_t idx = (uint16_t) fdx;
+
+    /*-------
+       extract signal for processing
+    */
+    for (int i = 0; i < nfft; i++) {
+      fresh_signal[i] -= DC_BIAS;
     }
-    multicore_fifo_clear_irq(); // Clear interrupt
+    inc_extract_power(fresh_signal);
+    /*-------
+       processing shouldn't last more than 160 mSecs
+    */
+    uint32_t handler_time = (time_us_32() - handler_start) / 1000;
+    if (handler_time > handler_max_time) {
+      handler_max_time = handler_time;
+    }
+  }
+  //multicore_fifo_clear_irq(); // Clear interrupt
 }
 
 /*-------------------------------
- * setup1()
- * core1 is held from processing till released from the main setup() when ready to go
- */
+   setup1()
+   core1 is held from processing till released from the main setup() when ready to go
+*/
 void setup1(void)
 
 {
-/*--------------------  
- * wait till cleared
- */
-    uint32_t tc1 = time_us_32();
-    while (stopCore1) {
-      while (time_us_32()-tc1 < 1000) {}
-      tc1=time_us_32();
-    }
-
- /*---------   
-  * configure core1 interrupt handler
+  /*--------------------
+     wait till cleared
   */
-    printf("second core running!\n");
-    multicore_fifo_clear_irq();
-    irq_set_exclusive_handler(SIO_IRQ_PROC1, core1_irq_handler);
-    irq_set_enabled(SIO_IRQ_PROC1, true);
+  uint32_t tc1 = time_us_32();
+  while (stopCore1) {
+    while (time_us_32() - tc1 < 1000) {}
+    tc1 = time_us_32();
+  }
 
-/*----------
- * wait forever, actual processing is made at the interrupt handler
- * the delay is just to avoid a smart-ass compiler optimization to 
- * remove the infinite loop altogether
- */
-    while (true)
-    {
-        delay(1000);
-    }
+  /*---------
+     configure core1 interrupt handler
+  */
+  _INFOLIST("%s  second core running!\n",__func__);
+  delay(1000);
+  multicore_fifo_clear_irq();
+  _INFOLIST("%s fifo_clear_irq() done\n",__func__);
+  delay(1000);
+  irq_set_exclusive_handler(SIO_IRQ_PROC1, core1_irq_handler);
+  _INFOLIST("%s irq_set_exclusive_handler() done\n",__func__);
+  delay(1000);
+
+  irq_set_enabled(SIO_IRQ_PROC1, true);
+  _INFOLIST("%s irq_set_enabled() done\n",__func__);
+  delay(1000);
+
+  /*----------
+     wait forever, actual processing is made at the interrupt handler
+     the delay is just to avoid a smart-ass compiler optimization to
+     remove the infinite loop altogether
+  */
+  while (true)
+  {
+    delay(10000);
+    _INFOLIST("%s looping()\n",__func__);
+    delay(1000);
+
+  }
 }
 /*-----------------
- * setup ft8 operation
- */
+   setup ft8 operation
+*/
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  ft8 processing                                                                          *
 //*  setup and handle the ft8 processing, this is actually the orchestation of the ft8lib    *
 //*  functions by Karliss Goba                                                               *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
- void setup_ft8() {
+void setup_ft8() {
 
-/*--------
- * the original overclock the processor, the initial version of this
- * firmware won't
- */
-    //overclocking the processor
-    //133MHz default, 250MHz is safe at 1.1V and for flash
-    //if using clock > 290MHz, increase voltage and add flash divider
-    //see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
+  /*--------
+     the original overclock the processor, the initial version of this
+     firmware won't
+  */
+  //overclocking the processor
+  //133MHz default, 250MHz is safe at 1.1V and for flash
+  //if using clock > 290MHz, increase voltage and add flash divider
+  //see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
 
-    //vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
-    //@@@ set_sys_clock_khz(250000,true);
+  //vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+  //@@@ set_sys_clock_khz(250000,true);
 
-/*------
- * setup the ADC processing
- */
-    setup_adc();
+  /*------
+     setup the ADC processing
+  */
+  //setup_adc();
+  _INFOLIST("%s setup_adc() completed\n",__func__);
 
-/*------
- * make the Hanning window for fft work
- */
-    make_window();
-    
+  /*------
+     make the Hanning window for fft work
+  */
+  //make_window();
+_INFOLIST("%s make_window() completed\n",__func__);
+  delay(1000);
 
-/*------    
- * freed the semaphore which where core1 is being held, so start it
- */
-    stopCore1=false;
+  /*------
+     freed the semaphore which where core1 is being held, so start it
+  */
+  //stopCore1 = false;
+  _INFOLIST("%s Core1 semaphore cleared\n",__func__);
 
-/*------
- * wait to settle
- */
+  /*------
+     wait to settle
+  */
 
-    sleep_ms(1000);   
-    
-    
+  sleep_ms(1000);
+  _INFOLIST("%s completed\n",__func__);
+
+
 } //end of the ft8 setup
 
 /*---------------------------------------
- * this is the main ft8 decoding cycle, 
- * called once per loop() execution
- */
+   this is the main ft8 decoding cycle,
+   called once per loop() execution
+*/
 void ft8_run() {
-    
-        char message[25] = {0};
-        uint8_t tones[79] = {0};
 
-        if (send)
-        {
-            if (autosend)
-            {
-                _INFOLIST("%s autosending station %s\n",__func__,CurrentStation.station_callsign);
-                auto_gen_message(message, CurrentStation, MY_CALLSIGN, MY_GRID);
-            }
-            else
-            {
-                manual_gen_message(message, CurrentStation, sendChoices, MY_CALLSIGN, MY_GRID);
-                //reset send choices
-                sendChoices.call_cq = sendChoices.send_73 = sendChoices.send_grid = sendChoices.send_RR73 = sendChoices.send_RRR = sendChoices.send_Rsnr = sendChoices.send_snr = false;
-            }
+  char message[25] = {0};
+  uint8_t tones[79] = {0};
 
-            _INFOLIST("%s message to be sent: %s\n",__func__,message);
-            generate_ft8(message, tones);
-            _INFOLIST("%s sending for 12.64 secs\n",__func__);
-            send_ft8(tones, freq, CurrentStation.af_frequency);
-            send = false;
-            justSent = true;
-        }
+  if (send)
+  {
+    if (autosend)
+    {
+      _INFOLIST("%s autosending station %s\n", __func__, CurrentStation.station_callsign);
+      auto_gen_message(message, CurrentStation, my_callsign, my_grid);
+    }
+    else
+    {
+      manual_gen_message(message, CurrentStation, sendChoices, my_callsign, my_grid);
+      //reset send choices
+      sendChoices.call_cq = sendChoices.send_73 = sendChoices.send_grid = sendChoices.send_RR73 = sendChoices.send_RRR = sendChoices.send_Rsnr = sendChoices.send_snr = false;
+    }
 
-        else
-        {
-            _INFOLIST("%s receiving for 12.8 secs\n",__func__);
-            inc_collect_power();
-            _INFOLIST("%s handler max time: %d\n",__func__,handler_max_time);        
-            uint32_t decode_begin = time_us_32();
-            uint8_t num_decoded = decode_ft8(message_list);
-            _INFOLIST("%s decoding took this long: %ul us\n", time_us_32() - decode_begin);
-            decode_begin = time_us_32(); //i'll just reuse this variable
-            identify_message_types(message_list, MY_CALLSIGN);
-            
-            _INFOLIST("%s identification took this long: %ul us\n", time_us_32() - decode_begin);
-            justSent = false;
-        }
+    _INFOLIST("%s message to be sent: %s\n", __func__, message);
+    generate_ft8(message, tones);
+    _INFOLIST("%s sending for 12.64 secs\n", __func__);
+    send_ft8(tones, freq, CurrentStation.af_frequency);
+    send = false;
+    justSent = true;
+  }
 
-        int selected_station = -1; //default is no response
-        int rTB = -1;              //rTB stands for responseTypeBuffer
+  else
+  {
+    _INFOLIST("%s Receiving cycle starts for 12.8 secs\n", __func__);
+    inc_collect_power();
+    _INFOLIST("%s Energy collection completed max time: %d\n", __func__, handler_max_time);
+    uint32_t decode_begin = time_us_32();
+    //uint8_t num_decoded = decode_ft8(message_list);
+    _INFOLIST("%s Decoding completed time: %ul us\n",__func__,time_us_32() - decode_begin);
+    decode_begin = time_us_32(); //i'll just reuse this variable
+    //identify_message_types(message_list, my_callsign);
+    _INFOLIST("%s Message analysis time: %ul us\n",__func__,time_us_32() - decode_begin);
+    justSent = false;
+  }
 
-        _INFOLIST("%s Waiting 2 secs for user input\n",__func__);
+  int selected_station = -1; //default is no response
+  int rTB = -1;              //rTB stands for responseTypeBuffer
 
-        if (autosend){
-            for (int i = 0; i < kMax_decoded_messages; i++){
-                if (message_list[i].addressed_to_me){
-                    selected_station = i; //if autosending, finds the first occurence of callsign and automatically responds
-                    _INFOLIST("%s autoselected to %d\n",__func__,selected_station);
-                    send = true;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            _INFOLIST("%s Enter response type: 0 for CQ, 1 for grid, 2 for snr, 3 for Rsnr, 4 for RRR, 5 for RR73, 6 for 73, 7+ for no choice:\n",__func__);
-        }
+  _INFOLIST("%s End of cycle, waiting 2 secs for user input\n", __func__);
 
-        //while modulo greater than 12.8, OR aborted
-        
-        //@@@@ uint64_t overtime = (time_us_64() - config_us + config_hms.sec * 1000000) % 15000000;
-        //@@@@ here it needs to be sync with 15 secs edge
-        //This is to react to input       
- /*       
-        uint64_t overtime=0;
-        if (overtime < 12800000){
-            printf("no time to select\n");
-            sleep_us(13000000 - overtime);
-        }
-        while ((time_us_64() - config_us + config_hms.sec * 1000000) % 15000000 > 12800000)
-        {
-            //scan for keypad input... otherwise do nothing
-            
-            
-            char char_selection = pico_keypad_get_key();
+  if (autosend) {
+    for (int i = 0; i < kMax_decoded_messages; i++) {
+      if (message_list[i].addressed_to_me) {
+        selected_station = i; //if autosending, finds the first occurence of callsign and automatically responds
+        _INFOLIST("%s Message analysis completed, selected [%d]\n", __func__, selected_station);
+        send = true;
+        break;
+      }
+    }
+  }
+  else
+  {
+    _INFOLIST("%s Enter response type: 0 for CQ, 1 for grid, 2 for snr, 3 for Rsnr, 4 for RRR, 5 for RR73, 6 for 73, 7+ for no choice:\n", __func__);
+  }
 
-            if (char_selection == '*')
-            { //make this the abort/menu key
-                //goto back to setup
-                goto reconfigure;
-            }
-            
-            
-            if (justSent)
-            {
-                continue;
-            }
+  //while modulo greater than 12.8, OR aborted
+ 
+  time_t now=time(nullptr)-t_ofs;
+  gmtime_r(&now,&timeprev);
 
-            if (!send || autosend)
-            {
-                selected_station = char_to_int(char_selection);
-            }
-            else if (!autosend)
-            {
-                rTB = char_to_int(char_selection);
-            }
 
-            if (selected_station < 0)
-            {
-                send = false;
-            }
-            else if (selected_station < kMax_decoded_messages)
-            {
-                send = true;
-            }
+  while (timeprev.tm_sec != 0 && timeprev.tm_sec != 15 && timeprev.tm_sec != 30 && timeprev.tm_sec != 45) {
+     now=time(nullptr)-t_ofs;
+     gmtime_r(&now,&timeprev);
+  }
+  
+  //uint64_t overtime = (time_us_64() - config_us + timeprev.tm_sec * 1000000) % 15000000;
+  //@@@@ uint64_t overtime = (time_us_64() - config_us + config_hms.sec * 1000000) % 15000000;
+  //@@@@ here it needs to be sync with 15 secs edge
+  //This is to react to input
+  /*
+         uint64_t overtime=0;
+         if (overtime < 12800000){
+             printf("no time to select\n");
+             sleep_us(13000000 - overtime);
+         }
+         while ((time_us_64() - config_us + config_hms.sec * 1000000) % 15000000 > 12800000)
+         {
+             //scan for keypad input... otherwise do nothing
 
-        } //end of while loop
-*/
-        
-/*
-        if (!autosend)
-        {
-            if (rTB == 0)
-            {
-                sendChoices.call_cq = true;
-            }
-            else if (rTB == 1)
-            {
-                sendChoices.send_grid = true;
-            }
-            else if (rTB == 2)
-            {
-                sendChoices.send_snr = true;
-            }
-            else if (rTB == 3)
-            {
-                sendChoices.send_Rsnr = true;
-            }
-            else if (rTB == 4)
-            {
-                sendChoices.send_RRR = true;
-            }
-            else if (rTB == 5)
-            {
-                sendChoices.send_RR73 = true;
-            }
-            else if (rTB == 6)
-            {
-                sendChoices.send_73 = true;
-            }
-        }
-*/
-/*       
-        //need to make autosend automatically select the station
-        if (send)
-        {
-            bool same_station = strcmp(CurrentStation.station_callsign,message_list[selected_station].station_callsign);
-            CurrentStation = message_list[selected_station];
-            //update_current_station_display(CurrentStation, same_station);
-            printf("CurrentStation set to %d\n",selected_station);
-            printf("can callsign be seen? %s\n", CurrentStation.station_callsign);
-        }
-*/
-        //reset message_list
-        _INFOLIST("%s clearing %d bytes of message_list\n", __func__,sizeof(message_list));
-        memset(message_list, 0, sizeof(message_list));
-        _INFOLIST("%s done a loop!\n",__func__);
-        return;
-}        
+
+             char char_selection = pico_keypad_get_key();
+
+             if (char_selection == '*')
+             { //make this the abort/menu key
+                 //goto back to setup
+                 goto reconfigure;
+             }
+
+
+             if (justSent)
+             {
+                 continue;
+             }
+
+             if (!send || autosend)
+             {
+                 selected_station = char_to_int(char_selection);
+             }
+             else if (!autosend)
+             {
+                 rTB = char_to_int(char_selection);
+             }
+
+             if (selected_station < 0)
+             {
+                 send = false;
+             }
+             else if (selected_station < kMax_decoded_messages)
+             {
+                 send = true;
+             }
+
+         } //end of while loop
+  */
+
+  /*
+          if (!autosend)
+          {
+              if (rTB == 0)
+              {
+                  sendChoices.call_cq = true;
+              }
+              else if (rTB == 1)
+              {
+                  sendChoices.send_grid = true;
+              }
+              else if (rTB == 2)
+              {
+                  sendChoices.send_snr = true;
+              }
+              else if (rTB == 3)
+              {
+                  sendChoices.send_Rsnr = true;
+              }
+              else if (rTB == 4)
+              {
+                  sendChoices.send_RRR = true;
+              }
+              else if (rTB == 5)
+              {
+                  sendChoices.send_RR73 = true;
+              }
+              else if (rTB == 6)
+              {
+                  sendChoices.send_73 = true;
+              }
+          }
+  */
+  /*
+          //need to make autosend automatically select the station
+          if (send)
+          {
+              bool same_station = strcmp(CurrentStation.station_callsign,message_list[selected_station].station_callsign);
+              CurrentStation = message_list[selected_station];
+              //update_current_station_display(CurrentStation, same_station);
+              printf("CurrentStation set to %d\n",selected_station);
+              printf("can callsign be seen? %s\n", CurrentStation.station_callsign);
+          }
+  */
+  //reset message_list
+  _INFOLIST("%s End of receiving cycle clearing %d bytes of list sec=%02d\n", __func__, sizeof(message_list),timeprev.tm_sec);
+  memset(message_list, 0, sizeof(message_list));
+  return;
+}
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             setup() (core0)                                              *
@@ -487,7 +521,11 @@ void setup()
   _SERIAL.flush();
 #endif //DEBUG
 
-
+  /*-----------
+   * Data area initialization
+   */
+  strcpy(my_callsign,MY_CALLSIGN);
+  strcpy(my_grid,MY_GRID); 
 
   /*-----------
      System initialization
@@ -518,11 +556,14 @@ void setup()
   }
   /*--- end of time-sync feature ----*/
 
+  setup_ft8();
+  delay(1000);
+  _INFOLIST("%s setup_ft8 completed\n",__func__);
+
   /*--------------------
      Place the receiver in reception mode
   */
   digitalWrite(RX, LOW);
-
   _INFOLIST("%s finalized Ok\n", __func__);
 
 }
@@ -554,6 +595,11 @@ void loop()
      thru the UP/DOWN or TX buttons
   */
   checkButton();
+
+  /*------------------------------------------------
+   * Main FT8 handling cycle
+   */
+   ft8_run();
 
 }
 //*********************[ END OF MAIN LOOP FUNCTION ]*************************
@@ -692,7 +738,7 @@ EXIT_TX:
 //******************************[ Band  Assign Function ]******************************
 
 void Band_assign() {
-  
+
   digitalWrite(WSPR, LOW);
   digitalWrite(JS8, LOW);
   digitalWrite(FT4, LOW);

@@ -37,6 +37,9 @@ dma_channel_config cfg;
 void setup_adc(){
 // Set up the adc
 
+    return;
+
+    _INFOLIST("%s started\n",__func__);
     // Init GPIO for analogue use: hi-Z, no pulls, disable digital input buffer.
     adc_gpio_init(ADC0 + ADC_CHANNEL);
     adc_init();
@@ -71,6 +74,7 @@ void setup_adc(){
 
     // Pace transfers based on availability of ADC samples
     channel_config_set_dreq(&cfg, DREQ_ADC);
+    _INFOLIST("%s completed\n",__func__);
 }
 
 /*-----------------
@@ -79,18 +83,23 @@ void setup_adc(){
  */
 void collect_adc(){
 
+        _INFOLIST("%s started\n",__func__);
         dma_channel_configure(dma_chan, &cfg,
-            fresh_signal,    // dst
+            fresh_signal,    // pointer to where results are placed
             &adc_hw->fifo,  // src
             CAPTURE_DEPTH,  // transfer count
             true            // start immediately
         );
         adc_run(true);
+        _INFOLIST("%s ADC running\n",__func__);
         
         // Once DMA finishes, stop any new conversions from starting, and clean up
         // the FIFO in case the ADC was still mid-conversion.
         //right here it's gonna wait for 160 ms. can run some things on this core while it's working
         dma_channel_wait_for_finish_blocking(dma_chan);
         adc_run(false);
+        _INFOLIST("%s DMA Channel completed\n",__func__);
         adc_fifo_drain();
+        _INFOLIST("%s DMA Channel drained\n",__func__);
+
 }

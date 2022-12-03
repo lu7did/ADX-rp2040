@@ -116,6 +116,8 @@
 extern char hi[128];
 extern unsigned long freq;
 extern bool stopCore1;
+extern char my_callsign[16];
+extern char my_grid[8];
 
 extern void INIT();
 extern void Calibration();

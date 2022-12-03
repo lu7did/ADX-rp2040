@@ -75,7 +75,7 @@ static float max2(float a, float b)
 
 void inc_extract_power(int16_t signal[])
 {   
-    
+    _INFOLIST("%s start\n",__func__);
     // Loop over two possible time offsets (0 and block_size/2)
     for (int time_sub = 0; time_sub < power.time_osr; ++time_sub)
     {
@@ -119,7 +119,7 @@ void inc_extract_power(int16_t signal[])
             }
         }
     }
-    
+    _INFOLIST("%s end\n",__func__);   
     return;
 }
 
@@ -129,6 +129,9 @@ void inc_extract_power(int16_t signal[])
 // Oct. 2, 2021 got time_osr = 1 incremental decoding working
 
 void inc_collect_power(){
+
+     _INFOLIST("%s start\n",__func__);
+
     size_t fft_work_size;
     kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
 
@@ -137,7 +140,7 @@ void inc_collect_power(){
 
     void *fft_work = malloc(fft_work_size);
     fft_cfg = kiss_fftr_alloc(nfft, 0, fft_work, &fft_work_size);
-    printf("starting incremental collection\n");
+    _INFOLIST("%s starting incremental collection\n",__func__);
 
     //PASS IDX_BLOCK THROUGH THE FIFO-this may help with the offset
     for (uint idx_block = 0; idx_block < num_blocks; idx_block++){
@@ -309,7 +312,7 @@ void identify_message_types(message_info message_list[], char *my_callsign){
         }
         
         if(!third_word){
-            third_word = "N/A";
+            strcpy(third_word,"N/A");
         }
         
         if (message_list[i].type_cq){
