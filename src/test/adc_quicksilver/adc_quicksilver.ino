@@ -1,5 +1,5 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//* adc_fft_hires
+//* adc_quicksilver
 //* Sample from the ADC continuously at a particular sample rate
 //* and then compute an FFT over the data
 //* much of this code is from pico-examples/adc/dma_capture/dma_capture.c
@@ -7,6 +7,7 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //* Modified for the RDX project by Pedro E. Colla (LU7DZ) 2022
 //* This is a 12-bit (hi res) version
+//* This is a sketch to model a sliced approach to simultaneously process ADC samples and FFT
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 #include <stdio.h>
@@ -60,6 +61,57 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 Si5351 si5351;
 int32_t  cal_factor     = 0;
+bool flag_first = true;
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ * Sampling parameters
+ * ADC Clock=48 MHz
+ * The sample acquisition time is 2 uSecs thus the maximum divisor is 96
+ * therefore the maximum sampling rate is 500000 per second or 500 KSamples/sec
+ * The value of CLOCK_DIV will define the actual sample rate in this program
+ * a value of 0 equals using 96 as the divider because the restriction will come 
+ * from the ADC conversion rate
+ *    
+ * 0     = 500,000 Hz
+ * 960   = 50,000 Hz
+ * 9600  = 5,000 Hz
+ * 8000  = 6,000 Hz (sampling rate used to process FT8)
+ * 
+  */
+#define ADC_CLOCK 48000000  
+#define CLOCK_DIV 8000
+#define FSAMP (ADC_CLOCK / CLOCK_DIV)
+
+
+// Channel 0 is GPIO26
+#define ADC_PIN   26
+#define CAPTURE_CHANNEL 0
+
+// BE CAREFUL: anything over about 9000 here will cause things
+// to silently break. The code will compile and upload, but due
+// to memory issues nothing will work properly
+//#define NSAMP 1000
+#define NSAMP 960
+
+/*------------
+ * DMA definitions
+ * needs to be global se it is used from various places
+ */
+dma_channel_config cfg;
+uint dma_chan;
+/*----------
+ * Table to convert from energy bin index to frequency
+ */
+float freqs[NSAMP];
+uint16_t idx = 0;
+unsigned long freq =7074000;
+uint16_t cap_buf[NSAMP];
+uint16_t cap_old[NSAMP];
+uint32_t nadc=0;
+uint32_t nproc=0;
+/*---------
+ * Miscelanea
+ */
+char hi[128];
 /*--------------------------------------------------------------------------------------------*
    Initialize DDS Si5351 object
   --------------------------------------------------------------------------------------------*/
@@ -76,51 +128,6 @@ void setup_si5351() {
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_2MA);// Set for reduced power for RX
 
 }
-/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
- * Sampling parameters
- * ADC Clock=48 MHz
- * The sample acquisition time is 2 uSecs thus the maximum divisor is 96
- * therefore the maximum sampling rate is 500000 per second or 500 KSamples/sec
- * The value of CLOCK_DIV will define the actual sample rate in this program
- * a value of 0 equals using 96 as the divider because the restriction will come 
- * from the ADC conversion rate
- *    
- * 0     = 500,000 Hz
- * 960   = 50,000 Hz
- * 9600  = 5,000 Hz
- * 
-  */
-#define ADC_CLOCK 48000000  
-#define CLOCK_DIV 9600
-#define FSAMP (ADC_CLOCK / CLOCK_DIV)
-
-
-// Channel 0 is GPIO26
-#define ADC_PIN   26
-#define CAPTURE_CHANNEL 0
-
-// BE CAREFUL: anything over about 9000 here will cause things
-// to silently break. The code will compile and upload, but due
-// to memory issues nothing will work properly
-#define NSAMP 1000
-
-/*------------
- * DMA definitions
- * needs to be global se it is used from various places
- */
-dma_channel_config cfg;
-uint dma_chan;
-/*----------
- * Table to convert from energy bin index to frequency
- */
-float freqs[NSAMP];
-uint16_t idx = 0;
-unsigned long freq =7074000;
-
-/*---------
- * Miscelanea
- */
-char hi[128];
 
 /*---------
  * This is the actual sampling routine
@@ -265,15 +272,43 @@ void loop() {
  * Define the bin buffer large enough to contain the required number of samples
  * ini
  */
-  uint16_t cap_buf[NSAMP];
-
+  uint8_t  adc_error=0x00;
 
 /*---------------------
  * Perform actual sampling, take NSAMP samples at FSAMP sampling rate
- * place the result on the sampling buffer
+ * place the results on the sampling buffer.
+ * Make it inline in order to better control the slicing process
  */
-  sample(cap_buf);
+  adc_error=0x00;
+  if (flag_first==false) {
+      for (int i=0;i<NSAMP;i++) {
+         cap_old[i]=cap_buf[i];
+      }
+    
+  }
+  adc_fifo_drain();
+  adc_run(false);
+      
+  dma_channel_configure(dma_chan, &cfg,
+      cap_buf,    // dst
+      &adc_hw->fifo,  // src
+      NSAMP,          // transfer count
+      true            // start immediately
+      );
+  adc_run(true);
+  nadc++;
+ 
+uint32_t tstart = time_us_32();
 
+while (true) {   // this is not an infinite loop, it will eventually break either when the ADC finishes or the processing finishes
+  
+  if (flag_first) {
+    
+    //this is the first round, so there is no buffer to process, it's still working, wait
+    dma_channel_wait_for_finish_blocking(dma_chan);
+    flag_first=false;
+    break;
+  }
 /*---------------------
  * Process the fast Fourier transform on the time domain data contained at cap_buf
  */
@@ -287,14 +322,20 @@ void loop() {
   
  /*---------------------
   * pre-process the time domain data, obtain the average energy level and take it as the DC 
-  * component, so remove it.
+  * component, so remove it. Use the previous buffer cap_old[]
   */
     // fill fourier transform input while subtracting DC component
     uint64_t sum = 0;
-    for (int i=0;i<NSAMP;i++) {sum+=cap_buf[i];}
+    for (int i=0;i<NSAMP;i++) {
+      if (dma_channel_is_busy(dma_chan)==false) {
+         adc_error=0x01;
+         break;
+      }
+      sum+=cap_old[i];
+    }
     float avg = (float)sum/NSAMP;
  
-    for (int i=0;i<NSAMP;i++) {fft_in[i]=(float)cap_buf[i]-avg;}
+    for (int i=0;i<NSAMP;i++) {fft_in[i]=(float)cap_old[i]-avg;}
 
 /*----------------------------
  * Compute the actual FFT
@@ -316,6 +357,11 @@ void loop() {
  * Avoid the garbage at bin 0 which will create havoc on the computation
  */
     for (int i = 1; i < NSAMP/2; i++) {
+       if (dma_channel_is_busy(dma_chan)==false) {
+         adc_error=0x02;
+         break;
+      }
+     
       float power = fft_out[i].r*fft_out[i].r+fft_out[i].i*fft_out[i].i;
       if (power>max_power) {
 	       max_power=power;
@@ -331,11 +377,30 @@ void loop() {
  */
     float max_freq = freqs[max_idx];
 
-    sprintf(hi,"Average signal=%0.1f Peak frequency=%0.1f Hz\n",avg,max_freq);
+    sprintf(hi,"adc[%lu] proc[%lu] time(%lu) Average signal=%0.1f Peak frequency=%0.1f Hz\n",nadc,nproc,time_us_32()-tstart,avg,max_freq);
     Serial.print(hi);
 
 /*-----------------------------
- * freed resources
+ * freed resources, this is the end of the paralell processing, if there is time
+ * left because of the ADC read cycle is incomplete just wait for it.
+ * Initial measurements yield the paralell processing takes 42 mSecs while the ADC reading 160 mSecs
+ * even if the actual processing is much heavier when decoding ft8 this is still a lot of time. PEC 04-12-22
  */
     kiss_fft_free(cfg);  
+    adc_error=0x00;
+    nproc++;
+    while(dma_channel_is_busy(dma_chan));
+    break;
+}
+
+/*-------
+ * if exits because of an error condition then reset the cycle 
+ */
+if (adc_error != 0) {
+   sprintf(hi,"adc[%lu] proc[%lu] Processing finalized at %lu uSecs with code=%d\n",nadc,nproc,time_us_32()-tstart,adc_error);
+   Serial.print(hi);
+   flag_first=true;
+}   
+/*---- end of ADC cycle, loop back ------*/
+
 }
