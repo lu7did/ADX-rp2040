@@ -312,7 +312,7 @@ Barb (WBA2CBA) created an initial sketch for the PCB layout which is shown as fo
 ![Alt Text](docs/PDX2ADX_Component_side_layout.jpg "ADX2PDX Component Side")
 ![Alt Text](docs/PDX2ADX_Solder_side_layout.jpg "ADX2PDX Solder Side")
 
-The Gerber files for this board can be found in the following [link](http://www.github.com/LU7DID/ADX-rp2040/docs/ADX2PDX_daughterboard_gerber.zip).
+The Gerber files for this board can be found in the following [link](https://github.com/lu7did/ADX-rp2040/blob/master/docs/ADX2PDX_daughterboard_gerber.zip).
 
 
 ## MOSFET comparator
