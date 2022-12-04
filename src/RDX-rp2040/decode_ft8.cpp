@@ -46,6 +46,10 @@ waterfall_t power = {
     .mag = mag_power};
 
 volatile int offset = 0;
+bool flag_first=true;
+uint8_t adc_error=0x00;
+uint32_t tstart;
+
 
 kiss_fftr_cfg fft_cfg;
 
@@ -72,117 +76,181 @@ static float max2(float a, float b)
 }
 
 // Compute FFT magnitudes (log power) for each timeslot in the signal
-
-void inc_extract_power(int16_t signal[])
-{   
-    _INFOLIST("%s start\n",__func__);
-    // Loop over two possible time offsets (0 and block_size/2)
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ * this procedure is where the energy is extracted
+ * it has been refactored completely to implement the quicksilver algorithm where the processsing
+ * of the fft and other errands for each sample batch (block_size samples) is performed while the
+ * next ADC sample is taken.
+ * The FFT magnitudes are computed (log power) for each processing tick in the signal (960 samples)
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+uint8_t inc_extract_power(uint dmachan, int16_t signal[])
+{ 
+   /*------------------------------------*
+    * loop over two possible time offsets*
+    * [0,block_size/2]                   *
+    * keep watching the ADC sampling and *
+    * interrupt if the time was exceeded *
+    *------------------------------------*/
     for (int time_sub = 0; time_sub < power.time_osr; ++time_sub)
     {
+
+        if(!dma_channel_is_busy(dmachan)) {
+          _INFOLIST("%s ERROR(%d)\n",__func__,0x01);
+          return 0x01;
+        }  
+      
         kiss_fft_scalar timedata[nfft];
         kiss_fft_cpx freqdata[nfft / 2 + 1];
         float mag_db[nfft / 2 + 1];
-        // Extract windowed signal block
+       /*------------------------------------*
+        * extract windowed signal block      *
+        *------------------------------------*/
         for (int pos = 0; pos < nfft; ++pos)
         {
-            //maybe I just need to convert back to a float here? added a divide by 32768.0 Sept 19 2021
-            //Couldn't get kiss_fft to work with int16_t. Dividing by 2048 as ADC gives 12 bit readings Oct. 16 2021
-            //changing window changed... something. Trying without window (just 1)
-            //timedata[pos] = window[pos] * signal[(time_sub * subblock_size) + pos] / 2048.0f;
+            if(!dma_channel_is_busy(dmachan)) {
+              _INFOLIST("%s ERROR(%d)\n",__func__,0x01);
+              return 0x02;
+            }           
             timedata[pos] = signal[(time_sub * subblock_size) + pos] / 2048.0f;
         }
         kiss_fftr(fft_cfg, timedata, freqdata);
-
-        // Compute log magnitude in decibels
+       /*------------------------------------*
+        * Compute log magnitude (dB)         *
+        *------------------------------------*/
         for (int idx_bin = 0; idx_bin < nfft / 2 + 1; ++idx_bin)
         {
+            if(!dma_channel_is_busy(dmachan)) {
+              _INFOLIST("%s ERROR(%d)\n",__func__,0x01);
+              return 0x03;
+            }  
             float mag2 = (freqdata[idx_bin].i * freqdata[idx_bin].i) + (freqdata[idx_bin].r * freqdata[idx_bin].r);
             mag_db[idx_bin] = 10.0f * log10f(1E-12f + mag2 * fft_norm * fft_norm);
         }
+       /*--------------------------------------*
+        * Loop over two possible frequency bins*
+        * offset (for averaging)               *
+        *--------------------------------------*/
         
         // Loop over two possible frequency bin offsets (for averaging)
         for (int freq_sub = 0; freq_sub < power.freq_osr; ++freq_sub)
         {
             for (int pos = 0; pos < power.num_bins; ++pos)
             {
-                
+                if(!dma_channel_is_busy(dmachan)) {
+                  _INFOLIST("%s ERROR(%d)\n",__func__,0x01);
+                  return 0x01;
+                }  
                 float db = mag_db[pos * power.freq_osr + freq_sub];
-
-                // Scale decibels to unsigned 8-bit range and clamp the value
-                // Range 0-240 covers -120..0 dB in 0.5 dB steps
-
+                /*------------------------------------*
+                 * scale dB to uint8_t range and clamp*
+                 * the value (range 0-240) -120..0 dB *
+                 * in 0.5 dB steps                    *
+                 *------------------------------------*/
                 int scaled = (int)(2 * db + 240);
                 power.mag[offset] = (scaled < 0) ? 0 : ((scaled > 255) ? 255 : scaled);
                 power.mag[offset] = scaled;
-                offset++;
-                
+                offset++;               
             }
         }
     }
-    _INFOLIST("%s end\n",__func__);   
-    return;
+    return 0x00;
 }
-
-// Sept. 30, 2021 this didn't work out... the pointers to power were getting too confusing and unneccesary
-// Oct. 1, 2021 trying to implement again
-// the signal needs to be 3/2 (1.5) times as long as nfft
-// Oct. 2, 2021 got time_osr = 1 incremental decoding working
-
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ * this procedure is where the energy is collected
+ * it has been refactored completely to implement the quicksilver algorithm where the processsing
+ * of the fft and other errands for each sample batch (block_size samples) is performed while the
+ * next ADC sample is taken.
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void inc_collect_power(){
 
-
-/*---------------------
- * This whole procedure needs to be re-factored by deploying here the 
- * quick silver algorithm which slices the ADC sampling with the ADC processing
- * eliminating in fact the need to involve the core1 which exhibits quite a lot
- * of issues when operating under the Arduino core
- * it might involve the inline refactoring of inc_extract_power to ensure
- * the aligned processing
- */
      _INFOLIST("%s start\n",__func__);
 
     size_t fft_work_size;
     kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
-
-    _INFOLIST("%s Sample rate %d Hz, %d blocks, %d bins\n", sample_rate, num_blocks, num_bins);
-    _INFOLIST("%s This is size of array mag_power in bytes: %d\n", num_blocks * kFreq_osr * kTime_osr * num_bins);
-
     void *fft_work = malloc(fft_work_size);
     fft_cfg = kiss_fftr_alloc(nfft, 0, fft_work, &fft_work_size);
-    _INFOLIST("%s starting incremental collection\n",__func__);
 
-    //PASS IDX_BLOCK THROUGH THE FIFO-this may help with the offset
     for (uint idx_block = 0; idx_block < num_blocks; idx_block++){
 
-      /*--------@@@@@
-       * Este es el segmento clave a reemplazar por quicksilver
-       * relevant buffer is fresh_signal which needs to be preserved
-       */
-        collect_adc();  
-        uint32_t fdx_block= (uint32_t)idx_block;
-        rp2040.fifo.push(fdx_block);    //LU7DZ-Fix to accomodate the Arduino IDE core API
-        
-    }
+       /*------------------------------------*
+        * first, preserve the sample buffer  *
+        * on all samples rounds but the first*
+        *------------------------------------*/
 
-    //may want to wait or get a message back from core 1 before memory is freed
-    
-    busy_wait_ms(160); //waits a bit for fft to finish. May want to replace with a confirmation back from core 1
+        adc_error=0x00;
+        if (flag_first==false) {
+        for (int i=0;i<block_size;i++) {
+           old_signal[i]=fresh_signal[i];
+        }
+        }
+       /*------------------------------------*
+        * start the ADC collection           *
+        *------------------------------------*/
+        collect_adc();  
+        tstart = time_us_32();
+       /*------------------------------------*
+        * now start doing some paralell work *
+        *------------------------------------*/
+        while (true) {
+       /*------------------------------------*
+        * this is the first capture, so no   *
+        * buffer is available to process, so *
+        * just wait doing nothing till it end*
+        *------------------------------------*/
+            if (flag_first) {
+                dma_channel_wait_for_finish_blocking(dma_chan);
+                flag_first=false;
+                break;
+            }
+       /*------------------------------------*
+        * this is the not the first so a     *
+        * buffer is available to process, so *
+        * process it watching the time, first*
+        * normalize the signal vector        *
+        *------------------------------------*/
+        for (int i = 0; i < nfft; i++) {
+            old_signal[i] -= DC_BIAS;
+        }
+        adc_error = inc_extract_power(dma_chan,old_signal);
+        if (adc_error != 0x00) {
+           break;
+        }
+       /*------------------------------------*
+        * if there is remaining time just    *
+        * block here till the ADC sample has *
+        * been completed                     *
+        *------------------------------------*/
+        while(dma_channel_is_busy(dma_chan));
+        break;    
+        } //true, pseudo infinite loop
+               
+        //uint32_t fdx_block= (uint32_t)idx_block;
+        //rp2040.fifo.push(fdx_block);    //LU7DZ-Fix to accomodate the Arduino IDE core API
+        
+    } //whole reception cycle
     free(fft_work);
-    _INFOLIST("%s done collecting power, rest offset and max mag\n",__func__);
     offset = 0;
     return;
 }
-
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ * Process candidates by Costas sync score and localize them in time and frequency                *
+ *                                                                                                *
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**/
 int decode_ft8(message_info message_list[])
 {
-    // Find top candidates by Costas sync score and localize them in time and frequency
     candidate_t candidate_list[kMax_candidates];
     int num_candidates = find_sync(&power, kMax_candidates, candidate_list, kMin_score);
 
-    // Hash table for decoded messages (to check for duplicates)
+    /*------------------------------------*
+     * Check for duplicates using a hash  *
+     * table for decoded messages         *
+     *------------------------------------*/
     int num_decoded = 0;
     message_t decoded[kMax_decoded_messages];
     message_t *decoded_hashtable[kMax_decoded_messages];
+    /*------------------------------------*
+     * Compute the SNR                    *
+     *------------------------------------*/
 
     //if using calc_noise type 1 or 2 use the below two funcions. type 3 goes right before calc_snr
     int noise_avg = calc_noise(&power,NULL);
@@ -230,7 +298,6 @@ int decode_ft8(message_info message_list[])
             continue;
         }
 
-        //printf("Checking hash table for %4.1fs / %4.1fHz [%d]...\n", time_sec, freq_hz, cand->score);
         int idx_hash = message.hash % kMax_decoded_messages;
         bool found_empty_slot = false;
         bool found_duplicate = false;

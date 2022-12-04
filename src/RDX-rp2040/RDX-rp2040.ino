@@ -195,20 +195,37 @@ int TXSW_State;
 int Bdly = 250;
 
 Si5351 si5351;
+
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*  Time sync, wait till second 0,15,30 or 45                                               *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+bool timeWait() {
+  
+  time_t now = time(0) - t_ofs;
+  gmtime_r(&now, &timeinfo);
+  if ( (timeinfo.tm_sec >= 0 && timeinfo.tm_sec <=  2) ||
+       (timeinfo.tm_sec >=15 && timeinfo.tm_sec <= 17) ||
+       (timeinfo.tm_sec >=30 && timeinfo.tm_sec <= 32) ||
+       (timeinfo.tm_sec >=45 && timeinfo.tm_sec <= 47) ) {
+       return true;
+       }
+  return false;
+ 
+}
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  core1 processing                                                                        *
 //*  irq handler to process samples in the background using core1                            *
 //*  This IRQ oriented handling of samples is made obsolete by the paralell processing       *
 //*  introduced by the quick silver algorithm                                                *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-void core1_irq_handler_obsolete()
-{
-
+//void core1_irq_handler_obsolete()
+//{
+//
   /*-------------------------------------
 
      Copy capture_buf to signal_for_processing array, take fft and save to power, check for user keypad input
   */
-
+/*
   _INFOLIST("%s starting\n",__func__);
   
   while (rp2040.fifo.available())
@@ -223,6 +240,7 @@ void core1_irq_handler_obsolete()
     /*-------
        extract signal for processing
     */
+/*    
     for (int i = 0; i < nfft; i++) {
       fresh_signal[i] -= DC_BIAS;
     }
@@ -230,6 +248,7 @@ void core1_irq_handler_obsolete()
     /*-------
        processing shouldn't last more than 160 mSecs
     */
+/*    
     uint32_t handler_time = (time_us_32() - handler_start) / 1000;
     if (handler_time > handler_max_time) {
       handler_max_time = handler_time;
@@ -237,7 +256,7 @@ void core1_irq_handler_obsolete()
   }
   //multicore_fifo_clear_irq(); // Clear interrupt
 }
-
+*/
 /*-------------------------------
    setup1()
    core1 is held from processing till released from the main setup() when ready to go
@@ -245,12 +264,14 @@ void core1_irq_handler_obsolete()
    the Arduino core porting to rp2040 than solutions, so it's out and replaced
    by inline solution
 */
+/*
 void obsolete_setup1(void)
 
 {
   /*--------------------
      wait till cleared
   */
+/*  
   uint32_t tc1 = time_us_32();
   while (stopCore1) {
     while (time_us_32() - tc1 < 1000) {}
@@ -260,7 +281,9 @@ void obsolete_setup1(void)
   /*---------
      configure core1 interrupt handler
   */
-  _INFOLIST("%s  second core running!\n",__func__);
+
+/*  
+_INFOLIST("%s  second core running!\n",__func__);
   delay(1000);
   multicore_fifo_clear_irq();
   _INFOLIST("%s fifo_clear_irq() done\n",__func__);
@@ -278,6 +301,7 @@ void obsolete_setup1(void)
      the delay is just to avoid a smart-ass compiler optimization to
      remove the infinite loop altogether
   */
+/*
   while (true)
   {
     delay(10000);
@@ -289,6 +313,7 @@ void obsolete_setup1(void)
 /*-----------------
    setup ft8 operation
 */
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  ft8 processing                                                                          *
 //*  setup and handle the ft8 processing, this is actually the orchestation of the ft8lib    *
@@ -300,27 +325,26 @@ void setup_ft8() {
      the original overclock the processor, the initial version of this
      firmware won't
   */
-  //overclocking the processor
-  //133MHz default, 250MHz is safe at 1.1V and for flash
-  //if using clock > 290MHz, increase voltage and add flash divider
-  //see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
-
-  //vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
-  //@@@ set_sys_clock_khz(250000,true);
+  /*-------------------------------------------------------------------*/
+  //*overclocking the processor
+  //*133MHz default, 250MHz is safe at 1.1V and for flash
+  //*if using clock > 290MHz, increase voltage and add flash divider
+  //*see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
+  //*vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+  //*@@@ set_sys_clock_khz(250000,true);
+  /*-------------------------------------------------------------------*/
 
   /*------
      setup the ADC processing
   */
-  //setup_adc();
-  
+  setup_adc();
   _INFOLIST("%s setup_adc() completed\n",__func__);
 
   /*------
      make the Hanning window for fft work
   */
-  //make_window();
-_INFOLIST("%s make_window() completed\n",__func__);
-  delay(1000);
+  make_window();
+  _INFOLIST("%s make_window() completed\n",__func__);
 
   /*------
      wait to settle
@@ -343,6 +367,7 @@ void ft8_run() {
 
   if (send)
   {
+    while (!timeWait());
     if (autosend)
     {
       _INFOLIST("%s autosending station %s\n", __func__, CurrentStation.station_callsign);
@@ -365,6 +390,7 @@ void ft8_run() {
 
   else
   {
+    while (!timeWait());
     _INFOLIST("%s Receiving cycle starts for 12.8 secs\n", __func__);
     inc_collect_power();
     _INFOLIST("%s Energy collection completed max time: %d\n", __func__, handler_max_time);
@@ -398,16 +424,16 @@ void ft8_run() {
   }
 
   //while modulo greater than 12.8, OR aborted
- 
+/* 
   time_t now=time(nullptr)-t_ofs;
   gmtime_r(&now,&timeprev);
-
-
+*/
+/*
   while (timeprev.tm_sec != 0 && timeprev.tm_sec != 15 && timeprev.tm_sec != 30 && timeprev.tm_sec != 45) {
      now=time(nullptr)-t_ofs;
      gmtime_r(&now,&timeprev);
   }
-  
+*/  
   //uint64_t overtime = (time_us_64() - config_us + timeprev.tm_sec * 1000000) % 15000000;
   //@@@@ uint64_t overtime = (time_us_64() - config_us + config_hms.sec * 1000000) % 15000000;
   //@@@@ here it needs to be sync with 15 secs edge
@@ -1006,7 +1032,6 @@ Band_exit:
 
 
 //************************** [SI5351 VFO Calibration Function] ************************
-
 void Calibration() {
 
   unsigned long Cal_freq = 1000000UL; // Calibration Frequency: 1 Mhz = 1000000 Hz

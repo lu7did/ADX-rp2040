@@ -1,6 +1,7 @@
 #pragma once
 #include "decode.h"
 #include "kiss_fftr.h"
+
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                      Decoding parameters                                                              *
 /*                              Tune for performance and capacity considerations                                         *
@@ -50,7 +51,7 @@ void make_window(void);
 static float max2(float a, float b);
 
 // Compute FFT magnitudes (log power) for each timeslot in the signal
-void inc_extract_power(int16_t signal[]);
+uint8_t inc_extract_power(uint dmachan, int16_t signal[]);
 void inc_collect_power();
 int decode_ft8(message_info message_list[]);
 void identify_message_types(message_info message_list[], char *my_callsign);
