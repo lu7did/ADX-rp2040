@@ -130,6 +130,15 @@ void inc_extract_power(int16_t signal[])
 
 void inc_collect_power(){
 
+
+/*---------------------
+ * This whole procedure needs to be re-factored by deploying here the 
+ * quick silver algorithm which slices the ADC sampling with the ADC processing
+ * eliminating in fact the need to involve the core1 which exhibits quite a lot
+ * of issues when operating under the Arduino core
+ * it might involve the inline refactoring of inc_extract_power to ensure
+ * the aligned processing
+ */
      _INFOLIST("%s start\n",__func__);
 
     size_t fft_work_size;
@@ -144,9 +153,15 @@ void inc_collect_power(){
 
     //PASS IDX_BLOCK THROUGH THE FIFO-this may help with the offset
     for (uint idx_block = 0; idx_block < num_blocks; idx_block++){
-        collect_adc();
+
+      /*--------@@@@@
+       * Este es el segmento clave a reemplazar por quicksilver
+       * relevant buffer is fresh_signal which needs to be preserved
+       */
+        collect_adc();  
         uint32_t fdx_block= (uint32_t)idx_block;
         rp2040.fifo.push(fdx_block);    //LU7DZ-Fix to accomodate the Arduino IDE core API
+        
     }
 
     //may want to wait or get a message back from core 1 before memory is freed

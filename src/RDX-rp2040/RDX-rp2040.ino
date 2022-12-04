@@ -198,8 +198,10 @@ Si5351 si5351;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  core1 processing                                                                        *
 //*  irq handler to process samples in the background using core1                            *
+//*  This IRQ oriented handling of samples is made obsolete by the paralell processing       *
+//*  introduced by the quick silver algorithm                                                *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-void core1_irq_handler()
+void core1_irq_handler_obsolete()
 {
 
   /*-------------------------------------
@@ -239,8 +241,11 @@ void core1_irq_handler()
 /*-------------------------------
    setup1()
    core1 is held from processing till released from the main setup() when ready to go
+   This whole core1 processing is made obsolete, it creates more problems under
+   the Arduino core porting to rp2040 than solutions, so it's out and replaced
+   by inline solution
 */
-void setup1(void)
+void obsolete_setup1(void)
 
 {
   /*--------------------
@@ -307,6 +312,7 @@ void setup_ft8() {
      setup the ADC processing
   */
   //setup_adc();
+  
   _INFOLIST("%s setup_adc() completed\n",__func__);
 
   /*------
@@ -315,12 +321,6 @@ void setup_ft8() {
   //make_window();
 _INFOLIST("%s make_window() completed\n",__func__);
   delay(1000);
-
-  /*------
-     freed the semaphore which where core1 is being held, so start it
-  */
-  //stopCore1 = false;
-  _INFOLIST("%s Core1 semaphore cleared\n",__func__);
 
   /*------
      wait to settle
@@ -369,10 +369,10 @@ void ft8_run() {
     inc_collect_power();
     _INFOLIST("%s Energy collection completed max time: %d\n", __func__, handler_max_time);
     uint32_t decode_begin = time_us_32();
-    //uint8_t num_decoded = decode_ft8(message_list);
+    uint8_t num_decoded = decode_ft8(message_list);
     _INFOLIST("%s Decoding completed time: %ul us\n",__func__,time_us_32() - decode_begin);
     decode_begin = time_us_32(); //i'll just reuse this variable
-    //identify_message_types(message_list, my_callsign);
+    identify_message_types(message_list, my_callsign);
     _INFOLIST("%s Message analysis time: %ul us\n",__func__,time_us_32() - decode_begin);
     justSent = false;
   }
