@@ -15,6 +15,7 @@
 //* originally from ft8_lib by Karlis Goba (YL3JG), great library and the only one beyond WSJT-X itself
 //* excerpts taken from pi_ft8_xcvr by Godwin Duan (AA1GD) 2021
 //* excerpts taken from Orange_Thunder by Pedro Colla (LU7DZ) 2018
+//* code refactoring made by Pedro Colla (LU7DZ) 2022
 //*
 //*********************************************************************************************************
 // Required Libraries and build chain components
@@ -53,8 +54,7 @@
 // Arduino "Wire.h" I2C library(built-into arduino ide)
 // Arduino "EEPROM.h" EEPROM Library(built-into arduino ide)
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//*************************************[ LICENCE and CREDITS ]*********************************************
-//  SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
+//*************************************[ LICENCE]*********************************************
 // License
 // -------
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -203,116 +203,20 @@ bool timeWait() {
   
   time_t now = time(0) - t_ofs;
   gmtime_r(&now, &timeinfo);
+  if (timeinfo.tm_sec%15==0) {
+     return true;
+  }
+/*  
   if ( (timeinfo.tm_sec >= 0 && timeinfo.tm_sec <=  2) ||
        (timeinfo.tm_sec >=15 && timeinfo.tm_sec <= 17) ||
        (timeinfo.tm_sec >=30 && timeinfo.tm_sec <= 32) ||
        (timeinfo.tm_sec >=45 && timeinfo.tm_sec <= 47) ) {
        return true;
        }
+ */      
   return false;
  
 }
-//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//*  core1 processing                                                                        *
-//*  irq handler to process samples in the background using core1                            *
-//*  This IRQ oriented handling of samples is made obsolete by the paralell processing       *
-//*  introduced by the quick silver algorithm                                                *
-//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//void core1_irq_handler_obsolete()
-//{
-//
-  /*-------------------------------------
-
-     Copy capture_buf to signal_for_processing array, take fft and save to power, check for user keypad input
-  */
-/*
-  _INFOLIST("%s starting\n",__func__);
-  
-  while (rp2040.fifo.available())
-
-  {
-    _INFOLIST("%s fifo.available()\n",__func__);
-
-    uint32_t handler_start = time_us_32();
-    uint32_t fdx = rp2040.fifo.pop();
-    uint16_t idx = (uint16_t) fdx;
-
-    /*-------
-       extract signal for processing
-    */
-/*    
-    for (int i = 0; i < nfft; i++) {
-      fresh_signal[i] -= DC_BIAS;
-    }
-    inc_extract_power(fresh_signal);
-    /*-------
-       processing shouldn't last more than 160 mSecs
-    */
-/*    
-    uint32_t handler_time = (time_us_32() - handler_start) / 1000;
-    if (handler_time > handler_max_time) {
-      handler_max_time = handler_time;
-    }
-  }
-  //multicore_fifo_clear_irq(); // Clear interrupt
-}
-*/
-/*-------------------------------
-   setup1()
-   core1 is held from processing till released from the main setup() when ready to go
-   This whole core1 processing is made obsolete, it creates more problems under
-   the Arduino core porting to rp2040 than solutions, so it's out and replaced
-   by inline solution
-*/
-/*
-void obsolete_setup1(void)
-
-{
-  /*--------------------
-     wait till cleared
-  */
-/*  
-  uint32_t tc1 = time_us_32();
-  while (stopCore1) {
-    while (time_us_32() - tc1 < 1000) {}
-    tc1 = time_us_32();
-  }
-
-  /*---------
-     configure core1 interrupt handler
-  */
-
-/*  
-_INFOLIST("%s  second core running!\n",__func__);
-  delay(1000);
-  multicore_fifo_clear_irq();
-  _INFOLIST("%s fifo_clear_irq() done\n",__func__);
-  delay(1000);
-  irq_set_exclusive_handler(SIO_IRQ_PROC1, core1_irq_handler);
-  _INFOLIST("%s irq_set_exclusive_handler() done\n",__func__);
-  delay(1000);
-
-  irq_set_enabled(SIO_IRQ_PROC1, true);
-  _INFOLIST("%s irq_set_enabled() done\n",__func__);
-  delay(1000);
-
-  /*----------
-     wait forever, actual processing is made at the interrupt handler
-     the delay is just to avoid a smart-ass compiler optimization to
-     remove the infinite loop altogether
-  */
-/*
-  while (true)
-  {
-    delay(10000);
-    _INFOLIST("%s looping()\n",__func__);
-    delay(1000);
-
-  }
-}
-/*-----------------
-   setup ft8 operation
-*/
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  ft8 processing                                                                          *
@@ -365,49 +269,83 @@ void ft8_run() {
   char message[25] = {0};
   uint8_t tones[79] = {0};
 
+  /****************************************
+   * TX Cycle                             *
+   ****************************************/
   if (send)
   {
     while (!timeWait());
-    if (autosend)
-    {
+    /*---------------------------------------------------------------*
+     * If in autosend mode pick automatically the response message   *
+     * if not pick it manually                                       *
+     *---------------------------------------------------------------*/
+    if (autosend) {
       _INFOLIST("%s autosending station %s\n", __func__, CurrentStation.station_callsign);
       auto_gen_message(message, CurrentStation, my_callsign, my_grid);
-    }
-    else
-    {
+    } else {
       manual_gen_message(message, CurrentStation, sendChoices, my_callsign, my_grid);
       //reset send choices
       sendChoices.call_cq = sendChoices.send_73 = sendChoices.send_grid = sendChoices.send_RR73 = sendChoices.send_RRR = sendChoices.send_Rsnr = sendChoices.send_snr = false;
     }
-
+    /*---------------------------------------------------------------*
+     * Now generate the ft8 message to be sent in terms of tone      *
+     * sequences                                                     *
+     *---------------------------------------------------------------*/
     _INFOLIST("%s message to be sent: %s\n", __func__, message);
     generate_ft8(message, tones);
+
+    /*---------------------------------------------------------------*
+     * Send the tone sequences generated                             *
+     *---------------------------------------------------------------*/
     _INFOLIST("%s sending for 12.64 secs\n", __func__);
     send_ft8(tones, freq, CurrentStation.af_frequency);
+    
+    /*---------------------------------------------------------------*
+     * place the cycle in receiver mode and flag it completion       *
+     *---------------------------------------------------------------*/ 
     send = false;
     justSent = true;
-  }
+  } else {
 
-  else
-  {
+  /****************************************
+   * RX Cycle                             *
+   ****************************************/
     while (!timeWait());
-    _INFOLIST("%s Receiving cycle starts for 12.8 secs\n", __func__);
+
+    /*---------------------------------------------------------------*
+     * Collect energy information for 12.8 secs and pre-process      *
+     * magnitudes found                                              *
+     *---------------------------------------------------------------*/ 
     inc_collect_power();
-    _INFOLIST("%s Energy collection completed max time: %d\n", __func__, handler_max_time);
+
+    /*---------------------------------------------------------------*
+     * Evaluate magnitudes captured and decode messages on passband  *
+     *---------------------------------------------------------------*/   
     uint32_t decode_begin = time_us_32();
     uint8_t num_decoded = decode_ft8(message_list);
+
+    /*---------------------------------------------------------------*
+     * Transform decode symbols into actual ft8 messages             *
+     *---------------------------------------------------------------*/   
     _INFOLIST("%s Decoding completed time: %ul us\n",__func__,time_us_32() - decode_begin);
-    decode_begin = time_us_32(); //i'll just reuse this variable
-    identify_message_types(message_list, my_callsign);
-    _INFOLIST("%s Message analysis time: %ul us\n",__func__,time_us_32() - decode_begin);
+    identify_message_types(message_list, my_callsign);   
     justSent = false;
   }
-
+  /*******************************************************
+   * Response evaluation (manual and automatic)          *
+   *******************************************************/
   int selected_station = -1; //default is no response
   int rTB = -1;              //rTB stands for responseTypeBuffer
 
-  _INFOLIST("%s End of cycle, waiting 2 secs for user input\n", __func__);
+  //_INFOLIST("%s End of cycle, waiting 2 secs for user input\n", __func__);
 
+ /*---------------------------------------------------------------*
+  * If a decode message is addressed to me AND autosend is enabled*
+  * select the first such message and flag it to be answered in   *
+  * the next transmission cycle.                                  *
+  * This is a reactive strategy which won't enable automatic QSO  *
+  * unless the program is enabled to send CQ by herself           * 
+  *---------------------------------------------------------------*/   
   if (autosend) {
     for (int i = 0; i < kMax_decoded_messages; i++) {
       if (message_list[i].addressed_to_me) {
@@ -417,23 +355,17 @@ void ft8_run() {
         break;
       }
     }
-  }
-  else
-  {
-    _INFOLIST("%s Enter response type: 0 for CQ, 1 for grid, 2 for snr, 3 for Rsnr, 4 for RRR, 5 for RR73, 6 for 73, 7+ for no choice:\n", __func__);
+  } else {
+    /*---------------------------------------------------------------*
+     * No message found addressed to me, then here a message         *
+     * generation heuristic might apply, either by manually picking  *
+     * an answer or to autogenerate one                              *
+     *---------------------------------------------------------------*/   
+  
+    _INFOLIST("%s No message generated\n", __func__);
   }
 
   //while modulo greater than 12.8, OR aborted
-/* 
-  time_t now=time(nullptr)-t_ofs;
-  gmtime_r(&now,&timeprev);
-*/
-/*
-  while (timeprev.tm_sec != 0 && timeprev.tm_sec != 15 && timeprev.tm_sec != 30 && timeprev.tm_sec != 45) {
-     now=time(nullptr)-t_ofs;
-     gmtime_r(&now,&timeprev);
-  }
-*/  
   //uint64_t overtime = (time_us_64() - config_us + timeprev.tm_sec * 1000000) % 15000000;
   //@@@@ uint64_t overtime = (time_us_64() - config_us + config_hms.sec * 1000000) % 15000000;
   //@@@@ here it needs to be sync with 15 secs edge
@@ -528,8 +460,11 @@ void ft8_run() {
               printf("can callsign be seen? %s\n", CurrentStation.station_callsign);
           }
   */
-  //reset message_list
-  _INFOLIST("%s End of receiving cycle clearing %d bytes of list sec=%02d\n", __func__, sizeof(message_list),timeprev.tm_sec);
+
+  /*--------------------
+   * reset the message list to start a new cycle
+   */
+  
   memset(message_list, 0, sizeof(message_list));
   return;
 }

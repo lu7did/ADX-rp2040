@@ -80,7 +80,7 @@ bool flag_first = true;
 #define ADC_CLOCK 48000000  
 #define CLOCK_DIV 8000
 #define FSAMP (ADC_CLOCK / CLOCK_DIV)
-
+#define NSAMP 960
 
 // Channel 0 is GPIO26
 #define ADC_PIN   26
