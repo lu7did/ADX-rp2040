@@ -173,7 +173,7 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void inc_collect_power() {
 
-  _INFOLIST("%s start\n", __func__);
+  //_INFOLIST("%s start\n", __func__);
 
   size_t fft_work_size;
   kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
@@ -282,7 +282,7 @@ int decode_ft8(message_info message_list[])
   {
     //AA1GD added to try correctly stop program when decoded>kMax_decoded_messages
     if (num_decoded >= kMax_decoded_messages) {
-      _INFOLIST("%s decoded more than kMax_decoded_messages, Decoded %d messages and force ended\n", __func__, num_decoded);
+      //_INFOLIST("%s decoded more than kMax_decoded_messages, Decoded %d messages and force ended\n", __func__, num_decoded);
       return (num_decoded);
     }
 
@@ -341,8 +341,9 @@ int decode_ft8(message_info message_list[])
 
       int snr = calc_snr(&power, cand, noise_avg);
 
-      _INFOLIST("%s %x   %3d  %+3.1f %4d ~  %s\n", __func__, num_decoded, snr, time_sec, (int) freq_hz, message.text);
-      _INFOLIST("%s estimated snr: %d\n", __func__, snr);
+      //_INFOLIST("%s %x   %3d  %+3.1f %4d ~  %s\n", __func__, num_decoded, snr, time_sec, (int) freq_hz, message.text);
+      //_INFOLIST("%s estimated snr: %d\n", __func__, snr);
+      
       message_list[num_decoded].self_rx_snr = snr;
       message_list[num_decoded].af_frequency = (uint16_t) freq_hz;
       message_list[num_decoded].time_offset = time_sec;
@@ -351,7 +352,7 @@ int decode_ft8(message_info message_list[])
       ++num_decoded;
     }
   }
-  _INFOLIST("%s Decoded %d messages\n", __func__, num_decoded);
+  //_INFOLIST("%s Decoded %d messages\n", __func__, num_decoded);
   return num_decoded;
 }
 
@@ -359,25 +360,35 @@ int decode_ft8(message_info message_list[])
 //should input global struct message_info current_station to compare current station
 void identify_message_types(message_info message_list[], char *my_callsign) {
 
+  //_INFOLIST("%s max_decoded=%d\n",__func__,kMax_decoded_messages);
+  
   for (int i = 0; i < kMax_decoded_messages; i++) {
 
+    //_INFOLIST("%s messsage<%s> grid(%s) snr(%s)\n",__func__,message_list[i].full_text,message_list[i].grid_square,message_list[i].snr_report);
+
     if (!(message_list[i].af_frequency)) { //checks if its empty
+      //_INFOLIST("%s af_frequency empty\n",__func__);
       return;
     }
 
+
     if (strstr(message_list[i].full_text, my_callsign)) {
+      //_INFOLIST("%s found as addressed to me\n",__func__);
       message_list[i].addressed_to_me = true;
     }
 
     if (strstr(message_list[i].full_text, "CQ")) {
+      //_INFOLIST("%s found as CQ\n",__func__);
       message_list[i].type_cq = true;
     }
 
     if (strstr(message_list[i].full_text, "RRR")) {
+      //_INFOLIST("%s found as RRR\n",__func__);
       message_list[i].type_RRR = true;
     }
 
     if (strstr(message_list[i].full_text, "73")) {
+      //_INFOLIST("%s found as 73\n",__func__);
       message_list[i].type_73 = true;
     }
 
@@ -432,7 +443,7 @@ void identify_message_types(message_info message_list[], char *my_callsign) {
       strcpy(message_list[i].snr_report, third_word);
     }
 
-    _INFOLIST("%s station callsign: %s grid square: %s snr report: %s\n", __func__, message_list[i].station_callsign, message_list[i].grid_square, message_list[i].snr_report);
+    //_INFOLIST("%s station callsign: %s grid square: %s snr report: %s\n", __func__, message_list[i].station_callsign, message_list[i].grid_square, message_list[i].snr_report);
   }
   return;
 }

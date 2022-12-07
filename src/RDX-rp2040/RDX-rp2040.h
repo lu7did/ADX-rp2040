@@ -105,8 +105,10 @@
 //Created by AA1GD Aug. 25, 2021
 //OCTOBER 18, 2021 AT 5:14 PM CDT FIRST ON AIR DECODES WITH THIS
 
-#define MY_CALLSIGN "LU7DZ"
+#define MY_CALLSIGN "LU2EIC"
 #define MY_GRID "GF05"
+
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                         External References                                              *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -118,6 +120,8 @@ extern unsigned long freq;
 extern bool stopCore1;
 extern char my_callsign[16];
 extern char my_grid[8];
+extern Si5351 si5351;
+extern char timestr[12];
 
 extern void INIT();
 extern void Calibration();
@@ -126,6 +130,11 @@ extern void ManualTX();
 extern void Band_assign();
 extern void Freq_assign();
 extern void Mode_assign();
+extern void checkButton();
+extern time_t t_ofs;
+extern time_t now;
+extern struct tm timeinfo;        //current time
+extern struct tm timeprev;        //epoch time
 
 /*-------------------------------------------------------
  * Debug and development aid tracing
@@ -141,15 +150,19 @@ extern void Mode_assign();
 
 #define _INFOLIST(...) \
   do { \
-    strcpy(hi,"@"); \
-    sprintf(hi+1,__VA_ARGS__); \
+    now = time(0) - t_ofs;  \
+    gmtime_r(&now, &timeinfo);  \
+    sprintf(timestr,"[%02d:%02d:%02d] ",timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec);   \
+    strcpy(hi,timestr); \
+    strcat(hi,"@");  \
+    sprintf(hi+strlen(hi),__VA_ARGS__); \
     _SERIAL.write(hi); \
     _SERIAL.flush(); \
   } while (false)
-//#define _INFOLIST(...)  strcpy(hi,"@");sprintf(hi+1,__VA_ARGS__);_SERIAL.write(hi);_SERIAL.flush();
-//#define _INFOLIST(...)  strcpy(hi,"@");sprintf(hi+1,__VA_ARGS__);_SERIAL.write(hi);_SERIAL.flush();
 #else //!DEBUG
-#define _INFOLIST(...) (void)0
+//#define _INFOLIST(...) (void)0
+#define _INFOLIST(...)
+
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 
 /*----------------------------------------------------------

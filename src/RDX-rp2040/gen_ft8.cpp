@@ -28,6 +28,19 @@
 //CQ calls will always be manually generated
 
 void manual_gen_message(char message[], message_info Station, UserSendSelection stype, char *myCall, char *myGrid){
+/*
+       _INFOLIST("%s call(%s) grid(%s) snr(%s) cq(%s) grid(%s) snr(%s) rsnr(%s) RRR(%s) RR73(%s) 73(%s)\n",__func__, \
+                  Station.station_callsign, \
+                  Station.grid_square, \
+                  Station.snr_report, \
+                  BOOL2CHAR(stype.call_cq), \ 
+                  BOOL2CHAR(stype.send_grid), \ 
+                  BOOL2CHAR(stype.send_snr), \
+                  BOOL2CHAR(stype.send_Rsnr), \
+                  BOOL2CHAR(stype.send_RRR), \
+                  BOOL2CHAR(stype.send_RR73), \
+                  BOOL2CHAR(stype.send_73)); 
+*/
   
     char snr_in_string[4];
     sprintf(snr_in_string, "%d", Station.self_rx_snr);
@@ -138,7 +151,8 @@ void generate_ft8(char message[], uint8_t tone_sequence[])
         _INFOLIST("%s Cannot parse message! RC = %d\n", __func__,rc);
     }
 
-    _INFOLIST("%s Packed data: ",__func__);
+    //_INFOLIST("%s Packed data: ",__func__);
+    /*
     for (int j = 0; j < 10; ++j)
     {
       
@@ -146,20 +160,19 @@ void generate_ft8(char message[], uint8_t tone_sequence[])
         _SERIAL.print(hi);
     }
     _SERIAL.print("\n");
-
+    */
+    
     int num_tones = FT8_NN;
-
     // Second, encode the binary message as a sequence of FSK tones
-
     genft8(packed, tone_sequence);
-
-    _INFOLIST("%s FSK tones: ",__func__);
+    //_INFOLIST("%s FSK tones: ",__func__);
+    /*
     for (int j = 0; j < num_tones; ++j)
     {
         sprintf(hi,"%d", tone_sequence[j]);
         _SERIAL.print(hi);
     }
     _SERIAL.print("\n");
-
+    */
     return;
 }
