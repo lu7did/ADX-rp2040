@@ -10,8 +10,8 @@
 //
 //*********************************************************************************************************
 //* Based on ADX-rp2040 by Pedro Colla LU7DZ (2022)
-//* Originally ported from ADX_UnO_V1.3 by Barb Asuroglu (WB2CBA) 
-//********************************************************************************************************* 
+//* Originally ported from ADX_UnO_V1.3 by Barb Asuroglu (WB2CBA)
+//*********************************************************************************************************
 //*
 //* Code excerpts from different sources
 //*
@@ -25,7 +25,8 @@
 //
 // Created with Arduino IDE using the Arduino-Pico core created by Earle F. Philhower, III available
 // at https://github.com/earlephilhower
-// Check for installation and configuration instructions at https://www.upesy.com/blogs/tutorials/install-raspberry-pi-pico-on-arduino-ide-software
+// Check for installation and configuration instructions at
+// https://www.upesy.com/blogs/tutorials/install-raspberry-pi-pico-on-arduino-ide-software
 //
 //                                     *******************************************
 //                                     *                Warning                  *
@@ -152,12 +153,14 @@ struct tm timeprev;        //epoch time
 time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
 time_t now;
 char timestr[12];
-uint8_t  num_decoded=0;
-uint32_t tdecode=0;
-uint8_t nTry=0;
-uint8_t nRx=0;
-uint8_t nTx=0;
-uint8_t state=0;
+uint8_t  num_decoded = 0;
+uint32_t tdecode = 0;
+uint8_t nTry = 0;
+uint8_t maxTx = 6;
+uint8_t maxTry = 5;
+uint8_t nRx = 0;
+uint8_t nTx = 0;
+uint8_t state = 0;
 /*-------------------------------------------------------
    ft8 definitions
 */
@@ -172,9 +175,9 @@ bool justSent = false; //must recieve right after sending
 
 bool autosend = true;
 //bool autosend=false;   //this will force receiving only for testing purposes
-bool fCQ=false;
-int  nCQ=0;
-int  qCQ=5;
+bool fCQ = false;
+int  nCQ = 0;
+int  qCQ = 5;
 
 bool cq_only = false;
 
@@ -214,14 +217,14 @@ Si5351 si5351;
 //*  Time sync, wait till second 0,15,30 or 45                                               *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 bool timeWait() {
-  
+
   now = time(0) - t_ofs;
   gmtime_r(&now, &timeinfo);
-  if (timeinfo.tm_sec%15==0) {
-     return true;
+  if (timeinfo.tm_sec % 15 == 0) {
+    return true;
   }
   return false;
- 
+
 }
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -248,24 +251,324 @@ void setup_ft8() {
      setup the ADC processing
   */
   setup_adc();
-  _INFOLIST("%s setup_adc() completed\n",__func__);
+  _INFOLIST("%s setup_adc() completed\n", __func__);
 
   /*------
      make the Hanning window for fft work
   */
   make_window();
-  _INFOLIST("%s make_window() completed\n",__func__);
+  _INFOLIST("%s make_window() completed\n", __func__);
 
   /*------
      wait to settle
   */
 
   sleep_ms(1000);
-  _INFOLIST("%s completed\n",__func__);
+  _INFOLIST("%s completed\n", __func__);
 
 
 } //end of the ft8 setup
 
+/*---------------------------------------------------------------------------------------------
+   ft8bot
+   this is a finite state automata enabled by autosend=true and controlled by
+   maxTx  (every how many cycles an autonomous CQ attempt is made)
+   maxTry (how many retries are allowed
+   Two distinctive topology arcs are followed depending on whether a CQ was made (0->1->2->3)
+   or answered (0->5->6->7) by the bot.
+   A standard FT8 QSO cycle is assumed.
+   This bot is created with the purpose to automate a manual GUI later in the development
+
+   GUI operation
+
+   in order to perform a CQ the finite state machine needs to be entered with state=1 and
+   nTry=maxTry+1 and will start calling CQ after the next receiving cycle
+
+   in order to answer a CQ the finite state machine needs to be entered with state=5 and
+   the UserSendSelection populated with the data of the station to be answered,also nTry
+   must be maxTry+1
+
+ *                                  *********************************
+ *                                  *         Warning               *
+ *                                  *********************************
+
+   (1) In order to properly operate without producing QRM on the channel the clock must be in sync
+   (2) The bot should not be left unattended
+   (3) Under normal operation the autosend=false
+  ---------------------------------------------------------------------------------------------*/
+bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, message_info message_list[]) {
+
+/*----------------
+ * State 0
+ * Define if a CQ is going to be sent
+ */
+  if (state == 0  && !justSent) {   //State 0 - Just completed a reception exploring if trigger a call (CQ Cycle)
+    if (nTx < maxTx) {
+      nTx++;
+      _INFOLIST("%s state(%d) Tx(%d) autosend active waiting\n", __func__, state, nTx);
+    } else {
+      _INFOLIST("%s state(%d) Calling CQ\n", __func__, state);
+      state = 1;
+      sendChoices->call_cq = true;
+      strcpy(CurrentStation->station_callsign, "");
+      strcpy(CurrentStation->grid_square, "");
+      CurrentStation->self_rx_snr=0;
+      nTry = 0;
+      return true;
+  }
+  }
+
+/*-----------------
+ * State 0
+ * If didn't sent a CQ check if there are stations to explore
+ */
+  if (num_decoded == 0) return false;
+
+/*-----------------
+ * State 0
+ * Some stations were received, check if there is a CQ among some of them
+ */
+
+  if (state == 0  && !justSent) {   //State 0 - Just completed a reception, check if somebody call CQ (Answering Cycle)
+    _INFOLIST("%s state(%d) Looking for CQ\n", __func__, state);
+    for (int i = 0; i < num_decoded; i++) {
+      if (message_list[i].type_cq) {
+        _INFOLIST("%s state(%d) msg[%d]=%s CQ call\n", __func__, state, i, message_list[i].full_text);
+        state = 5;
+        strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
+        strcpy(CurrentStation->grid_square, message_list[i].grid_square);
+        CurrentStation->self_rx_snr=message_list[i].self_rx_snr;
+        sendChoices->send_grid = true;
+        nTry = 0;
+        return true;
+      }
+    }
+  }
+
+/*-------------
+ * State 1
+ * This is the arc of the FSM topology dealing with a CQ being sent
+ * Now check if somebody answered, if so answer with a SNR report
+ */
+
+  if (state == 1 && !justSent) {  //State 1 - (CQ Cycle) Check if somebody answer my CQ call, repeat the CQ if not
+    for (int i = 0; i < num_decoded; i++) {
+      if (message_list[i].addressed_to_me) {
+        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me Grid(%s) snr(%s)\n", __func__, state, i, message_list[i].full_text, message_list[i].grid_square,message_list[i].snr_report);
+        state = 2;
+        strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
+        strcpy(CurrentStation->grid_square, message_list[i].grid_square);
+        CurrentStation->self_rx_snr=message_list[i].self_rx_snr;   
+        sendChoices->send_snr = true;
+        nTry = 0;
+        return true;
+      }
+    }
+    /*-----
+     * Nobody answered, thus start another quiet cycle
+     */
+    _INFOLIST("%s state(%d) CQ not answered, reset\n", __func__, state);
+    state = 0;
+    nTx = 0;
+    nTry = 0;
+    return false;
+  }
+
+/*--------------
+ * State 2
+ * Somebody answered with a R-xx report (Rsnr report), if so complete the QSO sending 73
+ */
+  if (state == 2 && !justSent) { // State 2 - (CQ Cycle) After an answer with a Grid was provided send the SNR
+    for (int i = 0; i < num_decoded; i++) {
+      if (message_list[i].addressed_to_me && message_list[i].type_Rsnr) {
+        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and R-NN\n", __func__, state, i, message_list[i].full_text);
+        state = 3;
+        sendChoices->send_73 = true;
+        nTry = 0;
+        return true;
+      }
+    }
+    if (nTry >= maxTry) {
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
+      state = 0;
+      nTx = 0;
+      nTry = 0;
+      return false;
+    }
+
+    _INFOLIST("%s state(%d) repeat SNR\n", __func__, state);
+    sendChoices->send_snr = true;
+    nTry++;
+    return true;
+  }
+
+/*---------------
+ * State 3
+ * If a 73 or RR73 was received back complete the QSO
+ */
+  if (state == 3 && !justSent) { // State 3 - (CQ Cycle) After an answer with the 73 finalize the cycle
+    for (int i = 0; i < num_decoded; i++) {
+      if (message_list[i].addressed_to_me && (message_list[i].type_73)) {
+        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and 73 or RR73\n", __func__, state, i, message_list[i].full_text);
+        state = 4;
+        sendChoices->send_73 = true;
+        nTry = 12;
+        return true;
+      }
+    }
+    if (nTry >= maxTry) {
+      _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, state);
+      state = 0;
+      nTx = 0;
+      nTry = 0;
+      return false;
+    }
+
+    _INFOLIST("%s state(%d) repeat 73\n", __func__, state);
+    sendChoices->send_73 = true;
+    nTry++;
+    return true;
+  }
+
+/*----------------------
+ * State 5
+ * This is the arc of the FSM topology dealing with answering a station calling CQ
+ * if the station answered with a snr report answer back with the R-xx (Rsnr) report
+ */
+  if (state == 5 && !justSent) { // State 5 - (Answer Cycle) Somebody answer my grid with a SNR, respond back with RNNN (Rsnr)
+    for (int i = 0; i < num_decoded; i++) {
+      if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0) {
+        if (message_list[i].type_snr) {
+          _INFOLIST("%s state(%d) msg[%d]=%s SNR detected answering RSNR\n", __func__, state, i, message_list[i].full_text);
+          state = 6;
+          sendChoices->send_Rsnr = true;
+          nTry = 0;
+          return true;
+        }
+        if (message_list[i].type_cq) { // State 5 - (Answer cycle) if the station is still calling the send the Grid again
+          _INFOLIST("%s state(%d) msg[%d]=%s still CQ, repeat grid\n", __func__, state, i, message_list[i].full_text);
+          sendChoices->send_grid = true;
+          strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
+          nTry++;
+          return true;
+        }
+      }
+    }
+    if (nTry >= maxTry) {
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
+      state = 0;
+      nTx = 0;
+      nTry = 0;
+      return false;
+    }
+
+    _INFOLIST("%s state(%d) repeat grid\n", __func__, state);
+    sendChoices->send_grid = true;
+    nTry++;
+    return true;
+  }
+  /*----------------------------
+   * State 6
+   * If the station answers with RRR then send 73 and complete the QSO
+   */
+  if (state == 6 && !justSent) {
+    for (int i = 0; i < num_decoded; i++) {
+      if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0) {
+        if (message_list[i].type_RRR) {
+          _INFOLIST("%s state(%d) msg[%d]=%s RRR message sending 73\n", __func__, state, i, message_list[i].full_text);
+          state = 7;
+          sendChoices->send_73 = true;
+          strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
+          nTry = 0;
+          return true;
+        }
+        if (message_list[i].type_snr) {
+          _INFOLIST("%s state(%d) msg[%d]=%s Still SNR repeat RSNR\n", __func__, state, i, message_list[i].full_text);
+          sendChoices->send_Rsnr = true;
+          nTry++;
+          return true;
+        }
+      }
+    }
+    if (nTry >= maxTry) {
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
+      state = 0;
+      nTx = 0;
+      nTry = 0;
+      return false;
+    }
+
+    _INFOLIST("%s state(%d) repeat RSNR\n", __func__, state);
+    sendChoices->send_Rsnr = true;
+    nTry++;
+    return true;
+  }
+
+/*-----------------
+ * State 7
+ * This state is actually redundant
+ * If received the RRR send RR73 back and complete the QSO
+ */
+  if (state == 7 && !justSent) {
+    for (int i = 0; i < num_decoded; i++) {
+      if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0) {
+        if (message_list[i].type_73 ) {
+          _INFOLIST("%s state(%d) msg[%d]=%s 73 sending RR73\n", __func__, state, i, message_list[i].full_text);
+          state = 7;
+          sendChoices->send_RR73 = true;
+          strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
+          nTry = 12;
+          return true;
+        }
+      }
+      if (message_list[i].type_snr) {
+        _INFOLIST("%s state(%d) msg[%d]=%s Still RRR repeat 73\n", __func__, state, i, message_list[i].full_text);
+        sendChoices->send_73 = true;
+        nTry++;
+        return true;
+      }
+
+    }
+    if (nTry >= maxTry) {
+      _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, state);
+      state = 0;
+      nTx = 0;
+      nTry = 0;
+      return false;
+    }
+
+    _INFOLIST("%s state(%d) Still RRR repeat 73\n", __func__, state);
+    sendChoices->send_73 = true;
+    nTry++;
+    return true;
+  }
+  return false;
+}
+/*------------------------
+ * Check if there are any message type flagged to be sent
+ */
+bool isChoices ( UserSendSelection *sendChoices) {
+
+   if(sendChoices->call_cq  || sendChoices->send_grid || sendChoices->send_snr || sendChoices->send_Rsnr || sendChoices->send_RRR || sendChoices->send_RR73 || sendChoices->send_73) {
+     return true;    
+   }
+   return false;
+
+}
+/*--------------------------------------------
+ * Reset all sending choices after transmit
+ */
+void resetChoices (  UserSendSelection *sendChoices ) {
+
+  sendChoices->call_cq = false;
+  sendChoices->send_grid = false;
+  sendChoices->send_snr = false;
+  sendChoices->send_Rsnr = false;
+  sendChoices->send_RRR = false;
+  sendChoices->send_RR73 = false;
+  sendChoices->send_73 = false;
+
+}
 /*---------------------------------------
    this is the main ft8 decoding cycle,
    called once per loop() execution
@@ -276,109 +579,81 @@ void ft8_run() {
   uint8_t tones[79] = {0};
 
   /****************************************
-   * TX Cycle                             *
+     TX Cycle
    ****************************************/
-  if (send)
+  if (send && isChoices(&sendChoices))
   {
-    _INFOLIST("%s ------- TX ----------\n",__func__);
+    _INFOLIST("%s ------- TX ----------\n", __func__);
 
     while (!timeWait());
     /*---------------------------------------------------------------*
-     * If in autosend mode pick automatically the response message   *
-     * if not pick it manually                                       *
-     *---------------------------------------------------------------*/
-    uint32_t txstart=time_us_32();
+       If in autosend mode pick automatically the response message
+       if not pick it manually
+      ---------------------------------------------------------------*/
+    uint32_t txstart = time_us_32();
     if (autosend && state != 0) {
-       manual_gen_message(message,CurrentStation,sendChoices,my_callsign,my_grid);
-       sendChoices.call_cq=false;
-       sendChoices.send_grid=false;
-       sendChoices.send_snr=false;
-       sendChoices.send_Rsnr=false;
-       sendChoices.send_RRR=false;
-       sendChoices.send_RR73=false;
-       sendChoices.send_73=false;
-       _INFOLIST("%s manual_gen_message(%s)\n",__func__,message);
-       if (nTry >=12) {
-          state=0;
-          _INFOLIST("%s state reset\n",__func__);
-       }
-   }
-    /* 
-    if (autosend) {
-      //_INFOLIST("%s autosending station %s\n", __func__, CurrentStation.station_callsign);
-      auto_gen_message(message, CurrentStation, my_callsign, my_grid);
-    } else {
       manual_gen_message(message, CurrentStation, sendChoices, my_callsign, my_grid);
-      //reset send choices
-      sendChoices.call_cq = sendChoices.send_73 = sendChoices.send_grid = sendChoices.send_RR73 = sendChoices.send_RRR = sendChoices.send_Rsnr = sendChoices.send_snr = false;
+      resetChoices(&sendChoices);
+      _INFOLIST("%s manual_gen_message(%s)\n", __func__, message);
+      if (nTry >= 12) {
+        state = 0;
+        _INFOLIST("%s state reset\n", __func__);
+      }
     }
-    */
     /*---------------------------------------------------------------*
-     * Now generate the ft8 message to be sent in terms of tone      *
-     * sequences                                                     *
-     *---------------------------------------------------------------*/
+       Now generate the ft8 message to be sent in terms of tone
+       sequences
+      ---------------------------------------------------------------*/
     _INFOLIST("%s Message <%s>\n", __func__, message);
     generate_ft8(message, tones);
 
     /*---------------------------------------------------------------*
-     * Send the tone sequences generated                             *
-     *---------------------------------------------------------------*/
+       Send the tone sequences generated
+      ---------------------------------------------------------------*/
     //_INFOLIST("%s sending for 12.64 secs\n", __func__);
-    
-     send_ft8(tones, freq, 1500);      
-   //send_ft8(tones, freq, CurrentStation.af_frequency);
-   //_INFOLIST("%s transmission completed t=%lu\n",__func__,time_us_32()-txstart);
+
+    send_ft8(tones, freq, 1500);
+    //send_ft8(tones, freq, CurrentStation.af_frequency);
+
     /*---------------------------------------------------------------*
-     * place the cycle in receiver mode and flag it completion       *
-     *---------------------------------------------------------------*/ 
+       place the cycle in receiver mode and flag it completion
+      ---------------------------------------------------------------*/
     send = false;
     justSent = true;
   } else {
 
-  /****************************************
-   * RX Cycle                             *
-   ****************************************/
+    /****************************************
+       RX Cycle
+     ****************************************/
     while (!timeWait());
 
     /*---------------------------------------------------------------*
-     * Collect energy information for 12.8 secs and pre-process      *
-     * magnitudes found                                              *
-     *---------------------------------------------------------------*/ 
-     _INFOLIST("%s ------- RX ----------\n",__func__);
+       Collect energy information for 12.8 secs and pre-process
+       magnitudes found
+      ---------------------------------------------------------------*/
+    _INFOLIST("%s ------- RX ----------\n", __func__);
     inc_collect_power();
 
     /*---------------------------------------------------------------*
-     * Evaluate magnitudes captured and decode messages on passband  *
-     *---------------------------------------------------------------*/   
+       Evaluate magnitudes captured and decode messages on passband
+      ---------------------------------------------------------------*/
     uint32_t decode_begin = time_us_32();
     num_decoded = decode_ft8(message_list);
 
     /*---------------------------------------------------------------*
-     * Transform decode symbols into actual ft8 messages             *
-     *---------------------------------------------------------------*/   
-    tdecode=time_us_32()-decode_begin;
-    identify_message_types(message_list, my_callsign);   
-    
-    for (int i=0;i<num_decoded;i++) {
-       _INFOLIST("%s %04d %4d %s\n",__func__,message_list[i].af_frequency,message_list[i].self_rx_snr,message_list[i].full_text);
-       /*
-       _INFOLIST("%s call(%s) grid(%s) snr(%s) cq(%s) grid(%s) snr(%s) rsnr(%s) RRR(%s) 73(%s)\n",__func__, \
-                  message_list[i].station_callsign, \
-                  message_list[i].grid_square, \
-                  message_list[i].snr_report, \
-                  BOOL2CHAR(message_list[i].type_cq), \ 
-                  BOOL2CHAR(message_list[i].type_grid), \ 
-                  BOOL2CHAR(message_list[i].type_snr), \
-                  BOOL2CHAR(message_list[i].type_Rsnr), \
-                  BOOL2CHAR(message_list[i].type_RRR), \
-                  BOOL2CHAR(message_list[i].type_73)); 
-       */
+       Transform decode symbols into actual ft8 messages
+      ---------------------------------------------------------------*/
+    tdecode = time_us_32() - decode_begin;
+    identify_message_types(message_list, my_callsign);
+
+    for (int i = 0; i < num_decoded; i++) {
+      _INFOLIST("%s [%02d] %04d %4d %s\n", __func__, i, message_list[i].af_frequency, message_list[i].self_rx_snr, message_list[i].full_text);
     }
     justSent = false;
   }
 
   /*******************************************************
-   * Response evaluation (manual and automatic)          *
+     Response evaluation (manual and automatic)
    *******************************************************/
   int selected_station = -1; //default is no response
   int rTB = -1;              //rTB stands for responseTypeBuffer
@@ -387,328 +662,19 @@ void ft8_run() {
 
 
   /*******************************************************
-   * FT8 Evaluation Finite State Machine                 *
+     FT8 Evaluation Finite State Machine
    *******************************************************/
-   if (!autosend) goto ft8_end;
-   
-   if (autosend && state==0) {
-      if (!justSent) {
-        nTx++;
-      } else {
-        nRx++;
-      }     
-      _INFOLIST("%s state(%d) Rx(%d) Tx(%d)\n",__func__,state,nRx,nTx);
-   }
-   
-   if (state == 0  && !justSent) {   //State 0 - Just completed a reception
-      _INFOLIST("%s state(%d) Calling CQ\n",__func__,state);
-      state=1;
-      sendChoices.call_cq=true;
-      strcpy(CurrentStation.station_callsign,"");
-      strcpy(CurrentStation.grid_square,"");
-      strcpy(CurrentStation.snr_report,"");
-      nTry=0;
-      send=true;
-      goto ft8_end;
-   }
-
-   if (num_decoded == 0) goto ft8_end;
-   if (state == 0  && !justSent) {   //State 0 - Just completed a reception
-      _INFOLIST("%s state(%d) Looking for CQ\n",__func__,state);
-      for (int i=0;i<num_decoded;i++) {
-          if (message_list[i].type_cq) {
-             _INFOLIST("%s state(%d) msg[%d]=%s CQ call\n",__func__,state,i,message_list[i].full_text);
-             state=5;
-             strcpy(CurrentStation.station_callsign,message_list[i].station_callsign);
-             strcpy(CurrentStation.grid_square,message_list[i].grid_square);
-             sendChoices.send_grid = true;
-             send=true;
-             nTry=0;
-             goto ft8_end;
-          }
-      }
-   }
-
-
-   if (state == 1 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (message_list[i].addressed_to_me && message_list[i].type_grid) {
-             _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me && Grid\n",__func__,state,i,message_list[i].full_text);
-             state=2;
-             strcpy(CurrentStation.station_callsign,message_list[i].station_callsign);
-             strcpy(CurrentStation.grid_square,message_list[i].grid_square);
-             sendChoices.send_snr = true;
-             send=true;
-             nTry=0;
-             goto ft8_end;
-          }
-      }
-      _INFOLIST("%s state(%d) repeat CQ\n",__func__,state);
-      sendChoices.call_cq = true;
-      send=true;
-      nTry++;     
-      goto ft8_end;            
-   }
-
-   if (state == 2 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (message_list[i].addressed_to_me && message_list[i].type_Rsnr) {
-             _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and R-NN\n",__func__,state,i,message_list[i].full_text);
-             state=3;
-             sendChoices.send_73 = true;
-             strcpy(CurrentStation.snr_report,message_list[i].snr_report);
-             send=true;
-             nTry=0;
-             goto ft8_end;
-          }
-      }
-      _INFOLIST("%s state(%d) repeat SNR\n",__func__,state);
-      sendChoices.send_snr = true;
-      send=true;
-      nTry++;     
-      goto ft8_end;            
-   }
-
-   if (state == 3 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (message_list[i].addressed_to_me && (message_list[i].type_73)) {
-             _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and 73 or RR73\n",__func__,state,i,message_list[i].full_text);
-             state=4;
-             sendChoices.send_73 = true;
-             send=true;
-             nTry=12;
-             goto ft8_end;
-          }
-      }
-      _INFOLIST("%s state(%d) repeat 73\n",__func__,state);
-      sendChoices.send_73 = true;
-      send=true;
-      nTry++;     
-      goto ft8_end;            
-   }
-   
-   if (state == 5 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (strcmp(message_list[i].station_callsign,CurrentStation.station_callsign)==0) {
-             if (message_list[i].type_snr) {
-                _INFOLIST("%s state(%d) msg[%d]=%s SNR detected answering RSNR\n",__func__,state,i,message_list[i].full_text);
-                 state=6;
-                 sendChoices.send_Rsnr = true;
-                 send=true;
-                 nTry=0;
-                 goto ft8_end;
-             }          
-             if (message_list[i].type_cq) {
-                _INFOLIST("%s state(%d) msg[%d]=%s still CQ, repeat grid\n",__func__,state,i,message_list[i].full_text);
-                 sendChoices.send_grid = true;
-                 send=true;
-                 strcpy(CurrentStation.station_callsign,message_list[i].station_callsign);
-                 nTry++;
-                 goto ft8_end;
-             }          
-          }
-      }
-      _INFOLIST("%s state(%d) repeat grid\n",__func__,state);
-      sendChoices.send_grid = true;
-      send=true;
-      nTry++;     
-      goto ft8_end;            
-   }
-   if (state == 6 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (strcmp(message_list[i].station_callsign,CurrentStation.station_callsign)==0) {
-             if (message_list[i].type_RRR) {
-                _INFOLIST("%s state(%d) msg[%d]=%s RRR message sending 73\n",__func__,state,i,message_list[i].full_text);
-                 state=7;
-                 sendChoices.send_73 = true;
-                 send=true;
-                 strcpy(CurrentStation.station_callsign,message_list[i].station_callsign);
-                 nTry=0;
-                 goto ft8_end;
-             }          
-             if (message_list[i].type_snr) {
-                _INFOLIST("%s state(%d) msg[%d]=%s Still SNR repeat RSNR\n",__func__,state,i,message_list[i].full_text);
-                 sendChoices.send_Rsnr = true;
-                 send=true;
-                 nTry++;
-                 goto ft8_end;
-             }          
-          }
-      }
-      _INFOLIST("%s state(%d) repeat RSNR\n",__func__,state);
-      sendChoices.send_Rsnr = true;
-      send=true;
-      nTry++;     
-      goto ft8_end;            
-   }
-
-   if (state == 7 && !justSent) {
-      for (int i=0;i<num_decoded;i++) {
-          if (strcmp(message_list[i].station_callsign,CurrentStation.station_callsign)==0) {
-             if (message_list[i].type_RRR) {
-                _INFOLIST("%s state(%d) msg[%d]=%s 73 or RR73 sending RR73\n",__func__,state,i,message_list[i].full_text);
-                 state=7;
-                 sendChoices.send_RR73 = true;
-                 send=true;
-                 strcpy(CurrentStation.station_callsign,message_list[i].station_callsign);
-                 nTry=12;
-                 nRx=0;
-                 goto ft8_end;
-             }          
-          }
-          if (message_list[i].type_snr) {
-             _INFOLIST("%s state(%d) msg[%d]=%s Still RRR repeat 73\n",__func__,state,i,message_list[i].full_text);
-             sendChoices.send_73 = true;
-             send=true;
-             nTry++;
-             goto ft8_end;
-          }          
-          
-      }
-      send=true;
-      _INFOLIST("%s state(%d) Still RRR repeat 73\n",__func__,state);
-      sendChoices.send_73 = true;
-      send=true;
-      nTry++;
-      goto ft8_end;            
-   }
-
-
- /*---------------------------------------------------------------*
-  * If a decode message is addressed to me AND autosend is enabled*
-  * select the first such message and flag it to be answered in   *
-  * the next transmission cycle.                                  *
-  * This is a reactive strategy which won't enable automatic QSO  *
-  * unless the program is enabled to send CQ by herself           * 
-  *---------------------------------------------------------------*/   
-  if (autosend) {
-/*
-    for (int i = 0; i < kMax_decoded_messages; i++) {
-      if (message_list[i].addressed_to_me) {
-        selected_station = i; //if autosending, finds the first occurence of callsign and automatically responds
-        //_INFOLIST("%s Message analysis completed, selected [%d]\n", __func__, selected_station);
-        send = true;
-        break;
-      }
-    }
-    //_INFOLIST("%s Message analysis completed, no message to me selected [%d]\n", __func__,selected_station);
-    if (!justSent) {
-       sendChoices.call_cq = true;
-       _INFOLIST("%s Calling CQ\n",__func__);
-       send=true;
-    } 
-*/
-   
+  if (autosend and !justSent) {
+    send = ft8bot(&CurrentStation, &sendChoices, message_list);
   } else {
-    /*---------------------------------------------------------------*
-     * No message found addressed to me, then here a message         *
-     * generation heuristic might apply, either by manually picking  *
-     * an answer or to autogenerate one                              *
-     *---------------------------------------------------------------*/   
-  
-    //_INFOLIST("%s No message generated\n", __func__);
+    send = false;
   }
+  //_INFOLIST("%s send(%s) Choices cq[%s] grid[%s] snr[%s] rsnr[%s] RRR[%s] 73[%s] RR73[%s]\n",__func__,BOOL2CHAR(sendChoices.call_cq),BOOL2CHAR(sendChoices.send_grid),BOOL2CHAR(sendChoices.send_snr),BOOL2CHAR(sendChoices.send_Rsnr),BOOL2CHAR(sendChoices.send_RRR),BOOL2CHAR(sendChoices.send_73),BOOL2CHAR(sendChoices.send_RR73));
 
-  //while modulo greater than 12.8, OR aborted
-  //uint64_t overtime = (time_us_64() - config_us + timeprev.tm_sec * 1000000) % 15000000;
-  //@@@@ uint64_t overtime = (time_us_64() - config_us + config_hms.sec * 1000000) % 15000000;
-  //@@@@ here it needs to be sync with 15 secs edge
-  //This is to react to input
-  /*
-         uint64_t overtime=0;
-         if (overtime < 12800000){
-             printf("no time to select\n");
-             sleep_us(13000000 - overtime);
-         }
-         while ((time_us_64() - config_us + config_hms.sec * 1000000) % 15000000 > 12800000)
-         {
-             //scan for keypad input... otherwise do nothing
-
-
-             char char_selection = pico_keypad_get_key();
-
-             if (char_selection == '*')
-             { //make this the abort/menu key
-                 //goto back to setup
-                 goto reconfigure;
-             }
-
-
-             if (justSent)
-             {
-                 continue;
-             }
-
-             if (!send || autosend)
-             {
-                 selected_station = char_to_int(char_selection);
-             }
-             else if (!autosend)
-             {
-                 rTB = char_to_int(char_selection);
-             }
-
-             if (selected_station < 0)
-             {
-                 send = false;
-             }
-             else if (selected_station < kMax_decoded_messages)
-             {
-                 send = true;
-             }
-
-         } //end of while loop here is the time limit if the operator has to pick an answer
-  */
-
-  /*
-          if (!autosend) {
-              if (rTB == 0)
-              {
-                  sendChoices.call_cq = true;
-              }
-              else if (rTB == 1)
-              {
-                  sendChoices.send_grid = true;
-              }
-              else if (rTB == 2)
-              {
-                  sendChoices.send_snr = true;
-              }
-              else if (rTB == 3)
-              {
-                  sendChoices.send_Rsnr = true;
-              }
-              else if (rTB == 4)
-              {
-                  sendChoices.send_RRR = true;
-              }
-              else if (rTB == 5)
-              {
-                  sendChoices.send_RR73 = true;
-              }
-              else if (rTB == 6)
-              {
-                  sendChoices.send_73 = true;
-              }
-          } */
-  
-  /*
-          //need to make autosend automatically select the station
-          if (send)
-          {
-              bool same_station = strcmp(CurrentStation.station_callsign,message_list[selected_station].station_callsign);
-              CurrentStation = message_list[selected_station];
-              //update_current_station_display(CurrentStation, same_station);
-              printf("CurrentStation set to %d\n",selected_station);
-              printf("can callsign be seen? %s\n", CurrentStation.station_callsign);
-          }
-  */
 
   /*--------------------
-   * reset the message list to start a new cycle
-   */
-ft8_end:
-
+     reset the message list to start a new cycle
+  */
 
   memset(message_list, 0, sizeof(message_list));
   return;
@@ -728,10 +694,10 @@ void setup()
 #endif //DEBUG
 
   /*-----------
-   * Data area initialization
-   */
-  strcpy(my_callsign,MY_CALLSIGN);
-  strcpy(my_grid,MY_GRID); 
+     Data area initialization
+  */
+  strcpy(my_callsign, MY_CALLSIGN);
+  strcpy(my_grid, MY_GRID);
 
   /*-----------
      System initialization
@@ -764,7 +730,7 @@ void setup()
 
   setup_ft8();
   delay(1000);
-  _INFOLIST("%s setup_ft8 completed\n",__func__);
+  _INFOLIST("%s setup_ft8 completed\n", __func__);
 
   /*--------------------
      Place the receiver in reception mode
@@ -803,9 +769,9 @@ void loop()
   checkButton();
 
   /*------------------------------------------------
-   * Main FT8 handling cycle
-   */
-   ft8_run();
+     Main FT8 handling cycle
+  */
+  ft8_run();
 
 }
 //*********************[ END OF MAIN LOOP FUNCTION ]*************************
@@ -830,7 +796,7 @@ void initSi5351() {
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);// SET For Max Power
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_2MA); // Set for reduced power for RX
   si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); // Set for reduced power for RX
-  
+
   si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn on calibration Clock
   si5351.set_clock_pwr(SI5351_CLK0, 0); // Turn off transmitter clock
 
@@ -838,7 +804,7 @@ void initSi5351() {
   si5351.output_enable(SI5351_CLK2, 0);   //RX off
 
 
-  
+
   si5351.set_freq(freq * 100ULL, SI5351_CLK1);
 
   si5351.set_clock_pwr(SI5351_CLK1, 1); // Turn on receiver clock
@@ -926,7 +892,7 @@ void ManualTX() {
   unsigned long freq1 = freq;
   digitalWrite(RX, LOW);
   si5351.output_enable(SI5351_CLK1, 0);   //RX off
-  _INFOLIST("%s TX+ f=%lu freqx=%lu \n", __func__,freq,freq1);
+  _INFOLIST("%s TX+ f=%lu freqx=%lu \n", __func__, freq, freq1);
 
 
 TXON:
@@ -945,10 +911,10 @@ TXON:
 
 EXIT_TX:
   digitalWrite(TX, 0);
-  si5351.set_freq(freq * 100ULL, SI5351_CLK0); 
+  si5351.set_freq(freq * 100ULL, SI5351_CLK0);
   si5351.output_enable(SI5351_CLK0, 0);   //TX off
   si5351.output_enable(SI5351_CLK1, 1);   //TX off
-  
+
   TX_State = 0;
   _INFOLIST("%s TX-\n", __func__);
 
@@ -1234,7 +1200,7 @@ void Calibration() {
 
   si5351.set_clock_pwr(SI5351_CLK0, 0); // Turn on receiver clock
   si5351.set_clock_pwr(SI5351_CLK1, 0); // Turn on receiver clock
-  
+
   si5351.set_clock_pwr(SI5351_CLK2, 1); // Turn on receiver clock
   si5351.output_enable(SI5351_CLK2, 1);   // RX on
 
@@ -1308,7 +1274,7 @@ Calibrate:
 
 
 
-      
+
       si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); // Set for lower power for calibration
       si5351.set_clock_pwr(SI5351_CLK2, 1); // Enable the clock for calibration
       si5351.output_enable(SI5351_CLK2, 1);   // RX on
@@ -1421,7 +1387,7 @@ void INIT() {
   */
   gpio_set_dir(RX, GPIO_OUT);
   gpio_set_dir(TX, GPIO_OUT);
-  
+
   gpio_set_dir(WSPR, GPIO_OUT);
   gpio_set_dir(JS8, GPIO_OUT);
   gpio_set_dir(FT4, GPIO_OUT);

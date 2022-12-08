@@ -405,9 +405,9 @@ int calc_snr(const waterfall_t *power, const candidate_t *cand, int noise_avg){
         sig_sum += max_tone_mag;
     }
     int sig_avg = sig_sum / 79;
-    printf("sig avg: %d ",sig_avg);
+    //printf("sig avg: %d ",sig_avg);
     int sig_minus_noise = sig_avg-noise_avg;
-    printf("sig-noise power: %d \n", sig_minus_noise);
+    //printf("sig-noise power: %d \n", sig_minus_noise);
 
     //int snr = round(0.427*sig_minus_noise - 33.7); //this linear regression can be improved with more testing
     int snr = (int)(0.427 * sig_minus_noise - 23.0);
