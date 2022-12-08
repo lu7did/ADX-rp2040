@@ -55,6 +55,40 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 Experimental, yet to be documented.
 
+## Time synchronization
+
+To operate using FT8 the transmission and reception must be synchronized in time among all operator with a tolerance of less than 2 seconds. The rp2040 lacks a 
+real time clock (RTC), it keeps track of the time quite precisely but starting from the boot moment, which in turn might happen at any arbitrary time, therefore 
+rendering the board unusable for FT8 decoding and emitting pursposes.
+
+There are several strategies to address this problem:
+
+*	Using an external RTC board that can be synchronized with an external clock source.
+*	Using a GPS receiver to synchronize the time.
+*	Using the NTP protocol over the Internet to synchronize with a time server.
+*	Some manual way to synchronize the time.
+
+At this point the later strategy is the selected, if not because it's the simplest and quickest to implement. Upon startup the rp2040 board starts it's internal
+clock is set arbitrarly. However, if the UP button is found pressed while performing the initial firmware setup the processing is held (all LEDs blinking
+signals that situation). The button can be held pressed until the top of the minute and when released the internal clock is set to 00:00:00 and therefore
+left synchronized.
+
+To operate FT8 the actual time isn't needed, other administrative pursposes such as a log might require that, but the protocol itself needs to identify within a 1 sec
+precision the seconds 0,15,30 and 45 of each minute; once synchronized the internal clock is precise enough to do that.
+
+The synchronization is volatile and therefore needs to be performed everytime the board is powered, but it can be done with any celular phone or other precise time
+source (synchronized with a time server) where the second 00 of each minute can be precisely spot.
+
+```
+Warning
+
+Although the internal clock is synchronized few microseconds after the release of the UP button the actual synchronization is an eye-hand coordination
+that could take some hundred milliseconds up to over a second; in some cases the synchronization isn't good enough, and that can be seen as a difficulty
+to properly decode signals or have a reduced sensitiviy to small signals. In that case the best cure is to repeat the synchronization.
+However a simple method is to use a clock which actually is digital but has an analog format, when the seconds handle crosses the "1" of the "12" mark the button
+must be released, this will account for some differences in the reaction time to do that and thus enhance the synchronization process. 
+```
+
 
 # Hardware
 
