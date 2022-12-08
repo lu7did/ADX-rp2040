@@ -61,11 +61,6 @@
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
 
-/*----------------------------------------------------
- * ft8 definitions
- */
-//Created by AA1GD Aug. 25, 2021
-//OCTOBER 18, 2021 AT 5:14 PM CDT FIRST ON AIR DECODES WITH THIS
 
 #define MY_CALLSIGN "LU7DZ"
 #define MY_GRID "GF05"

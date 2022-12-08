@@ -220,6 +220,12 @@ int Bdly = 250;
 */
 #define I2C_SDA        16  //I2C SDA
 #define I2C_SCL        17  //I2C SCL
+
+/*---
+ * Auto calibration definitions
+ */
+#define CAL_STEP      500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
+
 #endif //RP2040
 //**********************************************************************************************
 
