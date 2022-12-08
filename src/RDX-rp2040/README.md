@@ -109,7 +109,7 @@ The following modifications applies to both the schematic of the RDX transceiver
 ```
 A suitable circuit can be seen in the following schematic
 
-![Alt Text](../../docs/ADX-rp2040-AF.png "Audio amplifier")
+![Alt Text](../../docs/RDX-rp2040-AF.png "Audio amplifier")
 
 
 ## ADX2PDX daughter board prototype fixes
