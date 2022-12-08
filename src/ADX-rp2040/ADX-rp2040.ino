@@ -124,17 +124,17 @@
 #include <Time.h>
 
 /*-------------------------------------------------
- * IDENTIFICATION DIVISION.
- * (just a programmer joke)
- */
+   IDENTIFICATION DIVISION.
+   (just a programmer joke)
+*/
 #define PROGNAME "ADX_rp2040"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION 1.0
-#define BUILD     1
+#define BUILD     23
 
 /*-------------------------------------------------
- * Macro expansions
- */
+   Macro expansions
+*/
 #define digitalWrite(x,y) gpio_put(x,y)
 #define digitalRead(x)  gpio_get(x)
 
@@ -143,8 +143,8 @@
 #define _NOP (byte)0
 
 /*--------------------------------------------------
- * Program configuration parameters
- */
+   Program configuration parameters
+*/
 //#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 
 #undef  UART
@@ -156,24 +156,34 @@
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
 
+
 /*-----------------------------------------------------
- * External references to freqPIO variables and methods
- */
+   Definitions for autocalibration
+
+*/
+#define AUTOCAL             1
+#define CAL_STEP          500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
+#define CAL_COMMIT         12
+#define CAL_ERROR           1
+
+/*-----------------------------------------------------
+   External references to freqPIO variables and methods
+*/
 extern volatile uint32_t   period;
 extern bool pioirq;
 extern void PIO_init();
 
 /*------------------------------------------------------
- * Main variables
- */
+   Main variables
+*/
 char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
 /*-------------------------------------------------------
- * Debug and development aid tracing
- * only enabled if DEBUG is defined previously
- */
+   Debug and development aid tracing
+   only enabled if DEBUG is defined previously
+*/
 #ifdef DEBUG
 
 #ifdef  UART    //Can test with the IDE, USB based, serial port or the UART based external serial port
@@ -191,12 +201,12 @@ uint32_t prevfreq = 0;
   } while (false)
 //#define _INFOLIST(...)  strcpy(hi,"@");sprintf(hi+1,__VA_ARGS__);_SERIAL.write(hi);_SERIAL.flush();
 #else //!DEBUG
-#define _INFOLIST(...) (void)0
+#define _INFOLIST(...)
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
- *                                 End of porting definitions
- *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+                                   End of porting definitions
+  =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 //*******************************[ VARIABLE DECLERATIONS ]*************************************
 uint32_t val;
 int temp;
@@ -208,7 +218,6 @@ unsigned long freq1;
 int32_t cal_factor;
 int TX_State = 0;
 
-unsigned long Cal_freq = 1000000UL; // Calibration Frequency: 1 Mhz = 1000000 Hz
 unsigned long F_FT8;
 unsigned long F_FT4;
 unsigned long F_JS8;
@@ -219,6 +228,15 @@ int UP_State;
 int DOWN_State;
 int TXSW_State;
 int Bdly = 250;
+
+/*---------------------
+ * Definitions related to the autocalibration function
+ */
+unsigned long Cal_freq  = 1000000UL; // Calibration Frequency: 1 Mhz = 1000000 Hz
+int      pwm_slice;
+uint32_t f_hi;
+uint32_t fclk     = 0;
+int32_t  error    = 0;
 // **********************************[ DEFINE's ]***********************************************
 //***********************************************************************************************
 //* The following defines the ports used to connect the hard switches (UP/DOWN/TX) and the LED
@@ -274,6 +292,13 @@ int Bdly = 250;
 */
 #define I2C_SDA        16  //I2C SDA
 #define I2C_SCL        17  //I2C SCL
+
+
+/*----
+   Autocalibration pin
+*/
+#define CAL             9      //Automatic calibration entry
+
 #endif //RP2040
 //**********************************************************************************************
 
@@ -326,25 +351,25 @@ void setup()
   pinMode(7, INPUT); //PD7 = AN1 = HiZ, PD6 = AN0 = 0
 #endif //!RP2040
 
-/*-----------------------------
- * Port definitions (pinout, direction and pullups used
- */
-#ifdef RP2040   
+  /*-----------------------------
+     Port definitions (pinout, direction and pullups used
+  */
+#ifdef RP2040
 
-/*--------
- * Initialize switches
- */
+  /*--------
+     Initialize switches
+  */
   gpio_init(UP);
   gpio_init(DOWN);
   gpio_init(TXSW);
 
-/*---- 
- * Initialize RX command
- */
+  /*----
+     Initialize RX command
+  */
   gpio_init(RX);
 
- /*---
-  * Initialize LED
+  /*---
+     Initialize LED
   */
 
   gpio_init(WSPR);
@@ -353,25 +378,25 @@ void setup()
   gpio_init(FT8);
   gpio_init(TX);
 
-/*-----
- * Set direction of input ports
- */
+  /*-----
+     Set direction of input ports
+  */
   gpio_set_dir(UP, GPIO_IN);
   gpio_set_dir(DOWN, GPIO_IN);
   gpio_set_dir(TXSW, GPIO_IN);
 
-/*-----
- * Pull-up for input ports 
- * (Warning! See hardware instructions
- */
+  /*-----
+     Pull-up for input ports
+     (Warning! See hardware instructions
+  */
 
   gpio_pull_up(TXSW);
   gpio_pull_up(DOWN);
   gpio_pull_up(UP);
 
-/*---
- * Set output ports
- */
+  /*---
+     Set output ports
+  */
   gpio_set_dir(RX, GPIO_OUT);
   gpio_set_dir(TX, GPIO_OUT);
   gpio_set_dir(WSPR, GPIO_OUT);
@@ -379,17 +404,17 @@ void setup()
   gpio_set_dir(FT4, GPIO_OUT);
   gpio_set_dir(FT8, GPIO_OUT);
 
-/*----  
- * Digital input pin, it's an ADC port to allow further development of DSP based inputs
- */
+  /*----
+     Digital input pin, it's an ADC port to allow further development of DSP based inputs
+  */
 
   gpio_init(FSKpin);
   gpio_set_dir(FSKpin, GPIO_IN);
   gpio_pull_up(FSKpin);
 
-/*---  
- * Initialice I2C sub-system
- */
+  /*---
+     Initialice I2C sub-system
+  */
 
   Wire.setSDA(I2C_SDA);
   Wire.setSCL(I2C_SCL);
@@ -417,9 +442,13 @@ void setup()
 
 
   if ( digitalRead(DOWN) == LOW ) {
-
-    _INFOLIST("%s Calibration mode started\n", __func__);
-    Calibration();
+     #ifdef AUTOCAL
+        _INFOLIST("%s Automatic calibration mode started\n", __func__);
+        AutoCalibration();
+     #endif //AUTOCAL
+     
+     _INFOLIST("%s Calibration mode started\n", __func__);
+     Calibration();
   }
 
   /*-------[RP2040] The COMPA interrupt isn't present on the rp2040 and thus it's replaced
@@ -440,14 +469,14 @@ void setup()
   _INFOLIST("%s PIO sub-system initialized\n", __func__);
 #endif //Initialize the PIO based counting method used on rp2040
 
-/*--------------------
- * Place the receiver in reception mode
- */
+  /*--------------------
+     Place the receiver in reception mode
+  */
   digitalWrite(RX, LOW);
 
-/*--------------------
- * Assign initial mode
- */
+  /*--------------------
+     Assign initial mode
+  */
   Mode_assign();
   _INFOLIST("%s setup completed successfully\n", __func__);
 
@@ -459,17 +488,17 @@ void setup()
 void loop()
 {
 
-/*------------------------------------------------
- * Explore and handle interactions with the user
- * thru the UP/DOWN or TX buttons
- */
+  /*------------------------------------------------
+     Explore and handle interactions with the user
+     thru the UP/DOWN or TX buttons
+  */
   UP_State = digitalRead(UP);
   DOWN_State = digitalRead(DOWN);
 
-/*----
- * UP(Pressed) && DOWN(Pressed) && !Transmitting
- * Start band selection mode
- */
+  /*----
+     UP(Pressed) && DOWN(Pressed) && !Transmitting
+     Start band selection mode
+  */
 
   if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
     delay(100);
@@ -480,10 +509,10 @@ void loop()
     }
   }
 
-/*----
- * UP(Pressed) && DOWN(!Pressed) and !Transmitting
- * Increase mode in direct sequence
- */
+  /*----
+     UP(Pressed) && DOWN(!Pressed) and !Transmitting
+     Increase mode in direct sequence
+  */
 
   if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0)) {
     delay(100);
@@ -504,11 +533,11 @@ void loop()
     }
   }
 
-/*----
- * UP(!Pressed) && DOWN(Pressed) && !Transmitting
- * Change mode in the opposite sequence
- * 
- */
+  /*----
+     UP(!Pressed) && DOWN(Pressed) && !Transmitting
+     Change mode in the opposite sequence
+
+  */
   DOWN_State = digitalRead(DOWN);
   if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0)) {
     delay(50);
@@ -533,9 +562,9 @@ void loop()
     }
   }
 
-/*----
- * If the TX button is pressed then activate the transmitter until the button is released
- */
+  /*----
+     If the TX button is pressed then activate the transmitter until the button is released
+  */
   TXSW_State = digitalRead(TXSW);
 
   if ((TXSW_State == LOW) && (TX_State == 0)) {
@@ -631,7 +660,7 @@ void loop()
       pioirq = false;                                //clear the condition to allow the next to happen
       FSK = VOX_MAXTRY;                              //restore the "silence counter", a valid frequency reading extends it
       if (period > 0) {                              //If the period is above zero compute the frequency
-        codefreq = FSK_USEC / period;                 
+        codefreq = FSK_USEC / period;
       } else {
         codefreq = 0;
       }
@@ -663,8 +692,8 @@ void loop()
            by less than 4 Hz.
         */
         if (abs(int(codefreq - prevfreq)) >= FSK_ERROR) {
-          unsigned long fx=((unsigned long)(freq+codefreq))*100ULL;
-          _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n",__func__,freq,codefreq,fx);
+          unsigned long fx = ((unsigned long)(freq + codefreq)) * 100ULL;
+          _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n", __func__, freq, codefreq, fx);
           si5351.set_freq(fx, SI5351_CLK0);
           prevfreq = codefreq;
         }
@@ -1145,11 +1174,193 @@ Band_exit:
 }
 
 //*********************************[ END OF BAND SELECT ]*****************************
+/*----------------------
+ * Interrupt handler to perform a frequency counting used in calibration
+ */
+void pwm_int() {
+  pwm_clear_irq(pwm_slice);
+  f_hi++;
+}
 
+void setCalibrationLED(uint16_t e) {
 
+  if (e>75) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,HIGH);
+     digitalWrite(FT8,HIGH);
+     return;
+  }
+  if (e>50) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,HIGH);
+     digitalWrite(FT8,LOW);
+     return;
+  }
+  if (e>25) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,LOW);
+     digitalWrite(FT8,LOW);
+     return;
+  }
 
+  if (e>10) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,LOW);
+     digitalWrite(FT4,LOW);
+     digitalWrite(FT8,LOW);
+     return;
+  }
+  digitalWrite(WSPR,LOW);
+  digitalWrite(JS8,LOW);
+  digitalWrite(FT4,LOW);
+  digitalWrite(FT8,LOW);
+  return;
+
+}
+//***************************[SI5351 VFO Auto-Calibration Function]********************
+//* This function has no equivalent on the ADX-UnO firmware and can only be activated
+//* with the RDX or ADX2RDX boards
+//*
+//* To enable uncomment the #define AUTOCAL     1 statement
+//*************************************************************************************
+void AutoCalibration () {
+
+bool b = false;
+
+  if (!Serial) {
+     Serial.begin(115200);
+     Serial.flush();
+  }
+  sprintf(hi,"Autocalibration procedure started\n");
+  Serial.print(hi);
+
+  sprintf(hi,"Current cal_factor=%d\n",cal_factor);
+  Serial.print(hi);
+
+  addr = 10;
+  EEPROM.get(addr, cal_factor);
+
+  sprintf(hi,"Current cal_factor=%d, reset\n",cal_factor);
+  Serial.print(hi);
+  
+  cal_factor=0;
+  EEPROM.put(addr, cal_factor);
+  EEPROM.commit();
+
+  digitalWrite(TX,LOW);
+  setCalibrationLED(1000);
+  
+  while (!digitalRead(DOWN));
+  /*--------------------
+
+  */
+  gpio_init(CAL);
+  gpio_pull_up(CAL);
+  gpio_set_dir(CAL, GPIO_IN);
+  delay(10);
+
+  /*----
+    Prepare Si5351 CLK2 for calibration process
+    ---*/
+
+  gpio_set_function(CAL, GPIO_FUNC_PWM); // GP9
+  si5351.set_clock_pwr(SI5351_CLK0, 0); // Enable the clock for calibration
+  si5351.set_clock_pwr(SI5351_CLK1, 0); // Enable the clock for calibration
+  si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); // Set for lower power for calibration
+  si5351.set_clock_pwr(SI5351_CLK2, 1); // Enable the clock for calibration
+  si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
+  si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
+  si5351.set_freq(Cal_freq * 100UL, SI5351_CLK2);
+
+  sprintf(hi,"Si5351 clock setup f %lu MHz\n",(unsigned long)Cal_freq);
+  Serial.print(hi);
+  
+  /*--------------------------------------------*
+     PWM counter used for automatic calibration
+     -------------------------------------------*/
+  fclk = 0;
+  int16_t n = int16_t(CAL_COMMIT);
+  cal_factor = 0;
+
+  pwm_slice = pwm_gpio_to_slice_num(CAL);
+
+  /*---------------------------------------------*
+    Perform a loop until convergence is achieved
+  */
+  while (true) {
+    /*-------------------------*
+       setup PWM counter
+      -------------------------*/
+    pwm_config cfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_mode(&cfg, PWM_DIV_B_RISING);
+    pwm_init(pwm_slice, &cfg, false);
+    gpio_set_function(CAL, GPIO_FUNC_PWM);
+
+    pwm_set_irq_enabled(pwm_slice, true);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_int);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+    f_hi = 0;
+
+    /*---------------------------*
+       PWM counted during 1 sec
+      ---------------------------*/
+    uint32_t t = time_us_32() + 2;
+    while (t > time_us_32());
+    pwm_set_enabled(pwm_slice, true);
+    t += 1000000;
+    while (t > time_us_32());
+    pwm_set_enabled(pwm_slice, false);
+
+    /*----------------------------*
+       recover frequency in Hz
+      ----------------------------*/
+    fclk = pwm_get_counter(pwm_slice);
+    fclk += f_hi << 16;
+    error = fclk - Cal_freq;
+    sprintf(hi,"n(%01d) cal(%lu) Hz dds(%lu) Hz err (%lu) Hz factor(%lu)\n",n, (unsigned long)Cal_freq, (unsigned long)fclk, (unsigned long)error, (unsigned long)cal_factor);
+    Serial.print(hi);
+    setCalibrationLED((uint16_t)error);
+
+    if (labs(error) > int32_t(CAL_ERROR)) {
+        b = !b;
+        if (b) {  
+          digitalWrite(TX, LOW);
+        } else {
+          digitalWrite(TX, HIGH);
+        }
+        if (error < 0) {
+           cal_factor = cal_factor - CAL_STEP;
+        } else {
+           cal_factor = cal_factor + CAL_STEP;
+        }
+        si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
+    } else {
+      n--;
+      if (n == 0) {
+        break;
+      }
+
+    }
+  }  //larger while(true) loop
+  
+  EEPROM.put(addr, cal_factor);
+  EEPROM.commit();
+  setCalibrationLED(0);
+  
+  sprintf(hi,"Calibration procedure completed cal_factor=%d\n",cal_factor);
+  Serial.print(hi);
+  sprintf(hi,"Turn power-off the ADX board to start\n");
+  Serial.print(hi);
+  
+  while (true) {
+    
+  }
+
+}
 //************************** [SI5351 VFO Calibration Function] ************************
-
 void Calibration() {
 
   digitalWrite(FT8, LOW);
