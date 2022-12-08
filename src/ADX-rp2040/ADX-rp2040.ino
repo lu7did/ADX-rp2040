@@ -122,6 +122,7 @@
 #include "hardware/uart.h"
 #include <WiFi.h>
 #include <Time.h>
+#include "ADX-rp2040.h"
 
 /*-------------------------------------------------
    IDENTIFICATION DIVISION.
@@ -132,6 +133,7 @@
 #define VERSION 1.0
 #define BUILD     23
 
+<<<<<<< HEAD
 /*-------------------------------------------------
    Macro expansions
 */
@@ -173,6 +175,8 @@ extern volatile uint32_t   period;
 extern bool pioirq;
 extern void PIO_init();
 
+=======
+>>>>>>> initial
 /*------------------------------------------------------
    Main variables
 */
@@ -180,6 +184,7 @@ char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
+<<<<<<< HEAD
 /*-------------------------------------------------------
    Debug and development aid tracing
    only enabled if DEBUG is defined previously
@@ -203,6 +208,8 @@ uint32_t prevfreq = 0;
 #else //!DEBUG
 #define _INFOLIST(...)
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
+=======
+>>>>>>> initial
 #endif //RP2040 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
                                    End of porting definitions
@@ -334,7 +341,6 @@ void setup()
   delay(200);
   _SERIAL.flush();
 #endif //DEBUG
-
 
 #ifndef RP2040         //This is the original ADX_UnO port definitions, nullified by the porting
   pinMode(UP, INPUT);
