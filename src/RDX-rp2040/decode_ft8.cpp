@@ -30,6 +30,8 @@
 //#include "hardware/timer.h" //won't be needed once delay is replaced with interrupt
 
 const float fft_norm = 2.0f / nfft;
+CALLBACK fftReady=NULL;
+CALLQSO  qsoReady=NULL;
 
 //AA1GD-added array of structures to store info in decoded messages 8/22/2021
 //LU7DZ-do not understant why, but until I do I left there         11/25/2022
@@ -134,6 +136,7 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
       float mag2 = (freqdata[idx_bin].i * freqdata[idx_bin].i) + (freqdata[idx_bin].r * freqdata[idx_bin].r);
       mag_db[idx_bin] = 10.0f * log10f(1E-12f + mag2 * fft_norm * fft_norm);
     }
+    if (fftReady != NULL) fftReady();
     /*--------------------------------------*
        Loop over two possible frequency bins
        offset (for averaging)
@@ -348,6 +351,7 @@ int decode_ft8(message_info message_list[])
       message_list[num_decoded].af_frequency = (uint16_t) freq_hz;
       message_list[num_decoded].time_offset = time_sec;
       strcpy(message_list[num_decoded].full_text, message.text);
+      if (qsoReady != NULL) qsoReady(num_decoded);
 
       ++num_decoded;
     }

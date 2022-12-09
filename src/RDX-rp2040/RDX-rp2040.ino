@@ -226,6 +226,24 @@ bool timeWait() {
   return false;
 
 }
+/*--------------------------------------------------------------------------------------------
+ * This is a callback handler which is called when the fft is completed for each ADC sample
+ * (1000 samples at 6000 Hz), this can be useful to perform housekeeping such as to update
+ * a waterfall display.
+ */
+void fftCallBack() {
+
+
+}
+/*--------------------------------------------------------------------------------------------
+ * This is a callback handler which is called when the ft8 decoding process has identified
+ * a valid reception of a line. The index points to the entry on message_list where the
+ * newly received message is.
+ */
+
+void qsoCallBack(int i) {
+  //_INFOLIST("%s qso[%d] %s\n",__func__,i,message_list[i].full_text);
+}
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  ft8 processing                                                                          *
@@ -260,9 +278,16 @@ void setup_ft8() {
   _INFOLIST("%s make_window() completed\n", __func__);
 
   /*------
-     wait to settle
+     Establish a callback handler to be called at the end
+     of each ADC sample (to update the waterfall)
   */
 
+  fftReady=fftCallBack;
+  qsoReady=qsoCallBack;
+  
+  /*-------
+   * Wait to settle
+   */
   sleep_ms(1000);
   _INFOLIST("%s completed\n", __func__);
 

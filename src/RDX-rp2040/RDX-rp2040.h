@@ -47,6 +47,8 @@
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
+typedef void (*CALLBACK)();
+typedef void (*CALLQSO)(int i);
 /*--------------------------------------------------
  * Program configuration parameters
  */
@@ -122,6 +124,8 @@ extern char my_callsign[16];
 extern char my_grid[8];
 extern Si5351 si5351;
 extern char timestr[12];
+extern CALLBACK fftReady;
+extern CALLQSO  qsoReady;
 
 extern void INIT();
 extern void Calibration();
