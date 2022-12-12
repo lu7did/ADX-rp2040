@@ -17,7 +17,7 @@
 //*
 //* originally from ft8_lib by Karlis Goba (YL3JG), great library and the only one beyond WSJT-X itself
 //* excerpts taken from pi_ft8_xcvr by Godwin Duan (AA1GD) 2021
-//* excerpts taken from Orange_Thunder by Pedro Colla (LU7DZ) 2018
+//* excerpts taken from Orange_Thunder by Pedro Colla (LU7DID/LU7DZ) 2018
 //* code refactoring made by Pedro Colla (LU7DZ) 2022
 //*
 //*********************************************************************************************************
@@ -83,7 +83,7 @@
 // The following Si5351 VFO calibration procedure has been extracted from the ADX-rp2040
 // firmware which in turns has been derived from ADX-UnO_V1.3. The original procedure has
 // been developed by Barb (WB2CBA) as part of his firmware code.
-//*****************[ SI5351 VFO CALIBRATION PROCEDURE ]****************************************
+//*****************[ SI5351 VFO MANUAL CALIBRATION PROCEDUR***********************************
 // For SI5351 VFO Calibration Procedure follow these steps:
 // 1 - Connect CAL test point and GND test point on ADX PCB to a Frequency meter or Scope
 //     that can measure 1 Mhz up to 1Hz accurately.
@@ -133,9 +133,6 @@
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION 1.0
 #define BUILD     1
-
-
-
 /*------------------------------------------------------
    Main variables
 */
@@ -339,6 +336,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
       strcpy(CurrentStation->grid_square, "");
       CurrentStation->self_rx_snr=0;
       nTry = 0;
+      nTx=0;
       return true;
   }
   }
