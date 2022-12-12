@@ -136,7 +136,7 @@ Same as the ADX-rp2040 project
 The following modifications applies to both the schematic of the RDX transceiver or the ADX2PDX daughterboard.
 ```
 
- * Build a small class A.
+ * Build a small class A audio amplifier.
  * Connect the input of the amplifier to RXA.
  * Connect the output of the amplifier to GPIO26 (ADC0) pin 31 of the rp2040 board.
 
