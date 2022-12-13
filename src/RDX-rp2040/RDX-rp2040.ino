@@ -760,6 +760,12 @@ void setup()
   delay(1000);
   _INFOLIST("%s setup_ft8 completed\n", __func__);
 
+  /*--------------
+   * Initialize TFT sub-system if present
+   */
+   setup_tft();
+  _INFOLIST("%s setup_tft completed\n", __func__);
+
   /*--------------------
      Place the receiver in reception mode
   */

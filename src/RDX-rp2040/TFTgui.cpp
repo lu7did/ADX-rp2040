@@ -17,6 +17,7 @@
  * https://github.com/kaefe64/Arduino_uSDX_Pico_FFT_Proj
 
  * Adaptation to ADX-rp2040 project by Pedro Colla (LU7DZ) 2022
+ * Re-factoring by Pedro Colla (LU7DZ) 2022
  * 
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 #include "SPI.h"
@@ -92,32 +93,13 @@ struct triangle{
 
 
 
-/* used to allow calling from other modules, concentrate the use of tft variable locally */
 /*----------------------------------------
  * color conversion support routine
- */
+ * used to allow calling from other modules, concentrate the use of tft variable locally
+ *----------------------------------------*/
 uint16_t tft_color565(uint16_t r, uint16_t g, uint16_t b)
 {
   return tft.color565(r, g, b);
-}
-
-/*-----------------------------
- * fillstr
- * fill a given string with a given character
- */
-
-void fillstr(char *s,char c,int l) {
-   memset (s,c,l);
-/*   
-   if (strlen(s)>l) {
-      return;
-   }
-   for (int i=strlen(s);i<=l;i++) {
-       s[i]=c;
-   }
-   s[l]=0x00;
-*/
- 
 }
 
 /*-----------------------------
@@ -311,10 +293,10 @@ void linearMeter::demo() {
 /***************************************************************************************
 ** Function name:           rainbowColor
 ** Description:             Return a 16 bit rainbow colour
+** If 'spectrum' is in the range 0-159 it is converted to a spectrum colour
+** from 0 = red through to 127 = blue to 159 = violet
+** Extending the range to 0-191 adds a further violet to red band
 ***************************************************************************************/
-  // If 'spectrum' is in the range 0-159 it is converted to a spectrum colour
-  // from 0 = red through to 127 = blue to 159 = violet
-  // Extending the range to 0-191 adds a further violet to red band
  
 uint16_t linearMeter::rainbowColor(uint8_t spectrum) {
   
@@ -742,18 +724,15 @@ bool displayPDX::point(uint16_t x,uint16_t y) {
   
   for (int i=0;i<BUTTON_END;i++) {
     if (checkarea(x,y,btnPDX[i].x,btnPDX[i].y,btnPDX[i].x+btnPDX[i].w,btnPDX[i].y+btnPDX[i].h)) {
-        sprintf(hi,"%s hit button[%d]=%s (x,y)=(%d,%d) (x+w,y+h)=(%d,%d) (X,Y)=(%d,%d)\n",__func__,i,btnPDX[i].label,btnPDX[i].x,btnPDX[i].y,btnPDX[i].x+btnPDX[i].w,btnPDX[i].y+btnPDX[i].h,x,y);
-        Serial.print(hi);
+        _INFOLIST("%s hit button[%d]=%s (x,y)=(%d,%d) (x+w,y+h)=(%d,%d) (X,Y)=(%d,%d)\n",__func__,i,btnPDX[i].label,btnPDX[i].x,btnPDX[i].y,btnPDX[i].x+btnPDX[i].w,btnPDX[i].y+btnPDX[i].h,x,y);
         return true;
     }
   }
   if (checkarea(x,y,trianglePDX[TRIANGLE_LEFT].point1X,trianglePDX[TRIANGLE_LEFT].point2Y,trianglePDX[TRIANGLE_LEFT].point2X,trianglePDX[TRIANGLE_LEFT].point2Y)) {
-     sprintf(hi,"%s hit Triangle LEFT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_LEFT].point1X,trianglePDX[TRIANGLE_LEFT].point2Y,trianglePDX[TRIANGLE_LEFT].point2X,trianglePDX[TRIANGLE_LEFT].point2Y,x,y);
-     Serial.print(hi);    
+     _INFOLIST("%s hit Triangle LEFT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_LEFT].point1X,trianglePDX[TRIANGLE_LEFT].point2Y,trianglePDX[TRIANGLE_LEFT].point2X,trianglePDX[TRIANGLE_LEFT].point2Y,x,y);
   }
   if (checkarea(x,y,trianglePDX[TRIANGLE_RIGHT].point2X,trianglePDX[TRIANGLE_RIGHT].point2Y,trianglePDX[TRIANGLE_RIGHT].point1X,trianglePDX[TRIANGLE_RIGHT].point2Y)) {
-     sprintf(hi,"%s hit Triangle RIGHT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_RIGHT].point2X,trianglePDX[TRIANGLE_RIGHT].point2Y,trianglePDX[TRIANGLE_RIGHT].point1X,trianglePDX[TRIANGLE_RIGHT].point2Y,x,y);
-     Serial.print(hi);    
+     _INFOLIST("%s hit Triangle RIGHT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_RIGHT].point2X,trianglePDX[TRIANGLE_RIGHT].point2Y,trianglePDX[TRIANGLE_RIGHT].point1X,trianglePDX[TRIANGLE_RIGHT].point2Y,x,y);
   }
   
   return false;
@@ -1024,7 +1003,7 @@ void textPDX::printline(uint16_t _color,uint16_t _bg, char *s) {
   t[0].color=_color;
  
   strcpy(t[0].msg,s);  
-  fillstr(t[0].msg,' ',TEXTCOLS);
+  memset(t[0].msg,' ',TEXTCOLS);
   
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1215,10 +1194,6 @@ void spectrumPDX::set(uint16_t f) {
     bin=bin/1000;
     
     s[0].signal[bin]= v | s[0].signal[bin];
-
-    //sprintf(hi,"%s f=%d pixel=%d bin=%d x=%d slot=%d v=%d s[0].signal[%d]=%d\n",__func__,f,pixel,bin,x,slot,v,bin,s[0].signal[bin]);
-    //Serial.print(hi);   
-
   
 }
 bool spectrumPDX::randomSig() {
@@ -1285,10 +1260,7 @@ void spectrumPDX::show() {
               if (e!=0) {
                   
                  c=TFT_WHITE;
-                 
-                 //sprintf(hi,"%s i=%d j=%d pixel=%d k=%d v=%0x p=%d e=%d \n",__func__,i,j,pixel,k,v,p,e);
-                 //Serial.print(hi);
-               
+                                
               }
                
               tft->drawPixel(b.xStart+pixel+k, b.yStart+(i*2)+0+25, c); 
@@ -1407,7 +1379,7 @@ char line[20];
 
   if (strcmp(callsign,"") != 0) {
      strcpy(buf,callsign);
-     fillstr(buf,' ',8);
+     memset(buf,' ',8);
      sprintf(line,"%s[%s]",buf,grid); 
      tft->drawString(line, b.xStart+XFOOT, b.yStart+YFOOT,1);// Print the line
   }
@@ -1480,8 +1452,7 @@ void footerPDX::update() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 void GUI_init() {
 
-  sprintf(hi,"%s",__func__);
-  Serial.print(hi);
+  _INFOLIST("%s",__func__);
   
   tft.init();
   tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
@@ -1534,11 +1505,9 @@ void GUI_init() {
 * setup  
 * initializes the dialog
 *********************************************************/
+void setup_tft() {
 
-void tft_setup() {
-
-  sprintf(hi,"TFT sub-system firmware starting\n");
-  Serial.print(hi);
+  _INFOLIST("%s TFT sub-system firmware starting\n",__func__);
 
  // Use this calibration code in setup():
   tft.setTouch(calData);
@@ -1546,13 +1515,9 @@ void tft_setup() {
  // Initialize the GUI
   GUI_init(); 
 
-  sprintf(hi,"Screen Width=%d Height=%d\n",tft.width(),tft.height());
-  Serial.print(hi);
+  _INFOLIST("%s Screen Width=%d Height=%d\n",__func__,tft.width(),tft.height());
    
 } // main
-
-
-
 
   FT8QSO ft8qso[13]={{0,1200,"LU7DZ","CQ","GF05",CQ},
                      {0,1600,"LU2EIC","CQ","FF78",CALL},
@@ -1576,11 +1541,6 @@ int hh=16;
 int mm=00;
 int ss=00;
 
-/*----
- *  Check if the touch screen has been touched
- */
-
-
 /*-------------------------------------------------------------------
  * Verify if the touchscreen has been touched and the coordinates
  */
@@ -1589,6 +1549,7 @@ void check_touch() {
     uint16_t x = 0, y = 0; // To store the touch coordinates
 
     // Pressed will be set true is there is a valid touch on the screen
+
     bool pressed = tft.getTouch(&x, &y);
     if (pressed == false) {
        prevpressed = false;
@@ -1600,14 +1561,12 @@ void check_touch() {
            (y <= yant+3) &&
            (y >  yant-3)) {     //This condition is assumed as a bad pulse and not triggering
             pressed = false;
-            sprintf(hi,"%s coordinates(x,y)=(%d,%d) IGNORED\n",__func__,x,y);
-            Serial.print(hi); 
+            _INFOLIST("%s coordinates(x,y)=(%d,%d) IGNORED\n",__func__,x,y);
             return; 
        }
     } else {
       prevpressed=true;
-      sprintf(hi,"%s new antibounce coordinates(x,y)=(%d,%d)\n",__func__,x,y);
-      Serial.print(hi); 
+      _INFOLIST("%s new antibounce coordinates(x,y)=(%d,%d)\n",__func__,x,y);
       xant=x;
       yant=y;
     }
@@ -1616,8 +1575,7 @@ void check_touch() {
     // Draw a white spot at the detected coordinates
      if (pressed) {
         bool hit=d.point(x,y);
-        sprintf(hi,"%s Touch detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
-        Serial.println(hi);
+        _INFOLIST("%s Touch detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
         //tft.fillCircle(x, y, 2, TFT_WHITE);
      }
 
@@ -1626,7 +1584,7 @@ void check_touch() {
 /*---------------------
  * This is the operational handling of the TFT
  */
-void tft_oper() {
+void tft_loop() {
 
      check_touch();
 
@@ -1635,9 +1593,9 @@ void tft_oper() {
            for (int i=0;i<13;i++) {
                if (ft8qso[i].cycle == cycle) {
                   char msg[128];
-                  fillstr(ft8qso[i].fm,' ',6);
-                  fillstr(ft8qso[i].to,' ',6);
-                  fillstr(ft8qso[i].ex,' ',4);
+                  memset(ft8qso[i].fm,' ',6);
+                  memset(ft8qso[i].to,' ',6);
+                  memset(ft8qso[i].ex,' ',4);
                   sprintf(msg,"%02d%02d%02d %04d %s %s %s",hh,mm,ss,ft8qso[i].f,ft8qso[i].fm,ft8qso[i].to,ft8qso[i].ex);
                   text.printline(ft8qso[i].ft8type,msg);
                }         

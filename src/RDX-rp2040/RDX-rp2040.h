@@ -134,7 +134,8 @@ extern char timestr[12];
 
 extern CALLBACK fftReady;
 extern CALLQSO  qsoReady;
-
+extern void setup_tft();
+extern void tft_loop();
 extern void INIT();
 extern void Calibration();
 extern void Band_Select();
