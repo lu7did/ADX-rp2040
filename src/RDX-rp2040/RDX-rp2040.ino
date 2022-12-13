@@ -125,14 +125,7 @@
 #include "pico/multicore.h"
 #include "hardware/irq.h"
 
-/*-------------------------------------------------
-   IDENTIFICATION DIVISION.
-   (just a programmer joke)
-*/
-#define PROGNAME "RDX_rp2040"
-#define AUTHOR "Pedro E. Colla (LU7DZ)"
-#define VERSION 1.0
-#define BUILD     1
+
 /*------------------------------------------------------
    Main variables
 */
@@ -363,6 +356,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;
         sendChoices->send_grid = true;
         nTry = 0;
+        nTx=0;
         return true;
       }
     }
@@ -384,6 +378,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;   
         sendChoices->send_snr = true;
         nTry = 0;
+        nTx=0;
         return true;
       }
     }
@@ -408,6 +403,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         state = 3;
         sendChoices->send_73 = true;
         nTry = 0;
+        nTx=0;
         return true;
       }
     }
@@ -436,6 +432,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         state = 4;
         sendChoices->send_73 = true;
         nTry = 12;
+        nTx=0;
         return true;
       }
     }
@@ -450,6 +447,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     _INFOLIST("%s state(%d) repeat 73\n", __func__, state);
     sendChoices->send_73 = true;
     nTry++;
+    nTx=0;
     return true;
   }
 
@@ -466,6 +464,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
           state = 6;
           sendChoices->send_Rsnr = true;
           nTry = 0;
+          nTx=0;
           return true;
         }
         if (message_list[i].type_cq) { // State 5 - (Answer cycle) if the station is still calling the send the Grid again
@@ -488,6 +487,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     _INFOLIST("%s state(%d) repeat grid\n", __func__, state);
     sendChoices->send_grid = true;
     nTry++;
+    nTx=0;
     return true;
   }
   /*----------------------------
@@ -503,6 +503,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
           sendChoices->send_73 = true;
           strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
           nTry = 0;
+          nTx=0;
           return true;
         }
         if (message_list[i].type_snr) {
@@ -524,6 +525,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     _INFOLIST("%s state(%d) repeat RSNR\n", __func__, state);
     sendChoices->send_Rsnr = true;
     nTry++;
+    nTx=0;
     return true;
   }
 
@@ -541,6 +543,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
           sendChoices->send_RR73 = true;
           strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
           nTry = 12;
+          nTx=0;
           return true;
         }
       }
@@ -548,6 +551,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         _INFOLIST("%s state(%d) msg[%d]=%s Still RRR repeat 73\n", __func__, state, i, message_list[i].full_text);
         sendChoices->send_73 = true;
         nTry++;
+        nTx=0;
         return true;
       }
 
@@ -563,6 +567,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     _INFOLIST("%s state(%d) Still RRR repeat 73\n", __func__, state);
     sendChoices->send_73 = true;
     nTry++;
+    nTx=0;
     return true;
   }
   return false;

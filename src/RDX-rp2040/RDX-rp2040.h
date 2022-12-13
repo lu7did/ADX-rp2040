@@ -37,7 +37,14 @@
 #include <Time.h>
 #include <stdbool.h>
 
-
+/*------------------------------------------------
+   IDENTIFICATION DIVISION.
+   (just a programmer joke)
+*/
+#define PROGNAME "RDX"
+#define AUTHOR "Pedro E. Colla (LU7DZ)"
+#define VERSION "1.0"
+#define BUILD     "1"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -124,6 +131,7 @@ extern char my_callsign[16];
 extern char my_grid[8];
 extern Si5351 si5351;
 extern char timestr[12];
+
 extern CALLBACK fftReady;
 extern CALLQSO  qsoReady;
 
