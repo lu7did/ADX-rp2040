@@ -146,6 +146,13 @@ A suitable circuit can be seen in the following schematic
 ![Alt Text](../../docs/RDX-rp2040-AF.png "Audio amplifier")
 
 
+## TFT LCD display support
+
+A suitable circuit can be seen in the following schematic
+
+![Alt Text](../../docs/RDX-rp2040-TFT.png "TFT LCD wiring")
+
+
 ## ADX2PDX daughter board prototype fixes
 
 Same as the ADX-rp2040 project
