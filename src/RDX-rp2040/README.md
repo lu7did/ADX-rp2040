@@ -113,7 +113,7 @@ The circuit used is esentially the ADX transceiver with the minimum set of modif
  Arduino Nano (ATMEGA328p processor).
 The following diagram has been originally conceived by Dhiru (VU3CER) and put together by Barb (WB2CBA):
 
-![Alt Text](docs/PDX_V1.0_Schematic.jpg "PDX Schematic")
+![Alt Text](../../docs/PDX_V1.0_Schematic.jpg "PDX Schematic")
 PDX_V1.0_Schematic.jpg
 
 Check additionally mods required and TFT support requirements detailed below.
