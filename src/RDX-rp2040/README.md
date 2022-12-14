@@ -27,23 +27,32 @@ generating FT8 signals without the usage of an external program such as WSJT-X
 *New in release 2.0 *
 
 * Initial experimental release, for evaluation purposes only
+* Automatic FT8 operation.
+* TFT LCD 480x320 support.
 ```
 
 
 
 # Hardware
 
-Same hardware than the supported by the ADX-rp2040 firmware. 
+Same hardware than the supported by the ADX-rp2040 firmware with the following additions.
+
+*	Audio amplifier (see modifications).
+*	TFT LCD IL99488 480x320 board (see wiring). 
 
 
 # Firmware
 ## Build environment
 
-Same build environment than the one used by the ADX-rp2040 firmware.
+Same build environment than the one used by the ADX-rp2040 firmware plus:
+
 
 ## Pre-requisites and libraries
 
-Same build environment than the one used by the ADX-rp2040 firmware.
+Same build environment than the one used by the ADX-rp2040 firmware plus the following libraries:
+
+*	[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library by Bodmer
+*	[TFT_eWidget](https://github.com/Bodmer/TFT_eWidget) Library by Bodmer 
 
 Code excerpts gathered from manyfold sources to recognize here, large pieces of code were extracted from former projects
 
@@ -99,7 +108,18 @@ The hardware required by this transceiver derives directly from the ADX Transcei
 
 ## ADX_rp2040 circuit
 
-Same as the ADX-rp2040 project
+
+The circuit used is esentially the ADX transceiver with the minimum set of modifications to accomodate a Raspberry pico (rp2040 processor) instead of an
+ Arduino Nano (ATMEGA328p processor).
+The following diagram has been originally conceived by Dhiru (VU3CER) and put together by Barb (WB2CBA):
+
+![Alt Text](docs/PDX_V1.0_Schematic.jpg "PDX Schematic")
+PDX_V1.0_Schematic.jpg
+
+Check additionally mods required and TFT support requirements detailed below.
+
+The receiver, Si5351 clock, RF driver and final stages are identical to the standard ADX Transceiver, whilst changes are made around the rp2040 processor to
+accomodate the different signaling and voltages used.
 
 
 ### rp2040 pinout assignment
@@ -108,7 +128,6 @@ Same as the ADX-rp2040 project
 
 
 ### Power supply
-
 
 Same as the ADX-rp2040 project
 
@@ -148,7 +167,12 @@ A suitable circuit can be seen in the following schematic
 
 ## TFT LCD display support
 
-A suitable circuit can be seen in the following schematic
+The firmware supports a TFT LCD IL9488 480x320 display where a GUI is presented allowing the operation of the transceiver, the LCD is optional
+but it greatly enhances the autonomous FT8 operation allowing to see the activity on the channel and operate either to call CQ or answer to
+an on-going call.
+
+The actual wiring of the TFT board needs to connect the pinout to the Raspberry Pico (rp2040) processor as indicated in the following
+diagram:
 
 ![Alt Text](../../docs/RDX-rp2040-TFT.png "TFT LCD wiring")
 
