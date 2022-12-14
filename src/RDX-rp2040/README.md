@@ -135,6 +135,10 @@ Same as the ADX-rp2040 project
 
 The receiver sub-system is identical than the ADX Transceiver.
 
+### SWR protection
+
+A Zener Diode (D10,1N4756) located where the board TP3 is defined would prevent a situation of high SWR to damage the finals.
+
 ### RF Power 
 
 The RF power (driver and finals) is identical than the ADX Transceiver.

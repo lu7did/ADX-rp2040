@@ -335,6 +335,9 @@ The receiver sub-system is identical than the ADX Transceiver.
 
 The RF power (driver and finals) is identical than the ADX Transceiver.
 
+### SWR protection
+
+A Zener Diode (D10,1N4756) located where the board TP3 is defined would prevent a situation of high SWR to damage the finals.
 
 ### Low Pass Filter
 
