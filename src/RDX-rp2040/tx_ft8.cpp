@@ -19,7 +19,7 @@
  * receives the tones[] stream to be sent, the base RF_Freq and the offset AF frequency to use
  * transmit the 79 tones over a cycle of 160 mSecs each
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-
+CALLBACK  txIdle=NULL;
 void send_ft8(uint8_t tones[], uint32_t RF_freq, uint16_t AF_freq){
 
     digitalWrite(RX, LOW);
@@ -48,6 +48,8 @@ void send_ft8(uint8_t tones[], uint32_t RF_freq, uint16_t AF_freq){
                 ManualTX();
                 return;
             }
+            if (txIdle != NULL) txIdle();
+            
         }
     }
     

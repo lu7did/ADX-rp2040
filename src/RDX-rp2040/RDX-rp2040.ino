@@ -151,6 +151,7 @@ uint8_t maxTry = 5;
 uint8_t nRx = 0;
 uint8_t nTx = 0;
 uint8_t state = 0;
+bool    qwait=true;
 /*-------------------------------------------------------
    ft8 definitions
 */
@@ -223,7 +224,15 @@ bool timeWait() {
  */
 void fftCallBack() {
 
+    tft_updatewaterfall(magint);
+    tft_checktouch();
 
+}
+void endCallBack() {
+    tft_endoftime();
+}
+void idleCallBack() {
+    tft_checktouch();
 }
 /*--------------------------------------------------------------------------------------------
  * This is a callback handler which is called when the ft8 decoding process has identified
@@ -233,6 +242,7 @@ void fftCallBack() {
 
 void qsoCallBack(int i) {
   //_INFOLIST("%s qso[%d] %s\n",__func__,i,message_list[i].full_text);
+  tft_run();
 }
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -273,7 +283,9 @@ void setup_ft8() {
   */
 
   fftReady=fftCallBack;
+  fftEnd=endCallBack;
   qsoReady=qsoCallBack;
+  txIdle=idleCallBack;
   
   /*-------
    * Wait to settle
@@ -731,7 +743,7 @@ void setup()
      System initialization
   */
   INIT();
-  initSi5351();
+initSi5351();
 
   /*--------
      If DOWN is found pressed on startup then enters calibration mode
@@ -756,27 +768,33 @@ void setup()
   }
   /*--- end of time-sync feature ----*/
 
-  setup_ft8();
-  delay(1000);
-  _INFOLIST("%s setup_ft8 completed\n", __func__);
-
-  /*--------------
-   * Initialize TFT sub-system if present
-   */
-   setup_tft();
-  _INFOLIST("%s setup_tft completed\n", __func__);
 
   /*--------------------
      Place the receiver in reception mode
   */
   digitalWrite(RX, LOW);
+  /*--------------------
+     Release processing at core1
+  */
+
+  setup_ft8();
+  delay(1000);
+
+  _INFOLIST("%s setup_ft8 completed\n", __func__);
+
+  //qwait=false;
+  tft_setup();
+  _INFOLIST("%s *** GUI initialized\n", __func__);
+  
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
 
+
 //**************************[ END OF SETUP FUNCTION ]************************
 
 //***************************[ Main LOOP Function ]**************************
+
 void loop()
 {
 

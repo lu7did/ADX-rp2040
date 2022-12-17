@@ -31,6 +31,7 @@
 
 const float fft_norm = 2.0f / nfft;
 CALLBACK fftReady=NULL;
+CALLBACK fftEnd=NULL;
 CALLQSO  qsoReady=NULL;
 
 //AA1GD-added array of structures to store info in decoded messages 8/22/2021
@@ -52,6 +53,7 @@ volatile int offset = 0;
 bool flag_first = true;
 uint8_t adc_error = 0x00;
 uint32_t tstart;
+int magint[960]={0};
 
 
 kiss_fftr_cfg fft_cfg;
@@ -115,7 +117,7 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
     {
       if (!lastFrame) {
       if (!dma_channel_is_busy(dmachan)) {
-        _INFOLIST("%s ERROR(%d)\n", __func__, 0x01);
+        _INFOLIST("%s ERROR(%d)\n", __func__, 0x02);
         return 0x02;
       }
       } //only check for fiinalization of the ADC cycle on frames other than the last one
@@ -129,12 +131,14 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
     {
       if (lastFrame) {
       if (!dma_channel_is_busy(dmachan) && !lastFrame) {
-        _INFOLIST("%s ERROR(%d)\n", __func__, 0x01);
+        _INFOLIST("%s ERROR(%d)\n", __func__, 0x03);
         return 0x03;
       }
       } //only check for finalization of the ADC cycle on frames other than the last one
       float mag2 = (freqdata[idx_bin].i * freqdata[idx_bin].i) + (freqdata[idx_bin].r * freqdata[idx_bin].r);
       mag_db[idx_bin] = 10.0f * log10f(1E-12f + mag2 * fft_norm * fft_norm);
+      int sig_db=(int)(2 * mag_db[idx_bin] + 240);
+      magint[idx_bin]=magint[idx_bin]+(sig_db < 0) ? 0 : ((sig_db > 255) ? 255 : sig_db);
     }
     if (fftReady != NULL) fftReady();
     /*--------------------------------------*
@@ -149,8 +153,8 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
       {
         if (!lastFrame) {
         if (!dma_channel_is_busy(dmachan) && !lastFrame) {
-          _INFOLIST("%s ERROR(%d)\n", __func__, 0x01);
-          return 0x01;
+          _INFOLIST("%s ERROR(%d)\n", __func__, 0x04);
+          return 0x04;
         }
         } //only check for the finalization of the ADC cycle on frames other than the last one
         float db = mag_db[pos * power.freq_osr + freq_sub];
@@ -160,6 +164,7 @@ uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
            in 0.5 dB steps
           ------------------------------------*/
         int scaled = (int)(2 * db + 240);
+       
         power.mag[offset] = (scaled < 0) ? 0 : ((scaled > 255) ? 255 : scaled);
         power.mag[offset] = scaled;
         offset++;
@@ -182,6 +187,7 @@ void inc_collect_power() {
   kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
   void *fft_work = malloc(fft_work_size);
   fft_cfg = kiss_fftr_alloc(nfft, 0, fft_work, &fft_work_size);
+  memset(magint, 0, sizeof(magint));
 
   for (uint idx_block = 0; idx_block < num_blocks; idx_block++) {
 
@@ -247,6 +253,7 @@ void inc_collect_power() {
   }
   adc_error = inc_extract_power(dma_chan, fresh_signal,true); 
   free(fft_work);
+  if (fftEnd!=NULL) fftEnd();
   offset = 0;
   return;
 }

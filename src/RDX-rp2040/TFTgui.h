@@ -113,8 +113,8 @@ extern "C" {
   #define BUTTON_S    7
   
   #define BUTTON_TX    0
-  #define BUTTON_AGC   1
-  #define BUTTON_MODE  2
+  #define BUTTON_CQ   1
+  #define BUTTON_AUTO  2
   #define BUTTON_BAND  3
   
   #define BUTTON_END   4

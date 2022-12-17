@@ -131,11 +131,18 @@ extern char my_callsign[16];
 extern char my_grid[8];
 extern Si5351 si5351;
 extern char timestr[12];
+extern bool qwait;
+extern int magint[960];
+extern int TX_State;
+
 
 extern CALLBACK fftReady;
 extern CALLQSO  qsoReady;
-extern void setup_tft();
-extern void tft_loop();
+extern CALLBACK fftEnd;
+extern CALLBACK  txIdle;
+
+
+extern void tft_updatewaterfall(int m[]);
 extern void INIT();
 extern void Calibration();
 extern void Band_Select();
@@ -144,6 +151,10 @@ extern void Band_assign();
 extern void Freq_assign();
 extern void Mode_assign();
 extern void checkButton();
+extern void tft_setup();
+extern void tft_run();
+extern void tft_endoftime();
+extern void tft_checktouch();
 extern time_t t_ofs;
 extern time_t now;
 extern struct tm timeinfo;        //current time
@@ -173,10 +184,9 @@ extern struct tm timeprev;        //epoch time
     _SERIAL.flush(); \
   } while (false)
 #else //!DEBUG
-//#define _INFOLIST(...) (void)0
 #define _INFOLIST(...)
+#endif
 
-#endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 
 /*----------------------------------------------------------
  * Extern functions across the different sub-systems
