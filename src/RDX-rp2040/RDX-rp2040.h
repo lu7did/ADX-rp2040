@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "20"
+#define BUILD   "41"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -93,6 +93,19 @@ typedef void (*CALLQSO)(int i);
 #define DOWN           11  //DOWN Switch
 #define TXSW            8  //RX-TX Switch
 
+
+/*---
+ * 
+ */
+  
+#define BUTTON_TX       0
+#define BUTTON_CQ       1
+#define BUTTON_AUTO     2
+#define BUTTON_BAND     3
+  
+#define BUTTON_END      4
+
+
 /*---
    Signal input pin
 */
@@ -134,7 +147,19 @@ extern char timestr[12];
 extern bool qwait;
 extern int magint[960];
 extern int TX_State;
-
+extern char programname[12];
+extern char version[6];
+extern char build[6];
+extern char ip[16];
+extern uint8_t state;
+extern bool autosend;
+extern uint8_t nTry;
+extern bool triggerCQ;
+extern bool triggerCALL;
+extern uint16_t call_af_frequency;
+extern int8_t call_self_rx_snr;
+extern char call_station_callsign[8];
+extern char call_grid_square[4];
 
 extern CALLBACK fftReady;
 extern CALLQSO  qsoReady;
@@ -143,6 +168,7 @@ extern CALLBACK  txIdle;
 
 
 extern void tft_updatewaterfall(int m[]);
+extern void setCALL();
 extern void INIT();
 extern void Calibration();
 extern void Band_Select();
@@ -155,8 +181,25 @@ extern void tft_setup();
 extern void tft_run();
 extern void tft_endoftime();
 extern void tft_checktouch();
+extern void tft_resetBar();
+extern void tft_setBar(int colour);
+extern void tft_storeQSO(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
+
+extern void tft_setBarTx();
+
+extern void tft_set(int btnIndex,int v);
+
+extern void startTX();
+extern void stopTX();
+
+/*
+extern void tft_setTX(bool t);
+*/
+
 extern time_t t_ofs;
 extern time_t now;
+
+
 extern struct tm timeinfo;        //current time
 extern struct tm timeprev;        //epoch time
 

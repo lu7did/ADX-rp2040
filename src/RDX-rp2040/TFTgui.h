@@ -112,13 +112,6 @@ extern "C" {
   #define BUTTON_G    6
   #define BUTTON_S    7
   
-  #define BUTTON_TX    0
-  #define BUTTON_CQ   1
-  #define BUTTON_AUTO  2
-  #define BUTTON_BAND  3
-  
-  #define BUTTON_END   4
-  
   #define XBTN         7
   #define YBTN         5
 
@@ -138,6 +131,14 @@ extern "C" {
   #define TRIANGLE_LEFT  0
   #define TRIANGLE_RIGHT 1
 
+/*-------
+ * Footer clock
+ * 
+ */
+  #define XCLOCK XFOOT+12+12+5+13*6
+  #define YCLOCK YFOOT
+  #define WCLOCK 8*8
+  #define HCLOCK 10
 
 /*---------------------------
  * structure to held QSO data

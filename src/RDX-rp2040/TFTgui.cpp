@@ -50,7 +50,13 @@ uint16_t xant;
 uint16_t yant;
 bool prevpressed = false;
 char GUIStr[128];
+int vmin = 255;
+int vmax = 0;
 
+uint16_t call_af_frequency;
+int8_t call_self_rx_snr;
+char call_station_callsign[8];
+char call_grid_square[4];
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 //*                          Structures to support primitive GUI constructs
@@ -114,6 +120,66 @@ bool checkarea(uint16_t x, uint16_t y, uint16_t x0, uint16_t y0, uint16_t x1, ui
   }
   return false;
 }
+
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+   Class progressBar
+   Define a linear bar to show progress
+  /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+class progressBar {
+  public:
+    int  x;
+    int  y;
+    int  w;
+    int  h;
+    int  g;
+    int  n;
+    int bg;
+    byte s = BLUE2BLUE;
+    byte progress = 0;
+
+    TFT_eSPI* tft;
+
+    progressBar(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g, int _n, byte _s, int bg);
+    void show(int colour);
+    void reset();
+
+    /*----------
+       Constructor
+       object position and visual dimensions
+    */
+  private:
+    uint16_t zambo;
+};
+progressBar::progressBar(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g, int _n, byte _s, int _bg) {
+
+  tft = _tft;
+  x = _x; //Allow space for the label
+  y = _y;
+  w = _w;
+  h = _h;
+  g = _g;
+  n = _n;
+  s = _s;
+  bg = _bg;
+  progress = 0;
+}
+
+
+void progressBar::show(int colour) {
+
+  if (progress == 0) {
+    tft->fillRect(x + XBTN , y, w, 6, TFT_BLACK);
+    return;
+  }
+  if (progress > 15) progress = 15;
+  tft->fillRect(x + XBTN , y, (progress) * 18, 6, colour);
+}
+
+void progressBar::reset() {
+  progress = 0;
+  show(TFT_BLACK);
+}
+
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
    Class linearMeter
    Define the linear display LED meter object
@@ -137,6 +203,7 @@ class linearMeter {        // The class
     byte s = BLUE2BLUE;
     int  colour;
     int  bg;
+    int  prevval = 0;
     uint8_t mode;
     char lmode[8];
     char mmode[16];
@@ -152,7 +219,6 @@ class linearMeter {        // The class
   private:
     uint16_t zambo;
 };
-
 /*----------
    Constructor
    object position and visual dimensions
@@ -172,6 +238,7 @@ linearMeter::linearMeter(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g,
   bg = _bg;
   strcpy(lmode, "");
   strcpy(mmode, "");
+  prevval = 0;
 }
 
 /*----------------------------------------------------------------------------------------------
@@ -181,15 +248,15 @@ linearMeter::linearMeter(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g,
 */
 void linearMeter::show(int _m , int _v)
 {
+
   if (_v < 0 || _v > n) {
-    return;
+    _v = n;
   }
   int val = _v;
   bool mchange = false;
   if (_m != mode) {
     mode = _m;
     mchange = true;
-
     tft->fillRect((x - X_CHAR1), y, (w + g)*n + X_CHAR1, h + 1.5 * Y_CHAR1 - 17, TFT_BLACK);
 
     switch (mode) {
@@ -217,6 +284,7 @@ void linearMeter::show(int _m , int _v)
        draw scale supplements according to mode
     */
     if (mchange == true) {
+
       tft->setTextColor(TFT_CYAN, TFT_BLACK);
       tft->fillRect((x + b * (w + g)), y + h + 3, w, 2, TFT_CYAN);
 
@@ -250,21 +318,23 @@ void linearMeter::show(int _m , int _v)
         }
       }
     }
-    if (val > 0 && b <= val) { // Fill in coloured blocks
-      switch (s) {
-        case 0: colour = TFT_RED; break; // Fixed colour
-        case 1: colour = TFT_GREEN; break; // Fixed colour
-        case 2: colour = TFT_CYAN; break; // Fixed colour
-        case 3: colour = rainbowColor(map(b, 0, n, 127,   0)); break; // Blue to red
-        case 4: colour = rainbowColor(map(b, 0, n,  63,   0)); break; // Green to red
-        case 5: colour = rainbowColor(map(b, 0, n,   0,  63)); break; // Red to green
-        case 6: colour = rainbowColor(map(b, 0, n,   0, 159)); break; // Rainbow (red to violet)
-      }
-      tft->fillRect((x + b * (w + g)), y, w, h, colour);
-    } else { // Fill in blank segments
+  }
+  if (val == prevval) {
+  }
+
+  if (val > prevval) {
+
+    for (int b = prevval; b < val; b++) {
+      tft->fillRect((x + b * (w + g)), y, w, h, TFT_CYAN);
+    }
+  } else {
+
+    for (int b = val; b < prevval; b++) {
       tft->fillRect((x + b * (w + g)), y, w, h, bg);
     }
   }
+  prevval = val;
+
 }
 void linearMeter::demo() {
   for (int mode = 0; mode < 4; mode++) {
@@ -450,7 +520,6 @@ class displayPDX {        // The class
     uint32_t freq;
     uint16_t cursor;
 
-    bool transmit;
     bool enabled;
     bool cq;
     bool autom;
@@ -471,6 +540,7 @@ class displayPDX {        // The class
       char label[8];
       bool     fickle;
       uint32_t tfickle;
+      int      v;
     };
 
     btn btnPDX[BUTTON_END];
@@ -493,110 +563,13 @@ class displayPDX {        // The class
       showFreq();
       showCursor();
     }
-/*------------
- * Control auto CQ mode
- */
-    void setCQ(bool _cq) {
-      if (_cq == true) {
-         strcpy(btnPDX[BUTTON_CQ].label, "CQ");
-         btnPDX[BUTTON_CQ].inverse = true;
-         btnPDX[BUTTON_CQ].fickle   = false;
-         btnPDX[BUTTON_CQ].tfickle  = millis();
-         cq=_cq;
-      } else {
-         strcpy(btnPDX[BUTTON_CQ].label, "CQ");
-         btnPDX[BUTTON_CQ].inverse = false;
-         btnPDX[BUTTON_CQ].fickle   = false;
-         btnPDX[BUTTON_CQ].tfickle  = millis();
-         cq=_cq;
-      }
-      showBtn(BUTTON_CQ);
-    }
-    
-/*----------------------[end of CQ button]----------------------------*/
-    
-    void setBand(uint16_t _band) {
-      switch (_band) {
-        case 0 : strcpy(btnPDX[BUTTON_BAND].label, "160m"); break;
-        case 1 : strcpy(btnPDX[BUTTON_BAND].label, "80m"); break;
-        case 2 : strcpy(btnPDX[BUTTON_BAND].label, "60m"); break;
-        case 3 : strcpy(btnPDX[BUTTON_BAND].label, "40m"); break;
-        case 4 : strcpy(btnPDX[BUTTON_BAND].label, "30m"); break;
-        case 5 : strcpy(btnPDX[BUTTON_BAND].label, "20m"); break;
-        case 6 : strcpy(btnPDX[BUTTON_BAND].label, "17m"); break;
-        case 7 : strcpy(btnPDX[BUTTON_BAND].label, "15m"); break;
-        case 8 : strcpy(btnPDX[BUTTON_BAND].label, "12m"); break;
-        case 9 : strcpy(btnPDX[BUTTON_BAND].label, "10m"); break;
-        default : strcpy(btnPDX[BUTTON_BAND].label, "40m"); break;
-      }
-      showBtn(BUTTON_BAND);
-    }
-    void setBand(uint16_t _band, bool _inverse, bool _fickle) {
-      btnPDX[BUTTON_BAND].inverse = _inverse;
-      btnPDX[BUTTON_BAND].fickle = _fickle;
-      btnPDX[BUTTON_BAND].tfickle = millis();
-      setBand(_band);
-
-    }
-    /*----------------------------
-     * Manage Autosend button
-     */
-    void setAuto(bool _auto) {
-      if (_auto==true) {
-         strcpy(btnPDX[BUTTON_AUTO].label, "Auto");
-         btnPDX[BUTTON_AUTO].inverse = true;
-      } else {
-         strcpy(btnPDX[BUTTON_AUTO].label, "Manual");      
-         btnPDX[BUTTON_AUTO].inverse = false;
-      }
-      btnPDX[BUTTON_AUTO].fickle = true;
-      btnPDX[BUTTON_AUTO].tfickle = millis();     
-      showBtn(BUTTON_AUTO);
-      autom=_auto;
-    }
-
-    void setAuto(bool _auto, bool _inverse, bool _fickle) {
-      btnPDX[BUTTON_AUTO].inverse = _inverse;
-      btnPDX[BUTTON_AUTO].fickle = _fickle;
-      btnPDX[BUTTON_AUTO].tfickle = millis();
-      setAuto(_auto);
-
-    }
-/*----------------------[end of Auto button]----------------------------*/
-    void setTX(bool _tx) {
-      
-      if (_tx == true) {
-        btnPDX[BUTTON_TX].inverse = true;
-      } else {
-        btnPDX[BUTTON_TX].inverse = false;
-      }
-      transmit=_tx;
-      strcpy(btnPDX[BUTTON_TX].label, "TX");
-      btnPDX[BUTTON_TX].fickle = false;
-      showBtn(BUTTON_TX);
-
-      if (transmit) {
-         unsigned long freq1 = freq;
-         digitalWrite(RX, LOW);
-         si5351.output_enable(SI5351_CLK1, 0);   //RX off
-         _INFOLIST("%s TX+ f=%lu freqx=%lu \n", __func__, freq, freq1);
-         digitalWrite(TX, 1);
-         si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
-         si5351.output_enable(SI5351_CLK0, 1);   //TX on
-      } else {
-         digitalWrite(TX, 0);
-         si5351.set_freq(freq * 100ULL, SI5351_CLK0);
-         si5351.output_enable(SI5351_CLK0, 0);   //TX off
-         si5351.output_enable(SI5351_CLK1, 1);   //TX off
-         TX_State = 0;
-         _INFOLIST("%s TX-\n", __func__);
-      }
-    }
 
     void setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle);
     void showBtn(int btnIndex);
     void fickleBtn(int btnIndex);
-    int checkButton(int x,int y);
+    int checkButton(int x, int y);
+    void onclick(int btnIndex);
+    void set(int btnIndex,int v);
 
     void showTriangle(uint16_t t);
     void fickleTriangle(uint16_t t);
@@ -653,13 +626,13 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
   trianglePDX[TRIANGLE_RIGHT].color = TFT_BLUE;
 
   freq = 7074000;
-  transmit = false;
-  cq=false;
-  autom=false;
+  cq = false;
+  autom = false;
   band = B40M;
 
   for (int i = 0; i < BUTTON_END; i++) {
     strcpy(btnPDX[i].label, "");
+    btnPDX[i].v=0;
   }
 
   tft = _tft;
@@ -669,46 +642,40 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
 void displayPDX::init() {
 
   freq = 7074000;
-  transmit = false;
   cq = false;
   band = B40M;
   cursor = S1KHZ;
-
-
-  setBtn(BUTTON_TX, (char*)"TX", false, false);
-  setBtn(BUTTON_CQ, (char*)"CQ", false, false);
-  setBtn(BUTTON_AUTO, (char*)"Manual", false, false);
-  setBtn(BUTTON_BAND, (char*)"40m", false, false);
-
+  
   setTriangle(TRIANGLE_LEFT, false, false);
   setTriangle(TRIANGLE_RIGHT, false, false);
 
 }
 
-int displayPDX::checkButton(int x,int y) {
+int displayPDX::checkButton(int x, int y) {
 
-  for (int i=0;i<4;i++) {
-     if ( x>=btnPDX[i].x && x<=btnPDX[i].x+btnPDX[i].w && y>=btnPDX[i].y && y<=btnPDX[i].y+btnPDX[i].h ) {
-        _INFOLIST("%s Hit detected on button [%d]\n",__func__,i);
-        switch (i) {
-          case 0 : {
-              setTX(!transmit);
-              break;
+  for (int i = 0; i < 4; i++) {
+    if ( x >= btnPDX[i].x && x <= btnPDX[i].x + btnPDX[i].w && y >= btnPDX[i].y && y <= btnPDX[i].y + btnPDX[i].h ) {
+      _INFOLIST("%s Hit detected on button [%d]\n", __func__, i);
+      switch (i) {
+        case 0 : {
+            onclick(BUTTON_TX);
+            break;
           }
-          case 1 : {
-              setCQ(!cq);
-              break;
+        case 1 : {
+            onclick(BUTTON_CQ);
+            break;
           }
-          case 2 : {
-              setAuto(!autom);
-              break;
+        case BUTTON_AUTO : {
+            onclick(BUTTON_AUTO);
+            break;
           }
-          case 3 : {
-              break;
+        case 3 : {
+            onclick(BUTTON_BAND);
+            break;
           }
-        }
-        return i;
-     }
+      }
+      return i;
+    }
   }
   return -1;
 }
@@ -738,6 +705,108 @@ void displayPDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle)
   btnPDX[btnIndex].fickle = fickle;
   btnPDX[btnIndex].tfickle = millis();
 
+}
+void displayPDX::set(int btnIndex,int v) {
+  switch (btnIndex) {
+    case BUTTON_BAND:
+                    {
+                    switch(v) {
+                      case 0 : setBtn(btnIndex,(char*)"40m",false,false);
+                               break;
+                      case 1 : setBtn(btnIndex,(char*)"30m",false,false);
+                               break;
+                      case 2 : setBtn(btnIndex,(char*)"20m",false,false);
+                               break;
+                      case 3 : setBtn(btnIndex,(char*)"10m",false,false);
+                               break;         
+                    }
+                    break;
+                    }
+    case BUTTON_TX:
+                    {
+                    if (v==0) {
+                       setBtn(btnIndex,(char*)"TX",false,false);
+                    } else {
+                       setBtn(btnIndex,(char*)"TX",true,false);
+                    }
+                    break;            
+                    }
+    case BUTTON_CQ:
+                    {
+                    switch(v) {
+                      case 0 : {
+                               setBtn(btnIndex,(char*)"CQ",false,false);
+                               triggerCQ=false;
+                               triggerCALL=false;
+                               break;
+                               }
+                      case 1 : {
+                               setBtn(btnIndex,(char*)"CQ",true,false);
+                               triggerCQ=true;
+                               break;
+                               }
+                      case 2 : {
+                               setBtn(btnIndex,(char*)"Call",true,false);
+                               triggerCALL=true;
+                               break;
+                               }
+                    }
+                    break;                 
+                    }
+    case BUTTON_AUTO:
+                    {
+                    if (v==0) {
+                       setBtn(btnIndex,(char*)"Manual",true,true);
+                       autosend=false;
+                    } else {
+                       setBtn(btnIndex,(char*)"Auto",true,true);
+                       autosend=true;
+                    }
+                    break;   
+                    }
+  }
+  btnPDX[btnIndex].v=v;
+  showBtn(btnIndex);
+
+}
+/*-------------------
+ * Handler to onclick buttons
+ */
+void displayPDX::onclick(int btnIndex) {
+  switch (btnIndex) {
+    
+    case BUTTON_BAND:
+                     {
+                     int z=btnPDX[btnIndex].v+1;
+                     if (z>=BUTTON_END) z=BUTTON_TX;
+                     set(btnIndex,z);
+                     break;
+                     }
+    case BUTTON_TX:
+                     {
+                     if (TX_State==0) {
+                        startTX();
+                     } else {
+                        stopTX();
+                     }
+                     break;
+                     }
+    case BUTTON_CQ:  {
+                     int z=btnPDX[btnIndex].v+1;
+                     if (z>=2) z=0;
+                     set(btnIndex,z);
+                     break;               
+                     }
+    case BUTTON_AUTO:
+                     {
+                     if (autosend) {
+                        set(btnIndex,0);
+                     } else {
+                        set(btnIndex,1);
+                     }
+                     break;
+                     }
+  }
 }
 
 void displayPDX::showBtn(int btnIndex) {
@@ -927,6 +996,10 @@ class textPDX {        // The class
       char msg[TEXTCOLS + 1];
       uint16_t bg;
       uint16_t color;
+      uint16_t af_frequency;
+      int8_t self_rx_snr;
+      char station_callsign[8];
+      char grid_square[4];
     };
 
     scrollText t[TEXTLINES];
@@ -940,11 +1013,12 @@ class textPDX {        // The class
 
     textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void show();
-    void printline(uint16_t _color, uint16_t _bg, char *s);
-    void printline(uint16_t _qso, char *s);
+    int checkPoint(int x, int y);
+    void printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
 
     void scroll();
     void demo();
+
   private:
 
     uint16_t zambo;
@@ -986,19 +1060,35 @@ void textPDX::show() {
   tft->setTextFont(2);
   tft->setTextSize(1);
 
-}
+}  
+void textPDX::printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+  uint16_t _color;
+  uint16_t _bg;
 
-
-void textPDX::printline(uint16_t _color, uint16_t _bg, char *s) {
+  _INFOLIST("%s qso(%d) msg(%s) af(%d) snr(%d) call(%s) grid(%s)\n",__func__,_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
 
   scroll();
+
+  switch (_qso) {
+    case 0 : _color=TFT_BLACK;_bg=TFT_WHITE; break;
+    case 1 : _color=TFT_BLACK;_bg=TFT_GREEN; break;
+    case 2 : _color=TFT_BLACK;_bg=TFT_YELLOW; break;
+    case 3 : _color=TFT_WHITE;_bg=TFT_RED; break;
+    default : _color=TFT_BLACK;_bg=TFT_WHITE; break;
+  }
 
   t[0].bg = _bg;
   t[0].color = _color;
 
-  strcpy(t[0].msg, s);
-  memset(t[0].msg, ' ', TEXTCOLS);
+  memset(t[0].msg, 0, TEXTCOLS);
+  sprintf(t[0].msg, "%s", s);
+  sprintf(t[0].msg, "%-32s", t[0].msg);
 
+  strcpy(t[0].station_callsign,station_callsign);
+  strcpy(t[0].grid_square,grid_square);
+  t[0].af_frequency=af_frequency;
+  t[0].self_rx_snr=self_rx_snr;
+ 
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
   tft->setTextSize(1);
@@ -1013,17 +1103,7 @@ void textPDX::printline(uint16_t _color, uint16_t _bg, char *s) {
     tft->drawString(l, b.xStart + 2, b.yStart + 5 + (j * 9), 1); //
 
   }
-}
-void textPDX::printline(uint16_t _qso, char *s) {
-
-  switch (_qso) {
-    case 0 : printline(TFT_BLACK, TFT_WHITE, s); break;
-    case 1 : printline(TFT_BLACK, TFT_GREEN, s); break;
-    case 2 : printline(TFT_BLACK, TFT_YELLOW, s); break;
-    case 3 : printline(TFT_WHITE, TFT_RED, s); break;
-    default : printline(TFT_BLACK, TFT_WHITE, s); break;
-  }
-
+  
 }
 void textPDX::scroll() {
 
@@ -1032,30 +1112,38 @@ void textPDX::scroll() {
     strncpy(t[i].msg, t[i - 1].msg, TEXTCOLS + 1);
     t[i].bg = t[i - 1].bg;
     t[i].color = t[i - 1].color;
+
+    t[i].af_frequency=t[i-1].af_frequency;
+    t[i].self_rx_snr=t[i-1].self_rx_snr;
+    strncpy(t[i].station_callsign,t[i-1].station_callsign,7);
+    strncpy(t[i].grid_square,t[i-1].grid_square,4);   
     i--;
   }
   t[0].bg = TFT_NAVY;
   t[0].color = TFT_GREENYELLOW;
   strcpy(t[0].msg, "");
+  strcpy(t[0].station_callsign,"");
+  strcpy(t[0].grid_square,"");
+  t[0].af_frequency=0;
+  t[0].self_rx_snr=0;
 
   i = 0;
 
 }
-void textPDX::demo() {
+int textPDX::checkPoint(int x, int y) {
 
-  char q[40];
-
-  for (int k = 0; k < 3; k++) {
-    for (int i = 0; i < 7; i++) {
-      switch (i) {
-        case 1 : strcpy(q, "120645 2218 CQ LU2EIC FF78"); printline(CQ, q); break;
-        case 2 : strcpy(q, "120645 1200 CQ LU7DZ GF05"); printline(CALL, q); break;
-        case 3 : strcpy(q, "120645  876 LU2EIC LU7DZ RR73"); printline(EXCH, q); break;
-        default: strcpy(q, "120645  456 RW4HCW JA6SRB R-12"); printline(QSO, q); break;
-      }
-      delay(500);
-    }
+  if ( (x >= b.xStart) && (x <= b.xStart + b.width) &&
+       (y >= b.yStart) && (y <= b.yStart + b.height)) {
+    int yPos = y - b.yStart + 5;
+    yPos = yPos / 9;
+    int yIndex = TEXTLINES - yPos;
+    _INFOLIST("%s Coord(%d,%d) hit yPos(%d) yIndex(%d)\n", __func__, x, y, yPos, yIndex);
+    return yIndex;
   }
+  return -1;
+}
+
+void textPDX::demo() {
 
 }
 
@@ -1152,7 +1240,7 @@ void spectrumPDX::linedraw() {
     time_idx = 0;
     tft->fillRect(b.xStart, b.yStart + 25, 478, LINES, TFT_BLUE);
   }
-       
+
 }
 /*-----------------
    Draw waterfall directly from energy bins
@@ -1161,12 +1249,22 @@ void spectrumPDX::draw(int m[]) {
 
   for (int i = 0; i < BINS; i++) {
     int v = m[i];
-    uint16_t c = TFT_NAVY;
-    if (v < 160) c = TFT_BLUE;
-    if (v >= 160 && v < 170) c = TFT_YELLOW;
-    if (v >= 170 && v < 180) c = TFT_ORANGE;
-    if (v > 180) c = TFT_RED;
-    if (v >= 150) {
+    if (v < vmin) vmin = v;
+    if (v > vmax) vmax = v;
+    int x = 100 * (v - vmin);
+    if ((vmax - vmin) > 0) {
+      x = x / (vmax - vmin);
+    } else {
+      x = 0;
+    }
+
+
+    uint16_t c = TFT_BLUE;
+    if (v < 40) c = TFT_CYAN;
+    if (x >= 40 && v < 60) c = TFT_YELLOW;
+    if (x >= 60 && x < 70) c = TFT_ORANGE;
+    if (x > 75) c = TFT_RED;
+    if (x >= 25 ) {
       tft->drawPixel(b.xStart + i, b.yStart + time_idx + 0 + 25, c);
     }
     if ((i == 0 || i == 100 || i == 200 || i == 300 || i == 400)) {
@@ -1194,16 +1292,7 @@ class footerPDX {        // The class
     uint16_t bg;
     uint16_t tx;
 
-    char programname[8];
-    char version[5];
-    char build[5];
-    char callsign[12];
-    char grid[5];
-    char ip[16];
     bool clock = true;
-
-    struct tm timeant;
-    struct tm timeinfo;
 
     TFT_eSPI* tft;
 
@@ -1212,7 +1301,6 @@ class footerPDX {        // The class
     void show();
     void showtime();
     void update();
-
 
   private:
 
@@ -1230,14 +1318,6 @@ footerPDX::footerPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint
 
   bg = _bg;
   tx = _tx;
-
-  strcpy(programname, "");
-  strcpy(version, "");
-  strcpy(build, "");
-  strcpy(callsign, "");
-  strcpy(grid, "");
-  strcpy(ip, "");
-
   tft = _tft;
 }
 void footerPDX::init() {
@@ -1248,15 +1328,11 @@ void footerPDX::init() {
   tft->setTextColor(TFT_YELLOW, TFT_RED);
   fh = tft->fontHeight();
 
-  time_t now = time(nullptr);
+  time_t now = time(nullptr) - t_ofs;
   gmtime_r(&now, &timeinfo);
 
 }
 void footerPDX::show() {
-
-  char line[40];
-
-  //_INFOLIST("%s starting\n",__func__);
 
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1267,40 +1343,23 @@ void footerPDX::show() {
 #define XFOOT 6+16*9
 #define YFOOT 6
 
-
-  sprintf(line, "%s version %s(%s)", programname, version, build);
-  tft->drawString(line, b.xStart + 6, b.yStart + YFOOT, 1); // Print the line
-
-  //_INFOLIST("%s version draw\n",__func__);
-
-
+  sprintf(hi, "%s version %s(%s)", programname, version, build);
+  tft->drawString(hi, b.xStart + 6, b.yStart + YFOOT, 1); // Print the line
   tft->drawFastVLine (b.xStart + 6 + 16 * 8, b.yStart, 15, TFT_RED);
   char buf[8];
 
-  if (strcmp(callsign, "") != 0) {
-    strcpy(buf, callsign);
-    memset(buf, ' ', 8);
-    sprintf(line, "%s[%s]", buf, grid);
-    tft->drawString(line, b.xStart + XFOOT, b.yStart + YFOOT, 1); // Print the line
-  }
-  //_INFOLIST("%s Callsign copied\n",__func__);
-
+  sprintf(hi, "%s [%s]", my_callsign, my_grid);
+  tft->drawString(hi, b.xStart + XFOOT, b.yStart + YFOOT, 1); // Print the line
 
   tft->drawFastVLine (b.xStart + XFOOT + 9 + 12 + 13 * 6, b.yStart, 18, TFT_RED);
-  tft->drawFastVLine (b.xStart + XFOOT + 14 + 12 + 6 * 8 + 13 * 6, b.yStart, 18, TFT_RED);
+  tft->drawFastVLine (b.xStart + XFOOT + 14 + 12 + 5 +  6 * 8 + 13 * 6, b.yStart, 18, TFT_RED);
   if (strcmp(ip, "") != 0) {
-    sprintf(line, "%s", ip);
-    tft->drawString(line, b.xStart + XFOOT + 15 + 12 + 6 * 8 + 13 * 6, b.yStart + YFOOT, 1); // Print the line
+    sprintf(hi, "%s", ip);
+    tft->drawString(hi, b.xStart + XFOOT + 15 + 12 + 10 + 6 * 8 + 13 * 6, b.yStart + YFOOT, 1); // Print the line
   }
-  //_INFOLIST("%s IP draw\n",__func__);
-
   showtime();
-  //_INFOLIST("%s show time\n",__func__);
-
-  //_INFOLIST("%s finalized\n",__func__);
 }
 void footerPDX::showtime() {
-  char buf[8];
 
   if (clock == false) {
     return;
@@ -1311,28 +1370,21 @@ void footerPDX::showtime() {
   tft->setTextColor(TFT_RED, TFT_WHITE);
   uint16_t fh = tft->fontHeight();
 
-  //#define XCLOCK+6+16*50
-
-#define XCLOCK XFOOT+12+12+13*6
-#define YCLOCK YFOOT
-#define WCLOCK 8*8
-#define HCLOCK 10
-
-  sprintf(buf, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-  tft->drawString(buf, b.xStart + XCLOCK, b.yStart + YCLOCK, 1); // Print the line
+  sprintf(hi, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  tft->drawString(hi, b.xStart + XCLOCK, b.yStart + YCLOCK, 1); // Print the line
 
 }
 
 void footerPDX::update() {
 
-  time_t now = time(nullptr);
+  time_t now = time(nullptr) - t_ofs;
   gmtime_r(&now, &timeinfo);
 
-  if ((timeinfo.tm_hour != timeant.tm_hour) ||
-      (timeinfo.tm_min  != timeant.tm_min)  ||
-      (timeinfo.tm_sec  != timeant.tm_sec)) {
+  if ((timeinfo.tm_hour != timeprev.tm_hour) ||
+      (timeinfo.tm_min  != timeprev.tm_min)  ||
+      (timeinfo.tm_sec  != timeprev.tm_sec)) {
     showtime();
-    timeant = timeinfo;
+    timeprev = timeinfo;
   }
 }
 
@@ -1350,6 +1402,7 @@ iconPDX muteIcon = iconPDX(&tft, 240, 2, micWidth, micHeight, &mic[0], NULL);
 iconPDX spkrIcon = iconPDX(&tft, 274, 2, speakerWidth, speakerHeight, &speaker[0], NULL);
 linearMeter m = linearMeter(&tft, 350, 2, 5, 25, 3, 15, BLUE2BLUE, TFT_BLACK);
 displayPDX d = displayPDX(&tft, 2, 50, 272, 99, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
+progressBar p = progressBar(&tft, 2, 44, 272, 4, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
 textPDX text = textPDX(&tft, 2 + 272 + 2, 50, 204, 99, 10, TFT_WHITE, TFT_BLACK, TFT_WHITE);
 spectrumPDX s = spectrumPDX(&tft, 2, 50 + 100 + 2, 480, 150, 10, TFT_BLUE, TFT_CYAN, TFT_WHITE); //previously 160-155
 footerPDX foot = footerPDX(&tft, 2, 50 + 100 + 2 + 150, 480, 18, 10, TFT_WHITE, TFT_RED, TFT_WHITE); //previously 160-155
@@ -1360,7 +1413,6 @@ footerPDX foot = footerPDX(&tft, 2, 50 + 100 + 2 + 150, 480, 18, 10, TFT_WHITE, 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 void GUI_init() {
 
-  //_INFOLIST("%s\n",__func__);
 
   tft.init();
   tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
@@ -1370,58 +1422,50 @@ void GUI_init() {
   // Swap the colour byte order when rendering
   tft.setSwapBytes(true);
 
-  //_INFOLIST("%s TFT initialization\n",__func__);
-
-  wifiIcon.show(true);
-  termIcon.show(true);
-  calIcon.show(true);
-  catIcon.show(true);
+  wifiIcon.show(true,true);
+  termIcon.show(true,true);
+  calIcon.show(true,true);
+  catIcon.show(true,true);
   cntIcon.show(true, true);
   quadIcon.show(true, true);
   wsjtIcon.show(true, true);
-  muteIcon.show(true);
-  spkrIcon.show(true);
+  muteIcon.show(true,true);
+  spkrIcon.show(true,true);
 
-  //_INFOLIST("%s TFT objects created\n",__func__);
-
-  m.show(SUNIT, 12);
-
-  //_INFOLIST("%s TFT S meter created\n",__func__);
+  m.show(SUNIT, 0);
 
   d.addBtn(BUTTON_TX, &btnTX);
   d.addBtn(BUTTON_CQ, &btnCQ);
   d.addBtn(BUTTON_AUTO, &btnAUTO);
   d.addBtn(BUTTON_BAND, &btnBAND);
 
-  //_INFOLIST("%s TFT Buttons created\n",__func__);
-
+  d.set(BUTTON_AUTO,0);
+  d.set(BUTTON_TX,0);
+  d.set(BUTTON_BAND,0);
+  d.set(BUTTON_CQ,0);
+  
   d.init();
   d.show(true);
   d.freq = 7074000;
 
-  text.show();
+  p.reset();
 
-  //_INFOLIST("%s Text scroll created\n",__func__);
+  text.show();
 
   s.freq = d.freq;
   s.init();
-  //_INFOLIST("%s Waterfall created\n",__func__);
 
 
   foot.init();
-  //_INFOLIST("%s Footer init created\n",__func__);
-
-  strcpy(foot.programname, PROGNAME);
-  strcpy(foot.version, VERSION);
-  strcpy(foot.build, BUILD);
-  strcpy(foot.callsign, my_callsign);
-  strcpy(foot.grid, my_grid);
-  strcpy(foot.ip, "127.0.0.1");
-  //_INFOLIST("%s Footer elements copied\n",__func__);
   delay(1000);
   foot.show();
-  //_INFOLIST("%s TFT Footer created\n",__func__);
 
+}
+/*--------------------
+ * Handler to GUI buttons
+ */
+void tft_set(int btnIndex,int v) {
+  d.set(btnIndex,v);
 }
 
 /*********************************************************
@@ -1463,11 +1507,20 @@ uint16_t cycle = 0;
 int hh = 16;
 int mm = 00;
 int ss = 00;
-
+/*
+void tft_reset() {
+  d.setCQ(false);
+}
+void tft_set() {
+  d.setCQ(true);
+}
+*/
 /*-------------------------------------------------------------------
    Verify if the touchscreen has been touched and the coordinates
 */
 void tft_checktouch() {
+
+  foot.update();
 
   uint16_t x = 0, y = 0; // To store the touch coordinates
 
@@ -1484,12 +1537,12 @@ void tft_checktouch() {
         (y <= yant + 3) &&
         (y >  yant - 3)) {   //This condition is assumed as a bad pulse and not triggering
       pressed = false;
-      _INFOLIST("%s coordinates(x,y)=(%d,%d) IGNORED\n",__func__,x,y);
+      //_INFOLIST("%s coordinates(x,y)=(%d,%d) IGNORED\n",__func__,x,y);
       return;
     }
   } else {
     prevpressed = true;
-    _INFOLIST("%s new antibounce coordinates(x,y)=(%d,%d)\n",__func__,x,y);
+    //_INFOLIST("%s new antibounce coordinates(x,y)=(%d,%d)\n",__func__,x,y);
     xant = x;
     yant = y;
   }
@@ -1498,25 +1551,71 @@ void tft_checktouch() {
   // Draw a white spot at the detected coordinates
   if (pressed) {
     bool hit = d.point(x, y);
-    _INFOLIST("%s Touch detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
+    //_INFOLIST("%s TouchPad detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
     tft.fillCircle(x, y, 2, TFT_WHITE);
-    d.checkButton(x,y);
+    d.checkButton(x, y);
+    int i = text.checkPoint(x, y);
+    if (i == -1) return;
+    d.set(BUTTON_CQ,2);
+    
+    call_af_frequency=text.t[i].af_frequency;
+    call_self_rx_snr=text.t[i].self_rx_snr;
+    strcpy(call_station_callsign,text.t[i].station_callsign);
+    strcpy(call_grid_square,text.t[i].grid_square);
   }
+
+  foot.update();
 
 }
 /*-----------------------------
- * update waterfall
- */
-void tft_updatewaterfall(int m[]) {
+   update waterfall
+*/
+void tft_updatewaterfall(int mag[]) {
   if (time_us_32() - t1 >= 1000000) {
     t1 = time_us_32();
-    s.draw(m);
-    memset(m, 0, 960);
+    s.draw(mag);
+    int magmax = 0;
 
+    for (int i = 0; i < 960; i++) {
+      if (mag[i] == 0) {
+        continue;
+      }
+      if (mag[i] > magmax) {
+        magmax = mag[i];
+      }
+    }
+    int sunit = (int)((0.125 * magmax) - 18.25);
+
+    m.show(SUNIT, sunit);
+    memset(mag, 0, 960);
+
+    p.progress++;
+    p.show(TFT_GREEN);
+
+    //m.show(SUNIT,v);
   }
 }
+void tft_resetBar() {
+  p.reset();
+}
+void tft_setBar(int colour) {
+  p.show(colour);
+}
+void tft_setBarTx() {
+  p.progress++;
+  p.show(TFT_RED);
+}
 void tft_endoftime() {
-   s.linedraw();
+  s.linedraw();
+  foot.update();
+
+}
+/*---------------------------------
+ * Store a message with supplemental
+ * data.
+ */
+void tft_storeQSO(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+   text.printline(_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
 }
 
 /*---------------------
@@ -1525,84 +1624,7 @@ void tft_endoftime() {
 void tft_run() {
 
   tft_checktouch();
+  foot.update();
+  d.check();
 
-
-  /*
-       while (time_us_32()-t1 >= 15000000) {
-             t1=time_us_32();
-             for (int i=0;i<13;i++) {
-                 if (ft8qso[i].cycle == cycle) {
-                    char msg[128];
-                    memset(ft8qso[i].fm,' ',6);
-                    memset(ft8qso[i].to,' ',6);
-                    memset(ft8qso[i].ex,' ',4);
-                    sprintf(msg,"%02d%02d%02d %04d %s %s %s",hh,mm,ss,ft8qso[i].f,ft8qso[i].fm,ft8qso[i].to,ft8qso[i].ex);
-                    text.printline(ft8qso[i].ft8type,msg);
-                 }
-             }
-             t2=time_us_32();
-             t3=0;
-             cycle++;
-             if (cycle>5) {
-                cycle=0;
-             }
-             if (cycle == 0 || cycle == 2 || cycle == 4) {
-                d.setTX(true);
-             } else {
-                d.setTX(false);
-             }
-             t3=0;
-       }
-
-       while (time_us_32()-t3 >= 100000) {
-             t3=time_us_32();
-             for (int i=0;i<13;i++) {
-                 if (ft8qso[i].cycle == cycle) {
-                     s.set(ft8qso[i].f + ((rand()%8)*675/100));
-                 }
-             }
-
-      }
-
-       while(time_us_32()-t2 >= 1000000) {
-             t2=time_us_32();
-             foot.update();
-             d.check();
-             s.show();
-             s.noise();
-             ss++;
-             if (ss>59) {
-                mm++;
-                ss=0;
-             }
-             if (mm>59) {
-                hh++;
-                mm=0;
-                ss=0;
-             }
-             if (hh>23) {
-                hh=0;
-             }
-             if (cycle == 0 || cycle == 2 || cycle == 4) {
-                if (cycle == 0) {
-                   d.setTX(true);
-                   int pwr=(rand()%(5-3+1))+3;
-                   m.show(PWR,pwr);
-                }
-                if (cycle == 2) {
-                   int swr=(rand()%(3-1+1))+1;
-                   m.show(SWR,swr);
-                }
-                if (cycle == 4) {
-                   int mic=(rand()%(12-9+1))+9;
-                   m.show(MIC,mic);
-
-                }
-             } else {
-                //d.setTX(false);
-                int sunit=(rand()%(12-7+1))+7;
-                m.show(SUNIT,sunit);
-             }
-       }
-  */
 }

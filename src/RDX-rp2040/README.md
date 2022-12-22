@@ -194,3 +194,25 @@ Same as the ADX-rp2040 project
 
 Only preliminar testing has been performed as it is just an evaluation version of the firmware, functions will be
 tested as the implementation evolves.
+
+# Pending
+
+* document ft8 FSM (UML)
+* integrate meter (S-Meter and Power)
+* transform reference dash at meter into metronome for RX/TX (green/red)
+* include multiband support
+* display dialog multiband
+* Organize and add functionality for icons
+* File system
+* ADIF generation
+* FS for USB export
+* WiFi support
+* NTP support
+* Configuration terminal
+
+# Done
+* integrate scroll text 
+* improve ft8 FSM (organize)
+* Manual/Auto control
+* CQ control
+* TX control
