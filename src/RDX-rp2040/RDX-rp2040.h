@@ -192,6 +192,8 @@ extern void tft_resetBar();
 extern void tft_setBar(int colour);
 extern void tft_storeQSO(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
 extern unsigned long Slot2Freq(int s);
+extern void tft_updateBand();
+
 
 
 extern void tft_setBarTx();

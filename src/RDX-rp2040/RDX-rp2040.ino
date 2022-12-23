@@ -322,13 +322,11 @@ void setup_ft8() {
      setup the ADC processing
   */
   setup_adc();
-  //_INFOLIST("%s setup_adc() completed\n", __func__);
 
   /*------
      make the Hanning window for fft work
   */
   make_window();
-  //_INFOLIST("%s make_window() completed\n", __func__);
 
   /*------
      Establish a callback handler to be called at the end
@@ -343,9 +341,7 @@ void setup_ft8() {
   /*-------
    * Wait to settle
    */
-  sleep_ms(1000);
-  //_INFOLIST("%s completed\n", __func__);
-
+  sleep_ms(500);
 
 } //end of the ft8 setup
 
@@ -505,7 +501,6 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     state = 0;
     nTx = 0;
     nTry = 0;
-    //tft_reset();
     return false;
   }
 
@@ -534,7 +529,6 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     if (nTry >= maxTry) {
       _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
       state = 0;
-      //tft_reset();
       nTx = 0;
       nTry = 0;
       return false;
@@ -572,7 +566,6 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     if (nTry >= maxTry) {
       _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, state);
       state = 0;
-      //tft_reset();
       nTx = 0;
       nTry = 0;
       return false;
@@ -621,7 +614,6 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     if (nTry >= maxTry) {
       _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
       state = 0;
-      //tft_reset();
       nTx = 0;
       nTry = 0;
       return false;
@@ -797,7 +789,6 @@ void ft8_run() {
      *---------------------------------------------------------------*/
       if (nTry >= 12) {
         state = 0;
-        _INFOLIST("%s state reset\n", __func__);
       }
     }
     /*---------------------------------------------------------------*
@@ -805,7 +796,6 @@ void ft8_run() {
      *  sequences                                                    *
      *---------------------------------------------------------------*/
     if (strcmp(message,"") != 0) {
-       _INFOLIST("%s Message <%s>\n", __func__, message);
        generate_ft8(message, tones);
     /*---------------------------------------------------------------*
        Send the tone sequences generated
@@ -958,6 +948,7 @@ void setup()
   setup_ft8();
   delay(1000);
   tft_setup();
+  tft_updateBand();
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
@@ -1018,14 +1009,10 @@ void initSi5351() {
   si5351.output_enable(SI5351_CLK0, 0);   //RX off
   si5351.output_enable(SI5351_CLK2, 0);   //RX off
 
-
-
   si5351.set_freq(freq * 100ULL, SI5351_CLK1);
 
   si5351.set_clock_pwr(SI5351_CLK1, 1); // Turn on receiver clock
   si5351.output_enable(SI5351_CLK1, 1);   // RX on
-
-  _INFOLIST("%s si5351 clock initialization completed\n", __func__);
 
 }
 /*----------------------------------------------------
@@ -1093,10 +1080,9 @@ void timeSync() {
   digitalWrite(JS8, false);
   digitalWrite(FT4, false);
   digitalWrite(FT8, false);
-  _INFOLIST("%s Manual time-synced\n", __func__);
   now = time(nullptr) - t_ofs;
   gmtime_r(&now, &timeprev);
-  _INFOLIST("%s Sync time=[%02d:%02d:%02d]\n", __func__, timeprev.tm_hour, timeprev.tm_min, timeprev.tm_sec);
+  _INFOLIST("%s Manual time sync=[%02d:%02d:%02d]\n", __func__, timeprev.tm_hour, timeprev.tm_min, timeprev.tm_sec);
 
 }
 
@@ -1237,8 +1223,6 @@ void Band_assign() {
 
 
   delay(1000);
-
-  _INFOLIST("%s band_slot=%d freq=%ld\n", __func__, Band_slot, freq);
 }
 //******************************[ BAND SELECT Function]********************************
 void Band_Select() {
@@ -1371,7 +1355,6 @@ Band_cont:
       if (Band_slot < 1) {
         Band_slot = 4;
       }
-      _INFOLIST("%s <UP> Band_slot=%d\n", __func__, Band_slot);
 
     }
   }
@@ -1386,8 +1369,6 @@ Band_cont:
       if (Band_slot > 4) {
         Band_slot = 1;
       }
-      _INFOLIST("%s <DOWN> Band_slot=%d\n", __func__, Band_slot);
-
     }
   }
 
@@ -1413,7 +1394,9 @@ Band_exit:
   updateEEPROM();
   Band_assign();
   freq=Slot2Freq(Band_slot);
-  _INFOLIST("%s completed set Band_slot=%d freq=%lu\n", __func__, Band_slot,freq);
+  tft_updateBand();
+
+  _INFOLIST("%s completed Band assignment Band_slot=%d freq=%lu\n", __func__, Band_slot,freq);
 
 
 }
@@ -1733,8 +1716,7 @@ void INIT() {
 
   }
   freq=Slot2Freq(Band_slot);
-  
-  _INFOLIST("%s completed freq=%ld\n", __func__, freq);
+  tft_updateBand();
 
 }
 //********************************[ END OF INITIALIZATION FUNCTION ]*************************************

@@ -52,7 +52,8 @@ bool prevpressed = false;
 char GUIStr[128];
 int vmin = 255;
 int vmax = 0;
-bool redraw=false;
+bool GUI_Enabled=false;
+
 
 uint16_t call_af_frequency;
 int8_t call_self_rx_snr;
@@ -544,6 +545,7 @@ class displayPDX {        // The class
     };
 
     btn btnPDX[BUTTON_END];
+    bool redraw;
 
     displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void show(bool fShow);
@@ -577,6 +579,8 @@ class displayPDX {        // The class
     void init();
     void showCursor();
     bool point(uint16_t x, uint16_t y);
+    int  checkTriangle(int x, int y);
+    void onclickTriangle(int btnTriangle);
 
   private:
     uint16_t zambo;
@@ -597,6 +601,7 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
   enabled = true;
   bg = _bg;
   tx = _tx;
+  redraw=false;
 
 #define TRIANG_BASE    40
 #define TRIANG_HEIGHT  20
@@ -646,12 +651,44 @@ void displayPDX::init() {
   setTriangle(TRIANGLE_RIGHT, false, false);
 
 }
+void displayPDX::onclickTriangle(int btnTriangle) {
+  switch(btnTriangle) {
+    case TRIANGLE_LEFT: {
+                          Band_slot--;
+                          if (Band_slot<0) Band_slot=BANDS;
+                          btnPDX[BUTTON_BAND].v=Band_slot;
+                          set(BUTTON_BAND,Band_slot-1);
+                          break;
+    }
+    case TRIANGLE_RIGHT: {     
+                          Band_slot++;
+                          if (Band_slot>BANDS) Band_slot=1;
+                          btnPDX[BUTTON_BAND].v=Band_slot;
+                          set(BUTTON_BAND,Band_slot-1);
+                          break;
+    }
+  }
+  setTriangle(btnTriangle,true,true);
+
+}
+int displayPDX::checkTriangle(int x, int y) {
+    if (x >=trianglePDX[0].point1X && x <=trianglePDX[0].point2X && y>=trianglePDX[0].point3Y && y<=trianglePDX[0].point2Y) {
+       onclickTriangle(TRIANGLE_LEFT);
+       return 0;
+    }
+
+    if (x >=trianglePDX[1].point2X && x <=trianglePDX[1].point1X && y>=trianglePDX[1].point3Y && y<=trianglePDX[1].point2Y) {
+      onclickTriangle(TRIANGLE_RIGHT);
+      return 0;
+    }
+    return -1;
+
+}
 
 int displayPDX::checkButton(int x, int y) {
 
   for (int i = 0; i < 4; i++) {
     if ( x >= btnPDX[i].x && x <= btnPDX[i].x + btnPDX[i].w && y >= btnPDX[i].y && y <= btnPDX[i].y + btnPDX[i].h ) {
-      _INFOLIST("%s Hit detected on button [%d]\n", __func__, i);
       switch (i) {
         case 0 : {
             onclick(BUTTON_TX);
@@ -700,12 +737,12 @@ void displayPDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle)
 
   btnPDX[btnIndex].fickle = fickle;
   btnPDX[btnIndex].tfickle = millis();
-
 }
 void displayPDX::set(int btnIndex,int v) {
   switch (btnIndex) {
     case BUTTON_BAND:
                     {
+                     
                     char bandstr[6];
                     sprintf(bandstr,"%dm",Bands[v]);
                     setBtn(btnIndex,bandstr,false,false);
@@ -814,7 +851,6 @@ void displayPDX::showBtn(int btnIndex) {
 
   btnPDX[btnIndex].btn->initButtonUL(btnPDX[btnIndex].x, btnPDX[btnIndex].y, btnPDX[btnIndex].w, btnPDX[btnIndex].h, TFT_BLUE, TFT_CYAN, TFT_BLUE, btnPDX[btnIndex].label, 1);
   btnPDX[btnIndex].btn->drawSmoothButton(btnPDX[btnIndex].inverse, 2, TFT_CYAN);
-
 }
 
 /*------
@@ -1052,8 +1088,6 @@ void textPDX::printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_
   uint16_t _color;
   uint16_t _bg;
 
-  _INFOLIST("%s qso(%d) msg(%s) af(%d) snr(%d) call(%s) grid(%s)\n",__func__,_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
-
   scroll();
 
   switch (_qso) {
@@ -1124,7 +1158,6 @@ int textPDX::checkPoint(int x, int y) {
     int yPos = y - b.yStart + 5;
     yPos = yPos / 9;
     int yIndex = TEXTLINES - yPos;
-    _INFOLIST("%s Coord(%d,%d) hit yPos(%d) yIndex(%d)\n", __func__, x, y, yPos, yIndex);
     return yIndex;
   }
   return -1;
@@ -1441,13 +1474,14 @@ void GUI_init() {
 
   text.show();
 
-  //s.freq = freq;
   s.init();
 
 
   foot.init();
   delay(1000);
   foot.show();
+
+  GUI_Enabled=true;
 
 }
 /*--------------------
@@ -1463,33 +1497,15 @@ void tft_set(int btnIndex,int v) {
 *********************************************************/
 void tft_setup() {
 
-  //_INFOLIST("%s TFT sub-system firmware starting\n",__func__);
 
   // Use this calibration code in setup():
   tft.setTouch(calData);
 
   // Initialize the GUI
   GUI_init();
-  //_INFOLIST("%s Screen Width=%d Height=%d\n",__func__,tft.width(),tft.height());
 
 } // main
 
-/*
-FT8QSO ft8qso[13] = {{0, 1200, "LU7DZ", "CQ", "GF05", CQ},
-  {0, 1600, "LU2EIC", "CQ", "FF78", CALL},
-  {0, 2000, "LT7D", "LT7H", "73", QSO},
-  {1, 1800, "LT7H", "LU7DZ", "FF77", EXCH},
-  {1, 2000, "LT7D", "LU2EIC", "GF05", QSO},
-  {2, 1200, "LU7DZ", "LT7H", "-10", EXCH},
-  {2, 1600, "LU2EIC", "LT7D", "-12", QSO},
-  {3, 1800, "LT7H", "LU7DZ", "R-12", EXCH},
-  {3, 2000, "LT7D", "LU2EIC", "R-15", QSO},
-  {4, 1200, "LU7DZ", "LT7H", "RR73", EXCH},
-  {4, 1600, "LU2EIC", "LT7D", "RR73", QSO},
-  {5, 1800, "LT7H", "LU7DZ", "73", EXCH},
-  {5, 2000, "LT7D", "LU2EIC", "73", QSO}
-};
-*/
 uint32_t t1 = time_us_32();
 uint32_t t2 = 0;
 uint32_t t3 = 0;
@@ -1497,14 +1513,6 @@ uint16_t cycle = 0;
 int hh = 16;
 int mm = 00;
 int ss = 00;
-/*
-void tft_reset() {
-  d.setCQ(false);
-}
-void tft_set() {
-  d.setCQ(true);
-}
-*/
 /*-------------------------------------------------------------------
    Verify if the touchscreen has been touched and the coordinates
 */
@@ -1527,12 +1535,10 @@ void tft_checktouch() {
         (y <= yant + 3) &&
         (y >  yant - 3)) {   //This condition is assumed as a bad pulse and not triggering
       pressed = false;
-      //_INFOLIST("%s coordinates(x,y)=(%d,%d) IGNORED\n",__func__,x,y);
       return;
     }
   } else {
     prevpressed = true;
-    //_INFOLIST("%s new antibounce coordinates(x,y)=(%d,%d)\n",__func__,x,y);
     xant = x;
     yant = y;
   }
@@ -1541,11 +1547,11 @@ void tft_checktouch() {
   // Draw a white spot at the detected coordinates
   if (pressed) {
     bool hit = d.point(x, y);
-    //_INFOLIST("%s TouchPad detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
     tft.fillCircle(x, y, 2, TFT_WHITE);
     d.checkButton(x, y);
-    if (redraw) {
-       redraw=false;
+    d.checkTriangle(x,y);
+    if (d.redraw) {
+       d.redraw=false;
        s.reset();
        s.init();
        
@@ -1624,4 +1630,16 @@ void tft_run() {
   foot.update();
   d.check();
 
+}
+void tft_updateBand() {
+     
+   if (!GUI_Enabled) return; 
+   
+   d.btnPDX[BUTTON_BAND].v=Band_slot;
+   d.set(BUTTON_BAND,Band_slot-1);
+   if (d.redraw) {
+       d.redraw=false;
+       s.reset();
+       s.init();
+   }    
 }

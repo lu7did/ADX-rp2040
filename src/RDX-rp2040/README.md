@@ -62,6 +62,15 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 ## Code structure
 
+### Overall FT8 decoding logic
+
+![Alt Text](../../docs/RDX-rp2040-FT8.png "FT8 decoding cycle")
+
+
+### FT8 protocol finite state machine
+
+![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
+
 Experimental, yet to be documented.
 
 ## Time synchronization
@@ -202,11 +211,11 @@ tested as the implementation evolves.
 * transform reference dash at meter into metronome for RX/TX (green/red)
 * display dialog multiband
 * Organize and add functionality for icons
+* Hardware interface to SD-Card/Export
 * File system
 * ADIF generation
-* FS for USB export
-* WiFi support
-* NTP support
+* WiFi support and mDNS (rdx.local resolution)
+* NTP support and clock alignment
 * Configuration terminal
 
 # Done

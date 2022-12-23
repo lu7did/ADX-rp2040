@@ -125,7 +125,7 @@ extern "C" {
   #define   S1KHZ       4
   #define S100HZ        5
 
-  #define TOUT_FICKLE 2000
+  #define TOUT_FICKLE 500
 
 
   #define TRIANGLE_LEFT  0
