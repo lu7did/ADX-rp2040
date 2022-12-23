@@ -52,6 +52,7 @@ bool prevpressed = false;
 char GUIStr[128];
 int vmin = 255;
 int vmax = 0;
+bool redraw=false;
 
 uint16_t call_af_frequency;
 int8_t call_self_rx_snr;
@@ -517,13 +518,12 @@ class displayPDX {        // The class
 
     uint16_t bg;
     uint16_t tx;
-    uint32_t freq;
+    uint32_t f;
     uint16_t cursor;
 
     bool enabled;
     bool cq;
     bool autom;
-    uint16_t band;
 
     triangle trianglePDX[2];
 
@@ -558,8 +558,8 @@ class displayPDX {        // The class
       cursor = _c;
       showCursor();
     }
-    void setFreq(uint32_t _freq) {
-      freq = _freq;
+    
+    void setFreq() {
       showFreq();
       showCursor();
     }
@@ -625,10 +625,8 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
   trianglePDX[TRIANGLE_RIGHT].point3Y = b.yStart + TRIANG_SHIFT_R_Y + TRIANG_LEFT_Y;
   trianglePDX[TRIANGLE_RIGHT].color = TFT_BLUE;
 
-  freq = 7074000;
   cq = false;
   autom = false;
-  band = B40M;
 
   for (int i = 0; i < BUTTON_END; i++) {
     strcpy(btnPDX[i].label, "");
@@ -641,9 +639,7 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
 
 void displayPDX::init() {
 
-  freq = 7074000;
   cq = false;
-  band = B40M;
   cursor = S1KHZ;
   
   setTriangle(TRIANGLE_LEFT, false, false);
@@ -710,16 +706,12 @@ void displayPDX::set(int btnIndex,int v) {
   switch (btnIndex) {
     case BUTTON_BAND:
                     {
-                    switch(v) {
-                      case 0 : setBtn(btnIndex,(char*)"40m",false,false);
-                               break;
-                      case 1 : setBtn(btnIndex,(char*)"30m",false,false);
-                               break;
-                      case 2 : setBtn(btnIndex,(char*)"20m",false,false);
-                               break;
-                      case 3 : setBtn(btnIndex,(char*)"10m",false,false);
-                               break;         
-                    }
+                    char bandstr[6];
+                    sprintf(bandstr,"%dm",Bands[v]);
+                    setBtn(btnIndex,bandstr,false,false);
+                    freq=Slot2Freq(v+1);
+                    showFreq();
+                    redraw=true;
                     break;
                     }
     case BUTTON_TX:
@@ -777,9 +769,10 @@ void displayPDX::onclick(int btnIndex) {
     
     case BUTTON_BAND:
                      {
-                     int z=btnPDX[btnIndex].v+1;
-                     if (z>=BUTTON_END) z=BUTTON_TX;
-                     set(btnIndex,z);
+                     Band_slot++;
+                     if (Band_slot>BANDS) Band_slot=1;
+                     btnPDX[btnIndex].v=Band_slot;
+                     set(btnIndex,Band_slot-1);
                      break;
                      }
     case BUTTON_TX:
@@ -840,15 +833,12 @@ bool displayPDX::point(uint16_t x, uint16_t y) {
 
   for (int i = 0; i < BUTTON_END; i++) {
     if (checkarea(x, y, btnPDX[i].x, btnPDX[i].y, btnPDX[i].x + btnPDX[i].w, btnPDX[i].y + btnPDX[i].h)) {
-      //_INFOLIST("%s hit button[%d]=%s (x,y)=(%d,%d) (x+w,y+h)=(%d,%d) (X,Y)=(%d,%d)\n",__func__,i,btnPDX[i].label,btnPDX[i].x,btnPDX[i].y,btnPDX[i].x+btnPDX[i].w,btnPDX[i].y+btnPDX[i].h,x,y);
       return true;
     }
   }
   if (checkarea(x, y, trianglePDX[TRIANGLE_LEFT].point1X, trianglePDX[TRIANGLE_LEFT].point2Y, trianglePDX[TRIANGLE_LEFT].point2X, trianglePDX[TRIANGLE_LEFT].point2Y)) {
-    //_INFOLIST("%s hit Triangle LEFT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_LEFT].point1X,trianglePDX[TRIANGLE_LEFT].point2Y,trianglePDX[TRIANGLE_LEFT].point2X,trianglePDX[TRIANGLE_LEFT].point2Y,x,y);
   }
   if (checkarea(x, y, trianglePDX[TRIANGLE_RIGHT].point2X, trianglePDX[TRIANGLE_RIGHT].point2Y, trianglePDX[TRIANGLE_RIGHT].point1X, trianglePDX[TRIANGLE_RIGHT].point2Y)) {
-    //_INFOLIST("%s hit Triangle RIGHT  (X,Y)=(%d,%d)\n",__func__,trianglePDX[TRIANGLE_RIGHT].point2X,trianglePDX[TRIANGLE_RIGHT].point2Y,trianglePDX[TRIANGLE_RIGHT].point1X,trianglePDX[TRIANGLE_RIGHT].point2Y,x,y);
   }
 
   return false;
@@ -940,8 +930,7 @@ void displayPDX::showFreq() {
 
 
   if (fshow < 10000) {
-    //xpos+= tft->drawChar(' ',xpos,ypos,7);
-    xpos = xpos + X_CHAR7 + 2;
+     xpos = xpos + X_CHAR7 + 2;
   }
 
   tft->setTextFont(7);
@@ -968,8 +957,6 @@ void displayPDX::showCursor() {
 
   tft->setTextSize(1);
   uint16_t fh = tft->fontHeight();
-
-  //tft->fillRect(b.xStart+XFREQ-5,b.yStart+YFREQ+Y_CHAR7+5,X_CHAR7*7,7,TFT_CYAN);
   for (uint16_t i = 0; i < 5; i++) {
     tft->drawFastHLine (b.xStart + XFREQ - 5 + (cursor * (X_CHAR7 + 4) + (cursor != 5 ? 0 : (X_CHAR7 / 2) - 1)) , (b.yStart + YFREQ + Y_CHAR7 + 6 ) + i , X_CHAR7, TFT_BLUE);
   }
@@ -1162,8 +1149,6 @@ class spectrumPDX {        // The class
     uint16_t fh;
     uint16_t bg;
     uint16_t tx;
-    uint32_t freq;
-
     uint16_t time_idx = 0;
 
     TFT_eSPI* tft;
@@ -1172,6 +1157,7 @@ class spectrumPDX {        // The class
     void init();
     void draw(int m[]);
     void linedraw();
+    void reset();
 
   private:
 
@@ -1218,18 +1204,17 @@ void spectrumPDX::init() {
 
   char buf[16];
 
+  uint32_t fshow=freq/1000;
   tft->setTextColor(TFT_YELLOW, TFT_BLUE);
-
-  uint32_t f = freq / 1000;
-  sprintf(buf, "%ld", f);
+  sprintf(buf, "%ld", fshow);
   tft->drawString(buf, b.xStart + 10, b.yStart + 2, 2); // Print the line
 
-  f = f + 1;
-  sprintf(buf, "%ld", f);
+  fshow=fshow+1;
+  sprintf(buf, "%ld", fshow);
   tft->drawString(buf, b.xStart + 10 + 200, b.yStart + 2, 2); // Print the line
 
-  f = f + 1;
-  sprintf(buf, "%ld", f);
+  fshow = fshow + 1;
+  sprintf(buf, "%ld", fshow);
   tft->drawString(buf, b.xStart + 10 + 400, b.yStart + 2, 2); // Print the line
 
 }
@@ -1242,6 +1227,11 @@ void spectrumPDX::linedraw() {
   }
 
 }
+void spectrumPDX::reset() {
+  tft->fillRect(b.xStart, b.yStart + 25, 478, LINES, TFT_BLUE);
+  time_idx=0;
+}
+
 /*-----------------
    Draw waterfall directly from energy bins
 */
@@ -1441,18 +1431,17 @@ void GUI_init() {
 
   d.set(BUTTON_AUTO,0);
   d.set(BUTTON_TX,0);
-  d.set(BUTTON_BAND,0);
+  d.set(BUTTON_BAND,Band_slot-1);
   d.set(BUTTON_CQ,0);
   
   d.init();
   d.show(true);
-  d.freq = 7074000;
 
   p.reset();
 
   text.show();
 
-  s.freq = d.freq;
+  //s.freq = freq;
   s.init();
 
 
@@ -1485,6 +1474,7 @@ void tft_setup() {
 
 } // main
 
+/*
 FT8QSO ft8qso[13] = {{0, 1200, "LU7DZ", "CQ", "GF05", CQ},
   {0, 1600, "LU2EIC", "CQ", "FF78", CALL},
   {0, 2000, "LT7D", "LT7H", "73", QSO},
@@ -1499,7 +1489,7 @@ FT8QSO ft8qso[13] = {{0, 1200, "LU7DZ", "CQ", "GF05", CQ},
   {5, 1800, "LT7H", "LU7DZ", "73", EXCH},
   {5, 2000, "LT7D", "LU2EIC", "73", QSO}
 };
-
+*/
 uint32_t t1 = time_us_32();
 uint32_t t2 = 0;
 uint32_t t3 = 0;
@@ -1554,6 +1544,13 @@ void tft_checktouch() {
     //_INFOLIST("%s TouchPad detected (x,y)=(%d,%d) hit=%s\n",__func__,x,y,BOOL2CHAR(hit));
     tft.fillCircle(x, y, 2, TFT_WHITE);
     d.checkButton(x, y);
+    if (redraw) {
+       redraw=false;
+       s.reset();
+       s.init();
+       
+       updateEEPROM();
+    }
     int i = text.checkPoint(x, y);
     if (i == -1) return;
     d.set(BUTTON_CQ,2);

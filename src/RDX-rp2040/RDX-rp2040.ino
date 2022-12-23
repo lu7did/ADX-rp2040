@@ -208,13 +208,28 @@ uint32_t val;
 int temp;
 uint32_t val_EE;
 int addr = 0;
+
+
+/*------------------------------------------
+ * Band and frequency information
+ */
+const uint16_t Bands[BANDS] = {40, 30, 20, 10};     // Band1,Band2,Band3,Band4 (initial setup)
+const unsigned long slot[MAXBAND] = { 3573000UL,       //80m [0]
+                                      5357000UL,       //60m [1]
+                                      7074000UL,       //40m [2]
+                                     10136000UL,       //30m [3]
+                                     14074000UL,       //20m [4]
+                                     18100000UL,       //17m [5]
+                                     21074000UL,       //15m [6]
+                                     24915000UL,       //12m [7]
+                                     28074000UL};      //10m [8]
 int Band_slot = 0;
 int Band = 0;
 
-int Band1 = 40; // Band 1 // These are default bands. Feel free to swap with yours
-int Band2 = 30; // Band 2
-int Band3 = 20; // Band 3
-int Band4 = 10; // Band 4 //*RP2040* changed to 10m from 17m
+int Band1 = Bands[0]; // Band 1 // These are default bands. Feel free to swap with yours
+int Band2 = Bands[1]; // Band 2
+int Band3 = Bands[2]; // Band 3
+int Band4 = Bands[3]; // Band 4 //*RP2040* changed to 10m from 17m
 
 unsigned long freq = 7074000UL;
 
@@ -865,9 +880,7 @@ void ft8_run() {
    *******************************************************/
   /*------------------------------------------------------------
    * Validate the conditions for the FSM to evaluate messages
-   */
-  //if ((state != 0 && !justSent) || (autosend && !justSent) || triggerCQ ) {
-  
+   */  
   if ((state != 0 && !justSent) || (autosend && !justSent) || (triggerCQ && !justSent) || (triggerCALL && !justSent)) {   //*Fix BUILD 41
     send = ft8bot(&CurrentStation, &sendChoices, message_list);
   } else {
@@ -1033,7 +1046,7 @@ void checkButton() {
     UP_State = digitalRead(UP);
     DOWN_State = digitalRead(DOWN);
     if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
-      Band_Select();
+       Band_Select();
     }
   }
   /*----
@@ -1087,6 +1100,9 @@ void timeSync() {
 
 }
 
+/*--------------------------------------------
+ * Changes ADX hardware to start TX
+ */
 void startTX() {
 
   unsigned long freq1 = freq;
@@ -1106,6 +1122,9 @@ void startTX() {
   _INFOLIST("%s TX+ f=%lu freqx=%lu \n", __func__, freq, freq1);
 
 }
+/*------------------------------------
+ * Changes ADX hardware to stop TX
+ */
 void stopTX() {
 
   digitalWrite(TX, 0);
@@ -1124,7 +1143,9 @@ void stopTX() {
   tft_set(BUTTON_TX,0);
   
 }
-//*******************************[ Manual TX FUNCTION ]********************************
+/*-------------------------------------
+ * Manual TX function (push TX button)
+ */
 void ManualTX() {
 
   startTX();
@@ -1133,7 +1154,6 @@ void ManualTX() {
 
 }
 
-//********************************[ END OF Manual TX ]*********************************
 //******************************[ Band  Assign Function ]******************************
 
 void Band_assign() {
@@ -1390,16 +1410,20 @@ Band_cont:
 
 Band_exit:
 
+  updateEEPROM();
+  Band_assign();
+  freq=Slot2Freq(Band_slot);
+  _INFOLIST("%s completed set Band_slot=%d freq=%lu\n", __func__, Band_slot,freq);
+
+
+}
+void updateEEPROM() {
+
   addr = 50;
   EEPROM.put(addr, Band_slot);
   EEPROM.commit();
 
-  Band_assign();
-  _INFOLIST("%s completed set Band_slot=%d\n", __func__, Band_slot);
-
-
 }
-
 //*********************************[ END OF BAND SELECT ]*****************************
 
 
@@ -1551,6 +1575,43 @@ Calibrate:
 //****************************** [ End Of Calibration Function ]****************************************
 
 //*********************************[ INITIALIZATION FUNCTION ]******************************************
+/*-----------------------------------------------
+ * Convert a slot number to the FT8 frequency for
+ * that slot
+ */
+unsigned long Slot2Freq(int s) {
+  if (s<1 || s>BANDS) {
+      s=1;
+  }
+  uint16_t b=Bands[s-1];
+  uint8_t  i=0;
+  switch (b) {
+    case 80 : i=0;break;
+    case 60 : i=1;break;
+    case 40 : i=2;break;
+    case 30 : i=3;break;
+    case 20 : i=4;break;
+    case 17 : i=5;break;
+    case 15 : i=6;break;
+    case 12 : i=7;break;
+    case 10 : i=8;break;
+  }
+  digitalWrite(WSPR, LOW);
+  digitalWrite(JS8, LOW);
+  digitalWrite(FT4, LOW);
+  digitalWrite(FT8, LOW);
+  digitalWrite(8-Band_slot,HIGH);
+
+  return slot[i];
+
+}
+/*----------------------------------------------
+ * ADX board initializacion
+ * I/O definition
+ * I2C initialization
+ * Wire setup
+ * EEPROM parameters
+ */
 void INIT() {
 
   /*-----------------------------
@@ -1671,9 +1732,8 @@ void INIT() {
 
 
   }
-
-  //si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
-
+  freq=Slot2Freq(Band_slot);
+  
   _INFOLIST("%s completed freq=%ld\n", __func__, freq);
 
 }

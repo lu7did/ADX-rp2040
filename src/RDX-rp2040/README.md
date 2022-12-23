@@ -200,7 +200,6 @@ tested as the implementation evolves.
 * document ft8 FSM (UML)
 * integrate meter (S-Meter and Power)
 * transform reference dash at meter into metronome for RX/TX (green/red)
-* include multiband support
 * display dialog multiband
 * Organize and add functionality for icons
 * File system
@@ -211,6 +210,7 @@ tested as the implementation evolves.
 * Configuration terminal
 
 # Done
+* include multiband support
 * integrate scroll text 
 * improve ft8 FSM (organize)
 * Manual/Auto control

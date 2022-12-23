@@ -130,6 +130,11 @@ typedef void (*CALLQSO)(int i);
 #define MY_CALLSIGN "LU2EIC"
 #define MY_GRID "GF05"
 
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+//*                      GENERAL PURPOSE GLOBAL DEFINITIONS                                     *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+#define BANDS          4            //Max number of bands allowed
+#define MAXBAND        9
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                         External References                                              *
@@ -160,13 +165,15 @@ extern uint16_t call_af_frequency;
 extern int8_t call_self_rx_snr;
 extern char call_station_callsign[8];
 extern char call_grid_square[4];
+extern int Band_slot;
+extern const uint16_t Bands[BANDS];
 
 extern CALLBACK fftReady;
 extern CALLQSO  qsoReady;
 extern CALLBACK fftEnd;
 extern CALLBACK  txIdle;
 
-
+extern void updateEEPROM();
 extern void tft_updatewaterfall(int m[]);
 extern void setCALL();
 extern void INIT();
@@ -184,6 +191,8 @@ extern void tft_checktouch();
 extern void tft_resetBar();
 extern void tft_setBar(int colour);
 extern void tft_storeQSO(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
+extern unsigned long Slot2Freq(int s);
+
 
 extern void tft_setBarTx();
 
