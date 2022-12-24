@@ -109,7 +109,7 @@ must be released, this will account for some differences in the reaction time to
 
 ## GUI
 
-The disposition of the LCD is just to make the hardware development more amenable, but it should be placed on top of the transceiver in some form of "sandwitch" configuration.
+The disposition of the LCD is just to make the hardware development more amenable, but it should be placed on top of the transceiver in some form of "sandwich" configuration.
 
 ![Alt Text](../../docs/RDX-rp2040-GUI.jpg "RDX GUI Prototype")
 
