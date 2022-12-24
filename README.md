@@ -122,7 +122,7 @@ freqPIO.pio.h
 ### Transmission Algorithms
 
 The ADX transceiver by Barb (WB2CBA) owes in part it's popularity to it's simplicity, and no small part of it derives from the very simple, yet effective, way
-to process incoming audio signals to derive that is the PSK tone currently being sent by the host program and direct the transmitter to operate at a base
+to process incoming audio signals to derive what is the tone being sent by the host program and direct the transmitter to operate at a base
 frequency plus that tone frequency in order to achieve direct synthesis USB transmission with a very low overhead mechanism which involves little or no
 DSP programming which can be very taxing for the original Arduino board the transceiver has been designed with.
 The algorithm comes actually from Burkhard Kainka (DK7JD) [link](http://elektronik-labor.de/HF/SDRtxFSK2.html) cleverly uses the COMPA timer of the 
