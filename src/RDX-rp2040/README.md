@@ -107,6 +107,61 @@ However a simple method is to use a clock which actually is digital but has an a
 must be released, this will account for some differences in the reaction time to do that and thus enhance the synchronization process. 
 ```
 
+## GUI
+
+The disposition of the LCD is just to make the hardware development more amenable, but it should be placed on top of the transceiver in some form of "sandwitch" configuration.
+
+![Alt Text](../../docs/RDX-rp2040-GUI.jpg "RDX GUI Prototype")
+
+The main areas of the GUI are:
+
+*	Icons.
+	Icons are meant to be used to activate or de-activate a given function such as WiFi, TCP/IP terminal, OTA firmware update, mount/extract a SD card, create an ADIF log and others.
+	When the function isn't active it's shown as crossed (as they are most at this time).
+* 	Meter.
+	The meter is meant to display signal strenght (S-Units), power (in Watts), SWR or rx level. At this point only the S-meter is implemented to show a level proportional
+	to the energy in the passband, it will be calibrated approximately to S-units.
+* 	Display area.
+	The display area shows several controls.
+	*	Buttons.
+		There are four buttons.
+		*	TX
+			When touched it will activate the transmission (similar to press the hardware TX button) and show as inverse, reversing it when touched again. 
+			It will also inverse if the board is placed in transmission mode by the firmware or when the TX is activated by pressing the TX button.
+		*	CQ/Call
+			When touched will inverse and start sending CQ calls, eventually answering them and performing one full automated QSO until touched again (when the
+			Manual/Auto control is in Manual). When selecting a particular CQ call from the text area it will be shown as "Call" while the QSO is attempted.
+		*	Manual/Auto
+			When in Manual the firmware will call CQ when pressing the CQ button or will answer a call if selected from the text display, in Auto mode it will
+			call CQ periodically and attempt to answer the first CQ call heard.
+		*	Band
+			Shows the current band, the firmware support the 40,30,20 and 10 meters band, it will circulate amont them by pressing the button. Tha band change can 
+			also be made by the standard ADX hardware procedure and changes made this way reflected in the value of the button. Also changes in the band performed
+			by the cursors will be reflected.
+	*	Cursors.
+		The left cursor will decrease the current band and the right cursor increase it. Changes made will be reflected in the board LED and in the Band button.
+	*	Frequency display.
+		The frequency display will reflect the standard FT8 frequency of the selected band.
+* 	Text area.
+	This area will reflect several QSO lines using a color scheme to identify the type of it.
+	*	Black on White. 3rd party QSO.
+	*	Black on Yellow, CQ from our station or answering to another station.
+	*	White on Red, QSO in progress.
+	*	Black on Green, CQ from another station.
+	When a CQ call from other station is selected by the pencil the transceiver is placed in "Call" mode and an attempt to perform a QSO is made.
+* 	Waterfall.
+	This area will show a waterfall representation of the passband updated every second.
+* 	Footer.
+	This area will show configuration information such as firmware level, callsign, grid locator, time and IP address.
+
+
+```
+Warning
+
+The band settings on the firmware needs to be made consistent by using the profer filter on the board and antenna as there is no way for the firmware
+to validate neither the proper filter nor a reasonable SWR level when the TX is activated.
+```
+
 
 # Hardware
 
