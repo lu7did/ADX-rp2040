@@ -1,6 +1,28 @@
 #pragma once
 #include "decode.h"
 #include "kiss_fftr.h"
+/*---------------------------------------------
+   FT8 protocol QSO data structure
+*/
+struct m {
+  int8_t   self_rx_snr; // this is a map between -120dB to 0dB as 0 to 240 in 0.5 dB increments
+  uint16_t af_frequency;
+  uint16_t qsowindow;
+  float    time_offset;
+  char     full_text[19];
+  bool     addressed_to_me;
+  bool     type_cq;
+  bool     type_grid;
+  bool     type_snr;
+  bool     type_Rsnr;
+  bool     type_RRR;
+  bool     type_73;
+  bool     type_RR73;
+  char     station_callsign[7];
+  char     grid_square[4];
+  char     snr_report[4];
+};
+typedef m message_info;
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                      Decoding parameters                                                              *
@@ -28,23 +50,6 @@ enum {num_samples_processed = nfft * (1 + kTime_osr) / 2};
 //extern uint8_t mag_power[num_blocks * kFreq_osr * kTime_osr * num_bins];
 extern waterfall_t power;
 
-typedef struct
-{
-  int8_t self_rx_snr; //(should be -24 to 30 db)
-  uint16_t af_frequency;
-  float time_offset;
-  char full_text[19]; // was 25
-  bool addressed_to_me;
-  bool type_cq;
-  bool type_grid;
-  bool type_snr;
-  bool type_Rsnr;
-  bool type_RRR;
-  bool type_73;
-  char station_callsign[7]; //do I need 7 instead of 6? For some reason my testing files have some 7-character callsigns
-  char grid_square[4];
-  char snr_report[4];
-} message_info;
 
 float hann_i(int i, int N);
 void make_window(void);

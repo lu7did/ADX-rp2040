@@ -217,6 +217,8 @@ tested as the implementation evolves.
 * WiFi support and mDNS (rdx.local resolution)
 * NTP support and clock alignment
 * Configuration terminal
+* OTA firmware update
+* Web based configuration tool
 
 # Done
 * include multiband support

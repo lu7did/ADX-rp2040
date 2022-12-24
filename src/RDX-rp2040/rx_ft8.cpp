@@ -60,7 +60,6 @@ void setup_adc() {
   */
 
   adc_set_clkdiv(CLOCK_DIV);
-  _INFOLIST("%s ADC sub-system initialized\n", __func__);
 
   /*------------------
      Let things settle
@@ -80,7 +79,6 @@ void setup_adc() {
   channel_config_set_read_increment(&cfg, false);
   channel_config_set_write_increment(&cfg, true);
   channel_config_set_dreq(&cfg, DREQ_ADC);
-  _INFOLIST("%s DMA setup completed\n", __func__);
 
 }
 

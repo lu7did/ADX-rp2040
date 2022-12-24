@@ -394,6 +394,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
       strcpy(CurrentStation->grid_square, "");
       CurrentStation->af_frequency=1500;
       CurrentStation->self_rx_snr=0;
+      CurrentStation->qsowindow=getQSOwindow();
       nTry = 0;
       nTx=0;
       return true;
@@ -407,7 +408,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  */
   if (state == 0 && !justSent && triggerCALL) {
        _INFOLIST("%s activating a response from triggerCALL station(%s) grid(%s) SNR(%d) af(%d)\n",__func__,call_station_callsign,call_grid_square,call_self_rx_snr,call_af_frequency);
-       state=1;
+       state=5;                               //Synchro with FSM as if the CQ was answered automatically
        triggerCALL=false;
        sendChoices->send_grid = true;
        /*-----------
@@ -417,6 +418,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
        strcpy(CurrentStation->grid_square, call_grid_square);
        CurrentStation->self_rx_snr=call_self_rx_snr;
        CurrentStation->af_frequency=call_af_frequency;
+       CurrentStation->qsowindow=call_qsowindow;
        /*-----------
         * 
         */
@@ -451,6 +453,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         strcpy(CurrentStation->grid_square, message_list[i].grid_square);
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;
         CurrentStation->af_frequency=message_list[i].af_frequency;
+        CurrentStation->qsowindow=message_list[i].qsowindow;
         sendChoices->send_grid = true;
         nTry = 0;
         nTx=0;
@@ -467,7 +470,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * the number of tries exceed the maximum, if so, reset the FSM to an idle state
  */
 
-  if (state == 1 && !justSent) {  //State 1 - (CQ Cycle) Check if somebody answer my CQ call, repeat the CQ if not
+  if ((state == 1) && !justSent) {  //State 1  - (CQ Cycle) Check if somebody answer my call, repeat the CQ if not
     for (int i = 0; i < num_decoded; i++) {
       if (message_list[i].addressed_to_me) {
         _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me Grid(%s) snr(%s)\n", __func__, state, i, message_list[i].full_text, message_list[i].grid_square,message_list[i].snr_report);
@@ -475,6 +478,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
         strcpy(CurrentStation->grid_square, message_list[i].grid_square);
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;   
+        CurrentStation->qsowindow=message_list[i].qsowindow;
         sendChoices->send_snr = true;
         nTry = 0;
         nTx=0;
@@ -485,12 +489,13 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
      * Nobody answered, thus start another CQ cycle
      */
     nTry++;
-    if (nTry<maxTry) {
+    if (nTry<maxTry && state == 1) {
        _INFOLIST("%s no answer keep calling CQ nTry(%d)\n",__func__,nTry);
        sendChoices->call_cq = true;
        strcpy(CurrentStation->station_callsign, "");
        strcpy(CurrentStation->grid_square, "");
        CurrentStation->self_rx_snr=0;
+       CurrentStation->qsowindow=0;
        nTx=0;     
        return true; 
     }
@@ -516,7 +521,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
       if (message_list[i].addressed_to_me && message_list[i].type_Rsnr) {
         _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and R-NN\n", __func__, state, i, message_list[i].full_text);
         state = 3;
-        sendChoices->send_73 = true;
+        sendChoices->send_RRR = true;
         nTry = 0;
         nTx=0;
         return true;
@@ -638,12 +643,12 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
   if (state == 6 && !justSent) {
     for (int i = 0; i < num_decoded; i++) {
       if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0 && message_list[i].addressed_to_me) {
-        if (message_list[i].type_RRR) {
-          _INFOLIST("%s state(%d) msg[%d]=%s RRR message sending 73\n", __func__, state, i, message_list[i].full_text);
+        if (message_list[i].type_RRR || message_list[i].type_RR73) {
+          _INFOLIST("%s state(%d) msg[%d]=%s RRR or RR73 message sending 73\n", __func__, state, i, message_list[i].full_text);
           state = 7;
           sendChoices->send_73 = true;
           strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
-          nTry = 0;
+          nTry = 12;
           nTx=0;
           return true;
         }
@@ -672,48 +677,6 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
     return true;
   }
 
-/*-----------------
- * State 7
- * This state is actually redundant
- * If received the RRR send RR73 back and complete the QSO
- */
-  if (state == 7 && !justSent) {
-    for (int i = 0; i < num_decoded; i++) {
-      if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0 && message_list[i].addressed_to_me) {
-        if (message_list[i].type_73 ) {
-          _INFOLIST("%s state(%d) msg[%d]=%s 73 sending RR73\n", __func__, state, i, message_list[i].full_text);
-          state = 7;
-          sendChoices->send_RR73 = true;
-          strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
-          nTry = 12;
-          nTx=0;
-          return true;
-        }
-      }
-      if (message_list[i].type_snr) {
-        _INFOLIST("%s state(%d) msg[%d]=%s Still RRR repeat 73\n", __func__, state, i, message_list[i].full_text);
-        sendChoices->send_73 = true;
-        nTry++;
-        nTx=0;
-        return true;
-      }
-
-    }
-    if (nTry >= maxTry) {
-      _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, state);
-      state = 0;
-      //tft_reset();
-      nTx = 0;
-      nTry = 0;
-      return false;
-    }
-
-    _INFOLIST("%s state(%d) Still RRR repeat 73\n", __func__, state);
-    sendChoices->send_73 = true;
-    nTry++;
-    nTx=0;
-    return true;
-  }
   return false;
 }
 /*------------------------
@@ -741,6 +704,22 @@ void resetChoices (  UserSendSelection *sendChoices ) {
   sendChoices->send_73 = false;
 
 }
+/*---------------------------------------------
+ * get the FT( protocol QSO window
+ * secs 00-14 and 30-44 are window 0 whilst
+ * secs 15-29 and 45-59 are window 1
+ * QSO frames heard within window 0 can be replied
+ * on window 1 only and viceversa
+ */
+int getQSOwindow() {
+    now = time(0) - t_ofs;
+    gmtime_r(&now, &timeinfo);
+    if ((timeinfo.tm_sec >=0 && timeinfo.tm_sec < 15) || (timeinfo.tm_sec >=30 && timeinfo.tm_sec < 45)) {
+         return 0;
+    }
+    return 1;
+}
+
 /*---------------------------------------
    this is the main ft8 decoding cycle,
    called once per loop() execution
@@ -754,14 +733,16 @@ void ft8_run() {
   /****************************************
    *             TX Cycle                 *
    ****************************************/
-  if (send && isChoices(&sendChoices))
-  {
-    _INFOLIST("%s ------- TX ----------\n", __func__);
 
-    while (!timeWait()) {
-       tft_checktouch();
-       checkButton();
-    }
+  while (!timeWait()) {
+     tft_checktouch();
+     checkButton();
+  }
+  _INFOLIST("%s send(%s) isChoices(%s) CurrentStationWindow(%d) QSOwindow(%d)\n",__func__,BOOL2CHAR(send),BOOL2CHAR(isChoices(&sendChoices)),CurrentStation.qsowindow,getQSOwindow());  
+  if (send && isChoices(&sendChoices) && CurrentStation.qsowindow != getQSOwindow())
+  {
+
+    _INFOLIST("%s ------- TX w[%d]----------\n", __func__,getQSOwindow());
     /*---------------------------------------------------------------*
      *  If in autosend mode pick automatically the response message  *
      *  if not pick it manually                                      *
@@ -781,7 +762,8 @@ void ft8_run() {
       char txt[8];
       strcpy(txt,"");
       uint16_t qsot=2;
-      tft_storeQSO(qsot,msg,CurrentStation.af_frequency,0,txt,txt);
+      int qsowindow=getQSOwindow();
+      tft_storeQSO(qsowindow,qsot,msg,CurrentStation.af_frequency,0,txt,txt);
 
     /*---------------------------------------------------------------*
      * If signaled just reset the state in order for this message to *
@@ -789,6 +771,7 @@ void ft8_run() {
      *---------------------------------------------------------------*/
       if (nTry >= 12) {
         state = 0;
+        tft_endQSO();
       }
     }
     /*---------------------------------------------------------------*
@@ -821,7 +804,8 @@ void ft8_run() {
      *  Collect energy information for 12.8 secs and pre-process     *
      *  magnitudes found                                             *
      *---------------------------------------------------------------*/
-    _INFOLIST("%s ------- RX ----------\n", __func__);
+    _INFOLIST("%s ------- RX w[%d]----------\n", __func__,getQSOwindow());
+
     inc_collect_power();
     /*---------------------------------------------------------------*
      *  Evaluate magnitudes captured and decode messages on passband *
@@ -844,7 +828,7 @@ void ft8_run() {
      * My CQ (Yellow)                                                *
      *---------------------------------------------------------------*/
     for (int i = 0; i < num_decoded; i++) {
-      _INFOLIST("%s [%02d] %04d %4d %s\n", __func__, i, message_list[i].af_frequency, message_list[i].self_rx_snr, message_list[i].full_text);
+      _INFOLIST("%s [%02d] w[%d] %04d %4d %s\n", __func__, i, message_list[i].qsowindow,message_list[i].af_frequency, message_list[i].self_rx_snr, message_list[i].full_text);
       sprintf(msg,"%04d %4d %s", message_list[i].af_frequency, message_list[i].self_rx_snr, message_list[i].full_text);
       uint16_t qsotype=0;
       if (message_list[i].addressed_to_me) {
@@ -854,8 +838,7 @@ void ft8_run() {
             qsotype=1;
          }
       }
-      
-      tft_storeQSO(qsotype,msg,message_list[i].af_frequency,message_list[i].self_rx_snr,message_list[i].station_callsign,message_list[i].grid_square);
+      tft_storeQSO(message_list[i].qsowindow,qsotype,msg,message_list[i].af_frequency,message_list[i].self_rx_snr,message_list[i].station_callsign,message_list[i].grid_square);
 
     }
     /*------------------------------------------------------*

@@ -263,6 +263,7 @@ void inc_collect_power() {
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**/
 int decode_ft8(message_info message_list[])
 {
+  int qsowindow=getQSOwindow();
   candidate_t candidate_list[kMax_candidates];
   int num_candidates = find_sync(&power, kMax_candidates, candidate_list, kMin_score);
 
@@ -358,6 +359,7 @@ int decode_ft8(message_info message_list[])
       message_list[num_decoded].af_frequency = (uint16_t) freq_hz;
       message_list[num_decoded].time_offset = time_sec;
       strcpy(message_list[num_decoded].full_text, message.text);
+      message_list[num_decoded].qsowindow=qsowindow;
       if (qsoReady != NULL) qsoReady(num_decoded);
 
       ++num_decoded;
@@ -371,7 +373,6 @@ int decode_ft8(message_info message_list[])
 //should input global struct message_info current_station to compare current station
 void identify_message_types(message_info message_list[], char *my_callsign) {
 
-  //_INFOLIST("%s max_decoded=%d\n",__func__,kMax_decoded_messages);
   
   for (int i = 0; i < kMax_decoded_messages; i++) {
 
@@ -401,6 +402,11 @@ void identify_message_types(message_info message_list[], char *my_callsign) {
     if (strstr(message_list[i].full_text, "73")) {
       //_INFOLIST("%s found as 73\n",__func__);
       message_list[i].type_73 = true;
+    }
+
+    if (strstr(message_list[i].full_text, "RR73")) {
+      //_INFOLIST("%s found as RR73\n",__func__);
+      message_list[i].type_RR73 = true;
     }
 
     char message_buffer[25];

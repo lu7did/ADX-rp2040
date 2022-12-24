@@ -56,6 +56,7 @@ bool GUI_Enabled=false;
 
 
 uint16_t call_af_frequency;
+uint16_t call_qsowindow;
 int8_t call_self_rx_snr;
 char call_station_callsign[8];
 char call_grid_square[4];
@@ -1019,6 +1020,7 @@ class textPDX {        // The class
       char msg[TEXTCOLS + 1];
       uint16_t bg;
       uint16_t color;
+      uint16_t qsowindow;
       uint16_t af_frequency;
       int8_t self_rx_snr;
       char station_callsign[8];
@@ -1037,7 +1039,7 @@ class textPDX {        // The class
     textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void show();
     int checkPoint(int x, int y);
-    void printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
+    void printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
 
     void scroll();
     void demo();
@@ -1084,7 +1086,7 @@ void textPDX::show() {
   tft->setTextSize(1);
 
 }  
-void textPDX::printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
   uint16_t _color;
   uint16_t _bg;
 
@@ -1109,6 +1111,7 @@ void textPDX::printline(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_
   strcpy(t[0].grid_square,grid_square);
   t[0].af_frequency=af_frequency;
   t[0].self_rx_snr=self_rx_snr;
+  t[0].qsowindow=qsowindow;
  
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1133,7 +1136,7 @@ void textPDX::scroll() {
     strncpy(t[i].msg, t[i - 1].msg, TEXTCOLS + 1);
     t[i].bg = t[i - 1].bg;
     t[i].color = t[i - 1].color;
-
+    t[i].qsowindow=t[i-1].qsowindow;
     t[i].af_frequency=t[i-1].af_frequency;
     t[i].self_rx_snr=t[i-1].self_rx_snr;
     strncpy(t[i].station_callsign,t[i-1].station_callsign,7);
@@ -1147,6 +1150,7 @@ void textPDX::scroll() {
   strcpy(t[0].grid_square,"");
   t[0].af_frequency=0;
   t[0].self_rx_snr=0;
+  t[0].qsowindow=0;
 
   i = 0;
 
@@ -1487,6 +1491,11 @@ void GUI_init() {
 /*--------------------
  * Handler to GUI buttons
  */
+void tft_endQSO() {
+  d.set(BUTTON_CQ,0);
+  d.set(BUTTON_TX,0);
+}
+
 void tft_set(int btnIndex,int v) {
   d.set(btnIndex,v);
 }
@@ -1563,6 +1572,7 @@ void tft_checktouch() {
     
     call_af_frequency=text.t[i].af_frequency;
     call_self_rx_snr=text.t[i].self_rx_snr;
+    call_qsowindow=text.t[i].qsowindow;
     strcpy(call_station_callsign,text.t[i].station_callsign);
     strcpy(call_grid_square,text.t[i].grid_square);
   }
@@ -1617,8 +1627,8 @@ void tft_endoftime() {
  * Store a message with supplemental
  * data.
  */
-void tft_storeQSO(uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
-   text.printline(_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
+void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+   text.printline(qsowindow,_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
 }
 
 /*---------------------
