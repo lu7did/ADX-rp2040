@@ -265,8 +265,23 @@ functions will be tested as the implementation evolves.
 
 * Organize and add functionality for icons
 * Hardware interface to SD-Card/Export
-* File system
+* File system (Flash based)
+* File system (SD card based)
 * ADIF generation
+* Port automatic calibration from ADX-rp2040
+
+## low priority roadmap
+* Develop or adopt a PCB layout design.
+* CAT support (TS840).
+* WSPR beacon.
+* Support for QUAD multifilter board
+* CW operation.
+* GPS support & time alignment
+* Support for Si4732 chipset
+* Support for smaller display 
+* Support for ATU reset
+* SWR indicator & control (as HW support is introduced)
+* Filter support (as HW support is introduced)
 
 ## rp2040-w specific
 * WiFi support
@@ -275,6 +290,8 @@ functions will be tested as the implementation evolves.
 * Configuration terminal
 * OTA firmware update
 * Web based configuration tool
+* Web based ADIF export tool
+* USB based file system
 
 # Done
 * progress bar for RX/TX (green/red)
