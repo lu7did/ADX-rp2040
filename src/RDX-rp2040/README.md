@@ -31,6 +31,7 @@ features on this project are documented here.
 * Initial experimental release, for evaluation purposes only
 * Automatic FT8 operation.
 * TFT LCD 480x320 support.
+* Autocalibration mode has been added check the appropriate section on how to enable and operate.
 ```
 
 
@@ -74,6 +75,71 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 ![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
 
 Experimental, yet to be documented.
+
+## Automatic calibration (autocalibration)
+
+Starting on version 2.0 build(23) and higher a new capability to perform an automatic calibration of the Si5351 VFO has been added.
+
+### Enabling
+
+The firmware allows the automatic calibration of the Si5351 dds using the following procedures.
+
+### Operation
+
+When started the firmware will look during the setup stage if the *DOWN* pushbutton is pressed, if so all the on-board LEDs will
+be lit with the exception of the TX LED indicating a waiting pattern, the autocalibration procedure will start as soon as the push
+ button is released.
+
+If the board is powered off before the push button is released the previous calibration stored in EEPROM (flash memory) will be reset
+to zero.
+
+The calibration can be monitored either by the LED pattern exhibited or thru the USB serial port (Arduino IDE Serial Monitor), once
+the calibration is completed the results will be written in EEPROM (flash memory) as in the manual calibration in order to be used
+on sucessive starting cycles. While the calibration is being performed the TX LED will blink once per second, the rest of the
+board LEDs will mark how large is currently the difference in the calibration mode:
+
+```
+         WSPR,JS8,FT4,FT8 lit       error > 75 Hz
+         WSPR,JS8,FT4     lit       error > 50 Hz
+         WSPR,JS8         lit       error > 25 Hz
+         WSPR             lit       error > 10 Hz
+         All LED off                error < 10 Hz  (final convergence might take few seconds more)
+```
+
+When monitoring the calibration thru the USB Serial monitor the messages will look like:
+```
+Autocalibration procedure started
+Current cal_factor=0
+Current cal_factor=0, reset
+Si5351 clock setup f 1000000 MHz
+n(12) cal(1000000) Hz dds(1000071) Hz err (71) Hz factor(0)
+n(12) cal(1000000) Hz dds(1000074) Hz err (74) Hz factor(500)
+.............[many messages here]................
+n(11) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(71500)
+n(10) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(71500)
+n(9) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(71500)
+n(8) cal(1000000) Hz dds(1000002) Hz err (2) Hz factor(71500)
+n(8) cal(1000000) Hz dds(1000000) Hz err (0) Hz factor(72000)
+n(7) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(6) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(5) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(4) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(3) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(2) cal(1000000) Hz dds(1000001) Hz err (1) Hz factor(72000)
+n(1) cal(1000000) Hz dds(1000000) Hz err (0) Hz factor(72000)
+Calibration procedure completed cal_factor=72000
+Turn power-off the ADX board to start
+
+```
+
+Upon finalization a message will be sent thru the serial monitor and the TX led will stop to  blink, the board power needs to be cycled
+to restart the operation.
+
+```
+                                     *** Warning ***
+
+Calibration time might vary depending on the unique factory characteristics of the Si5351 chipset being used.
+```
 
 ## Time synchronization
 
