@@ -18,10 +18,12 @@ which requires additional circuitry.
 
 Once the hardware platform was defined the firmware was ported using the ADX_UnO_V1.3 firmware as a baseline, the
 porting didn't introduce any new feature or function, just the minimum number of changes to the code to accomodate
-the architecture differences between both platforms.
+the architecture differences between both platforms. The firmware version emerging from that initial effort
+can be found as [ADX-rp2040](https://github.com/lu7did/ADX-rp2040/tree/master/src/ADX-rp2040) firmware version
 
-This is a special experimental firmware able to operate as an autonomous transceiver by decoding and
-generating FT8 signals without the usage of an external program such as WSJT-X
+Continuing with the roadmap of the project an experimental firmware able to operate as an autonomous transceiver by decoding and
+generating FT8 signals without the usage of an external program such as WSJT-X was created, documentation of the
+features on this project are documented here.
 
 ```
 *New in release 2.0 *
