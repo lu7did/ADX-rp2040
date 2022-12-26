@@ -139,6 +139,7 @@ class progressBar {
     int bg;
     byte s = BLUE2BLUE;
     byte progress = 0;
+    bool enabled=false;
 
     TFT_eSPI* tft;
 
@@ -170,6 +171,7 @@ progressBar::progressBar(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g,
 
 void progressBar::show(int colour) {
 
+  if (!enabled) return;
   if (progress == 0) {
     tft->fillRect(x + XBTN , y, w, 6, TFT_BLACK);
     return;
@@ -179,6 +181,7 @@ void progressBar::show(int colour) {
 }
 
 void progressBar::reset() {
+
   progress = 0;
   show(TFT_BLACK);
 }
@@ -211,6 +214,7 @@ class linearMeter {        // The class
     char lmode[8];
     char mmode[16];
     uint8_t modeprev = 0xff;
+    bool enabled=false;
 
     TFT_eSPI* tft;
 
@@ -251,6 +255,7 @@ linearMeter::linearMeter(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g,
 */
 void linearMeter::show(int _m , int _v)
 {
+  if (!enabled) return;
 
   if (_v < 0 || _v > n) {
     _v = n;
@@ -340,6 +345,8 @@ void linearMeter::show(int _m , int _v)
 
 }
 void linearMeter::demo() {
+  if (!enabled) return;
+
   for (int mode = 0; mode < 4; mode++) {
     for (int i = 0; i < 6; i++) {
       int pwr = rand() % 5;
@@ -373,6 +380,8 @@ void linearMeter::demo() {
 ***************************************************************************************/
 
 uint16_t linearMeter::rainbowColor(uint8_t spectrum) {
+
+  if (!enabled) return 0;
 
   spectrum = spectrum % 192;
 
@@ -431,6 +440,7 @@ class iconPDX {        // The class
     uint16_t y;
     uint16_t w;
     uint16_t h;
+    bool enabled=false;
     const short unsigned int* iconOn;
     const short unsigned int* iconOff;
     TFT_eSPI* tft;
@@ -458,6 +468,7 @@ iconPDX::iconPDX(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, const unsigned 
 }
 
 void iconPDX::falsifyIcon() {
+  if (!enabled) return;
 
   for (int i = 0; i < 5; i++) {
     tft->drawLine(x + i, y, x + w, y + h - i, TFT_RED);
@@ -469,6 +480,8 @@ void iconPDX::falsifyIcon() {
 
 }
 void iconPDX::show(bool f, bool falsify) {
+  if (!enabled) return;
+
   if (f == true) {
     if (iconOn != NULL) {
       tft->pushImage(x, y, w, h, iconOn);
@@ -493,12 +506,15 @@ void iconPDX::show(bool f, bool falsify) {
 
 }
 void iconPDX::show(bool f) {
+  if (!enabled) return;
+
   show(f, false);
 }
 
 class buttonPDX {
   public:
 
+    bool enabled=false;
     buttonPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
 
 
@@ -523,9 +539,9 @@ class displayPDX {        // The class
     uint32_t f;
     uint16_t cursor;
 
-    bool enabled;
     bool cq;
     bool autom;
+    bool enabled=false;
 
     triangle trianglePDX[2];
 
@@ -558,11 +574,15 @@ class displayPDX {        // The class
     void showFreq();
 
     void setCursor(uint16_t _c) {
+      if (!enabled) return;
+
       cursor = _c;
       showCursor();
     }
     
     void setFreq() {
+      if (!enabled) return;
+
       showFreq();
       showCursor();
     }
@@ -599,7 +619,6 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
   b.cornerRadius = _r;
   b.color = _c;
 
-  enabled = true;
   bg = _bg;
   tx = _tx;
   redraw=false;
@@ -644,7 +663,7 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
 }
 
 void displayPDX::init() {
-
+  if (!enabled) return;
   cq = false;
   cursor = S1KHZ;
   
@@ -653,6 +672,8 @@ void displayPDX::init() {
 
 }
 void displayPDX::onclickTriangle(int btnTriangle) {
+  if (!enabled) return;
+
   switch(btnTriangle) {
     case TRIANGLE_LEFT: {
                           Band_slot--;
@@ -673,6 +694,8 @@ void displayPDX::onclickTriangle(int btnTriangle) {
 
 }
 int displayPDX::checkTriangle(int x, int y) {
+    if (!enabled) return -1;
+
     if (x >=trianglePDX[0].point1X && x <=trianglePDX[0].point2X && y>=trianglePDX[0].point3Y && y<=trianglePDX[0].point2Y) {
        onclickTriangle(TRIANGLE_LEFT);
        return 0;
@@ -687,6 +710,7 @@ int displayPDX::checkTriangle(int x, int y) {
 }
 
 int displayPDX::checkButton(int x, int y) {
+  if (!enabled) return -1;
 
   for (int i = 0; i < 4; i++) {
     if ( x >= btnPDX[i].x && x <= btnPDX[i].x + btnPDX[i].w && y >= btnPDX[i].y && y <= btnPDX[i].y + btnPDX[i].h ) {
@@ -717,6 +741,7 @@ int displayPDX::checkButton(int x, int y) {
    Handle Buttons
 */
 void displayPDX::fickleBtn(int btnIndex) {
+  if (!enabled) return;
   if (btnPDX[btnIndex].fickle == true) {
     if (millis() - btnPDX[btnIndex].tfickle >= TOUT_FICKLE) {
       btnPDX[btnIndex].fickle = false;
@@ -726,12 +751,12 @@ void displayPDX::fickleBtn(int btnIndex) {
   }
 }
 void displayPDX::addBtn(int btnIndex, ButtonWidget* b) {
-
   btnPDX[btnIndex].btn = b;
 
 }
 
 void displayPDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle) {
+  if (!enabled) return;
 
   strcpy(btnPDX[btnIndex].label, btnLabel);
   btnPDX[btnIndex].inverse = inverse;
@@ -803,6 +828,7 @@ void displayPDX::set(int btnIndex,int v) {
  * Handler to onclick buttons
  */
 void displayPDX::onclick(int btnIndex) {
+  if (!enabled) return;
   switch (btnIndex) {
     
     case BUTTON_BAND:
@@ -841,6 +867,7 @@ void displayPDX::onclick(int btnIndex) {
 }
 
 void displayPDX::showBtn(int btnIndex) {
+  if (!enabled) return;
 
   tft->setTextFont(2);
   tft->setTextSize(1);
@@ -859,6 +886,7 @@ void displayPDX::showBtn(int btnIndex) {
 */
 
 void displayPDX::setTriangle(uint16_t t, bool inverse, bool fickle) {
+  if (!enabled) return;
 
   trianglePDX[t].inverse = inverse;
   trianglePDX[t].fickle = fickle;
@@ -867,7 +895,7 @@ void displayPDX::setTriangle(uint16_t t, bool inverse, bool fickle) {
 }
 
 bool displayPDX::point(uint16_t x, uint16_t y) {
-
+  if (!enabled) return false;
   for (int i = 0; i < BUTTON_END; i++) {
     if (checkarea(x, y, btnPDX[i].x, btnPDX[i].y, btnPDX[i].x + btnPDX[i].w, btnPDX[i].y + btnPDX[i].h)) {
       return true;
@@ -885,7 +913,7 @@ bool displayPDX::point(uint16_t x, uint16_t y) {
     show
 */
 void displayPDX::showTriangle(uint16_t t) {
-
+  if (!enabled) return;
   if (trianglePDX[t].inverse == true) {
     tft->fillTriangle(trianglePDX[t].point1X, trianglePDX[t].point1Y, trianglePDX[t].point2X, trianglePDX[t].point2Y, trianglePDX[t].point3X, trianglePDX[t].point3Y, TFT_BLUE);
   } else {
@@ -898,8 +926,7 @@ void displayPDX::showTriangle(uint16_t t) {
    fickle
 */
 void displayPDX::fickleTriangle(uint16_t t) {
-
-
+  if (!enabled) return;
   if (trianglePDX[t].fickle == true) {
     if (millis() - trianglePDX[t].tfickle >= TOUT_FICKLE) {
       trianglePDX[t].fickle = false;
@@ -914,7 +941,7 @@ void displayPDX::fickleTriangle(uint16_t t) {
    Check fickleness
 */
 void displayPDX::check() {
-
+  if (!enabled) return;
   fickleTriangle(TRIANGLE_LEFT);
   fickleTriangle(TRIANGLE_RIGHT);
   for (int i = 0; i < BUTTON_END; i++) {
@@ -927,7 +954,7 @@ void displayPDX::check() {
 
 */
 void displayPDX::show(bool fShow) {
-
+  if (!enabled) return;
   if (fShow == true) {
 
     tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
@@ -949,6 +976,7 @@ void displayPDX::show(bool fShow) {
 
 */
 void displayPDX::showFreq() {
+  if (!enabled) return;
 
   int xpos = b.xStart + XFREQ - 5;
   int ypos = b.yStart + YFREQ;
@@ -991,7 +1019,7 @@ void displayPDX::showFreq() {
 
 void displayPDX::showCursor() {
 
-
+  if (!enabled) return;
   tft->setTextSize(1);
   uint16_t fh = tft->fontHeight();
   for (uint16_t i = 0; i < 5; i++) {
@@ -1028,7 +1056,7 @@ class textPDX {        // The class
     };
 
     scrollText t[TEXTLINES];
-
+    bool enabled=false;
     roundedSquare b;
     uint16_t fh;
     uint16_t bg;
@@ -1079,7 +1107,7 @@ textPDX::textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t
 
 }
 void textPDX::show() {
-
+  if (!enabled) return;
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1089,6 +1117,7 @@ void textPDX::show() {
 void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
   uint16_t _color;
   uint16_t _bg;
+  if (!enabled) return;
 
   scroll();
 
@@ -1130,6 +1159,7 @@ void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_fr
   
 }
 void textPDX::scroll() {
+  if (!enabled) return;
 
   int i = TEXTLINES - 1;
   while (i > 0) {
@@ -1156,7 +1186,8 @@ void textPDX::scroll() {
 
 }
 int textPDX::checkPoint(int x, int y) {
-
+  
+  if (!enabled) return -1;
   if ( (x >= b.xStart) && (x <= b.xStart + b.width) &&
        (y >= b.yStart) && (y <= b.yStart + b.height)) {
     int yPos = y - b.yStart + 5;
@@ -1187,7 +1218,7 @@ class spectrumPDX {        // The class
     uint16_t bg;
     uint16_t tx;
     uint16_t time_idx = 0;
-
+    bool enabled=false;
     TFT_eSPI* tft;
 
     spectrumPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
@@ -1221,6 +1252,7 @@ spectrumPDX::spectrumPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, 
    Initialize waterfall
 */
 void spectrumPDX::init() {
+  if (!enabled) return;
 
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
   tft->setTextFont(2);
@@ -1256,6 +1288,8 @@ void spectrumPDX::init() {
 
 }
 void spectrumPDX::linedraw() {
+  if (!enabled) return;
+
   tft->drawFastHLine (b.xStart, b.yStart + time_idx + 0 + 25  , b.width, TFT_CYAN);
   time_idx++;
   if (time_idx > LINES) {
@@ -1265,6 +1299,8 @@ void spectrumPDX::linedraw() {
 
 }
 void spectrumPDX::reset() {
+  if (!enabled) return;
+
   tft->fillRect(b.xStart, b.yStart + 25, 478, LINES, TFT_BLUE);
   time_idx=0;
 }
@@ -1273,7 +1309,7 @@ void spectrumPDX::reset() {
    Draw waterfall directly from energy bins
 */
 void spectrumPDX::draw(int m[]) {
-
+  if (!enabled) return;
   for (int i = 0; i < BINS; i++) {
     int v = m[i];
     if (v < vmin) vmin = v;
@@ -1318,7 +1354,7 @@ class footerPDX {        // The class
     uint16_t fh;
     uint16_t bg;
     uint16_t tx;
-
+    bool enabled=false;
     bool clock = true;
 
     TFT_eSPI* tft;
@@ -1348,6 +1384,7 @@ footerPDX::footerPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint
   tft = _tft;
 }
 void footerPDX::init() {
+  if (!enabled) return;
 
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
   tft->setTextFont(2);
@@ -1360,6 +1397,7 @@ void footerPDX::init() {
 
 }
 void footerPDX::show() {
+  if (!enabled) return;
 
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1387,7 +1425,7 @@ void footerPDX::show() {
   showtime();
 }
 void footerPDX::showtime() {
-
+  if (!enabled) return;
   if (clock == false) {
     return;
   }
@@ -1403,6 +1441,8 @@ void footerPDX::showtime() {
 }
 
 void footerPDX::update() {
+
+  if (!enabled) return;
 
   time_t now = time(nullptr) - t_ofs;
   gmtime_r(&now, &timeinfo);
@@ -1448,6 +1488,27 @@ void GUI_init() {
 
   // Swap the colour byte order when rendering
   tft.setSwapBytes(true);
+
+  // Enable and show the different GUI objects
+
+  wifiIcon.enabled=true;
+  termIcon.enabled=true;
+  calIcon.enabled=true;
+  catIcon.enabled=true;
+  cntIcon.enabled=true;
+  quadIcon.enabled=true;
+  wsjtIcon.enabled=true;
+  muteIcon.enabled=true;
+  spkrIcon.enabled=true;
+
+  m.enabled=true;
+  d.enabled=true;
+  p.enabled=true;
+  text.enabled=true;
+  s.enabled=true;
+  foot.enabled=true;
+
+// Show GUI compoments
 
   wifiIcon.show(true,true);
   termIcon.show(true,true);

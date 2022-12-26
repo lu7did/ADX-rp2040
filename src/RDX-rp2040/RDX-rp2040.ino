@@ -738,7 +738,7 @@ void ft8_run() {
      tft_checktouch();
      checkButton();
   }
-  _INFOLIST("%s send(%s) isChoices(%s) CurrentStationWindow(%d) QSOwindow(%d)\n",__func__,BOOL2CHAR(send),BOOL2CHAR(isChoices(&sendChoices)),CurrentStation.qsowindow,getQSOwindow());  
+  //_INFOLIST("%s send(%s) isChoices(%s) CurrentStationWindow(%d) QSOwindow(%d)\n",__func__,BOOL2CHAR(send),BOOL2CHAR(isChoices(&sendChoices)),CurrentStation.qsowindow,getQSOwindow());  
   if (send && isChoices(&sendChoices) && CurrentStation.qsowindow != getQSOwindow())
   {
 
