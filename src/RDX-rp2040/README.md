@@ -268,7 +268,6 @@ functions will be tested as the implementation evolves.
 * File system (Flash based)
 * File system (SD card based)
 * ADIF generation
-* Port automatic calibration from ADX-rp2040
 
 ## low priority roadmap
 * Develop or adopt a PCB layout design.
@@ -294,6 +293,7 @@ functions will be tested as the implementation evolves.
 * USB based file system
 
 # Done
+* Port automatic calibration from ADX-rp2040
 * progress bar for RX/TX (green/red)
 * display dialog multiband
 * integrate meter (S-Meter and Power)

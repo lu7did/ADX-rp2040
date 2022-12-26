@@ -121,6 +121,11 @@ typedef void (*CALLQSO)(int i);
 
 #define SI5351_REF     25000000UL  //change this to the frequency of the crystal on your si5351’s PCB, usually 25 or 27 MHz
 
+/*----
+   Autocalibration pin
+*/
+#define CAL             9      //Automatic calibration entry
+
 /*----------------------------------------------------
  * ft8 definitions
  */
@@ -135,6 +140,15 @@ typedef void (*CALLQSO)(int i);
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 #define BANDS          4            //Max number of bands allowed
 #define MAXBAND        9
+
+/*-----------------------------------------------------
+   Definitions for autocalibration
+
+*/
+#define AUTOCAL             1
+#define CAL_STEP          500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
+#define CAL_COMMIT         12
+#define CAL_ERROR           1
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                         External References                                              *
@@ -174,6 +188,9 @@ extern CALLQSO  qsoReady;
 extern CALLBACK fftEnd;
 extern CALLBACK  txIdle;
 
+extern void initSi5351();
+extern void AutoCalibration();
+extern void timeSync();
 extern int getQSOwindow();
 extern void updateEEPROM();
 extern void tft_updatewaterfall(int m[]);

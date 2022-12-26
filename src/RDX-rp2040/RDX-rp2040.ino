@@ -181,6 +181,16 @@ bool     justSent = false; //must recieve right after sending
 
 bool autosend = false;
 
+/*---------------------
+ * Definitions related to the autocalibration function
+ */
+unsigned long Cal_freq  = 1000000UL; // Calibration Frequency: 1 Mhz = 1000000 Hz
+int      pwm_slice;
+uint32_t f_hi;
+uint32_t fclk     = 0;
+int32_t  error    = 0;
+
+
 /*-------------------------------------------------------
    ft8 definitions
 */
@@ -902,8 +912,12 @@ void setup()
 
   if ( digitalRead(DOWN) == LOW ) {
 
+    _INFOLIST("%s Auto calibration mode started\n", __func__);
+    AutoCalibration();
+    /*
     _INFOLIST("%s Calibration mode started\n", __func__);
     Calibration();
+    */
   }
 
   /*-------[RP2040]------ Manual time-sync feature
@@ -978,7 +992,6 @@ void initSi5351() {
   //------------------------------- SET SI5351 VFO -----------------------------------
   // The crystal load value needs to match in order to have an accurate calibration
   //----------------------------------------------------------------------------------
-  cal_factor = 100000;
   si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
   si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
@@ -1583,7 +1596,7 @@ void INIT() {
   /*-----------------------------
      Port definitions (pinout, direction and pullups used
   */
-
+  
   /*--------
      Initialize switches
   */
@@ -1703,3 +1716,189 @@ void INIT() {
 
 }
 //********************************[ END OF INITIALIZATION FUNCTION ]*************************************
+/*----------------------
+ * Interrupt handler to perform a frequency counting used in calibration
+ */
+void pwm_int() {
+  pwm_clear_irq(pwm_slice);
+  f_hi++;
+}
+
+void setCalibrationLED(uint16_t e) {
+
+  if (e>75) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,HIGH);
+     digitalWrite(FT8,HIGH);
+     return;
+  }
+  if (e>50) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,HIGH);
+     digitalWrite(FT8,LOW);
+     return;
+  }
+  if (e>25) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,HIGH);
+     digitalWrite(FT4,LOW);
+     digitalWrite(FT8,LOW);
+     return;
+  }
+
+  if (e>10) {
+     digitalWrite(WSPR,HIGH);
+     digitalWrite(JS8,LOW);
+     digitalWrite(FT4,LOW);
+     digitalWrite(FT8,LOW);
+     return;
+  }
+  digitalWrite(WSPR,LOW);
+  digitalWrite(JS8,LOW);
+  digitalWrite(FT4,LOW);
+  digitalWrite(FT8,LOW);
+  return;
+
+}
+//***************************[SI5351 VFO Auto-Calibration Function]********************
+//* This function has no equivalent on the ADX-UnO firmware and can only be activated
+//* with the RDX or ADX2RDX boards
+//*
+//* To enable uncomment the #define AUTOCAL     1 statement
+//*************************************************************************************
+void AutoCalibration () {
+
+bool b = false;
+
+  if (!Serial) {
+     Serial.begin(115200);
+     Serial.flush();
+  }
+  sprintf(hi,"Autocalibration procedure started\n");
+  Serial.print(hi);
+
+  sprintf(hi,"Current cal_factor=%d\n",cal_factor);
+  Serial.print(hi);
+
+  addr = 10;
+  EEPROM.get(addr, cal_factor);
+
+  sprintf(hi,"Current cal_factor=%d, reset\n",cal_factor);
+  Serial.print(hi);
+  
+  cal_factor=0;
+  EEPROM.put(addr, cal_factor);
+  EEPROM.commit();
+
+  digitalWrite(TX,LOW);
+  setCalibrationLED(1000);
+  
+  while (!digitalRead(DOWN));
+  /*--------------------
+
+  */
+  gpio_init(CAL);
+  gpio_pull_up(CAL);
+  gpio_set_dir(CAL, GPIO_IN);
+  delay(10);
+
+  /*----
+    Prepare Si5351 CLK2 for calibration process
+    ---*/
+
+  gpio_set_function(CAL, GPIO_FUNC_PWM); // GP9
+  si5351.set_clock_pwr(SI5351_CLK0, 0); // Enable the clock for calibration
+  si5351.set_clock_pwr(SI5351_CLK1, 0); // Enable the clock for calibration
+  si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA); // Set for lower power for calibration
+  si5351.set_clock_pwr(SI5351_CLK2, 1); // Enable the clock for calibration
+  si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
+  si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
+  si5351.set_freq(Cal_freq * 100UL, SI5351_CLK2);
+
+  sprintf(hi,"Si5351 clock setup f %lu MHz\n",(unsigned long)Cal_freq);
+  Serial.print(hi);
+  
+  /*--------------------------------------------*
+     PWM counter used for automatic calibration
+     -------------------------------------------*/
+  fclk = 0;
+  int16_t n = int16_t(CAL_COMMIT);
+  cal_factor = 0;
+
+  pwm_slice = pwm_gpio_to_slice_num(CAL);
+
+  /*---------------------------------------------*
+    Perform a loop until convergence is achieved
+  */
+  while (true) {
+    /*-------------------------*
+       setup PWM counter
+      -------------------------*/
+    pwm_config cfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_mode(&cfg, PWM_DIV_B_RISING);
+    pwm_init(pwm_slice, &cfg, false);
+    gpio_set_function(CAL, GPIO_FUNC_PWM);
+
+    pwm_set_irq_enabled(pwm_slice, true);
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_int);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+    f_hi = 0;
+
+    /*---------------------------*
+       PWM counted during 1 sec
+      ---------------------------*/
+    uint32_t t = time_us_32() + 2;
+    while (t > time_us_32());
+    pwm_set_enabled(pwm_slice, true);
+    t += 1000000;
+    while (t > time_us_32());
+    pwm_set_enabled(pwm_slice, false);
+
+    /*----------------------------*
+       recover frequency in Hz
+      ----------------------------*/
+    fclk = pwm_get_counter(pwm_slice);
+    fclk += f_hi << 16;
+    error = fclk - Cal_freq;
+    sprintf(hi,"n(%01d) cal(%lu) Hz dds(%lu) Hz err (%lu) Hz factor(%lu)\n",n, (unsigned long)Cal_freq, (unsigned long)fclk, (unsigned long)error, (unsigned long)cal_factor);
+    Serial.print(hi);
+    setCalibrationLED((uint16_t)error);
+
+    if (labs(error) > int32_t(CAL_ERROR)) {
+        b = !b;
+        if (b) {  
+          digitalWrite(TX, LOW);
+        } else {
+          digitalWrite(TX, HIGH);
+        }
+        if (error < 0) {
+           cal_factor = cal_factor - CAL_STEP;
+        } else {
+           cal_factor = cal_factor + CAL_STEP;
+        }
+        si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
+    } else {
+      n--;
+      if (n == 0) {
+        break;
+      }
+
+    }
+  }  //larger while(true) loop
+  
+  EEPROM.put(addr, cal_factor);
+  EEPROM.commit();
+  setCalibrationLED(0);
+  
+  sprintf(hi,"Calibration procedure completed cal_factor=%d\n",cal_factor);
+  Serial.print(hi);
+  sprintf(hi,"Turn power-off the ADX board to start\n");
+  Serial.print(hi);
+  
+  while (true) {
+    
+  }
+
+}
