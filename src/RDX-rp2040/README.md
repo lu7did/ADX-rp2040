@@ -1,6 +1,6 @@
 # RDX rp2040 Digital Transceiver (RDX_rp2040)
 
-# Overview to Version 2.0
+# Overview to Version 2.0 (Alpha)
 
 A brief story of the project start with the excelent ADX Transceiver from Barb (WB2CBA) which can be found at
 
@@ -256,26 +256,29 @@ Same as the ADX-rp2040 project
 
 # Testing
 
-Only preliminar testing has been performed as it is just an evaluation version of the firmware, functions will be
-tested as the implementation evolves.
+Only preliminar testing has been performed as it is just an alpha version of the firmware for preliminary evaluation purposes,
+functions will be tested as the implementation evolves.
 
 # Pending
 
-* document ft8 FSM (UML)
-* integrate meter (S-Meter and Power)
-* transform reference dash at meter into metronome for RX/TX (green/red)
-* display dialog multiband
 * Organize and add functionality for icons
 * Hardware interface to SD-Card/Export
 * File system
 * ADIF generation
-* WiFi support and mDNS (rdx.local resolution)
+
+## rp2040-w specific
+* WiFi support
+* mDNS implementation (rdx.local resolution)
 * NTP support and clock alignment
 * Configuration terminal
 * OTA firmware update
 * Web based configuration tool
 
 # Done
+* progress bar for RX/TX (green/red)
+* display dialog multiband
+* integrate meter (S-Meter and Power)
+* document ft8 FSM (UML)
 * include multiband support
 * integrate scroll text 
 * improve ft8 FSM (organize)
