@@ -905,6 +905,7 @@ void setup()
   */
   INIT();
   initSi5351();
+  tft_setup();
 
   /*--------
      If DOWN is found pressed on startup then enters calibration mode
@@ -913,11 +914,8 @@ void setup()
   if ( digitalRead(DOWN) == LOW ) {
 
     _INFOLIST("%s Auto calibration mode started\n", __func__);
+    tft_autocal();
     AutoCalibration();
-    /*
-    _INFOLIST("%s Calibration mode started\n", __func__);
-    Calibration();
-    */
   }
 
   /*-------[RP2040]------ Manual time-sync feature
@@ -938,13 +936,14 @@ void setup()
      Place the receiver in reception mode
   */
   digitalWrite(RX, LOW);
+  
   /*--------------------
      Setup and initialize the FT8 structures
   */
 
   setup_ft8();
   delay(1000);
-  tft_setup();
+  tft_init();
   tft_updateBand();
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
@@ -1778,16 +1777,22 @@ bool b = false;
   }
   sprintf(hi,"Autocalibration procedure started\n");
   Serial.print(hi);
+  tft_print(hi);
 
-  sprintf(hi,"Current cal_factor=%d\n",cal_factor);
+  //tft_print(50,70,hi);
+
+  sprintf(hi,"cal_factor=%d\n",cal_factor);
   Serial.print(hi);
+  tft_print(hi);
+  
 
   addr = 10;
   EEPROM.get(addr, cal_factor);
 
-  sprintf(hi,"Current cal_factor=%d, reset\n",cal_factor);
+  sprintf(hi,"cal_factor reset\n");
   Serial.print(hi);
-  
+  tft_print(hi);
+ 
   cal_factor=0;
   EEPROM.put(addr, cal_factor);
   EEPROM.commit();
@@ -1817,8 +1822,9 @@ bool b = false;
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
   si5351.set_freq(Cal_freq * 100UL, SI5351_CLK2);
 
-  sprintf(hi,"Si5351 clock setup f %lu MHz\n",(unsigned long)Cal_freq);
+  sprintf(hi,"Si5351 f=%lu MHz\n",(unsigned long)Cal_freq);
   Serial.print(hi);
+  tft_print(hi);
   
   /*--------------------------------------------*
      PWM counter used for automatic calibration
@@ -1864,7 +1870,10 @@ bool b = false;
     error = fclk - Cal_freq;
     sprintf(hi,"n(%01d) cal(%lu) Hz dds(%lu) Hz err (%lu) Hz factor(%lu)\n",n, (unsigned long)Cal_freq, (unsigned long)fclk, (unsigned long)error, (unsigned long)cal_factor);
     Serial.print(hi);
+    sprintf(hi,"cal(%lu) e(%lu) Hz cf(%lu)\n",(unsigned long)Cal_freq,(unsigned long)error,(unsigned long)cal_factor);
+    tft_print(hi);
     setCalibrationLED((uint16_t)error);
+    tft_error((uint16_t)error);
 
     if (labs(error) > int32_t(CAL_ERROR)) {
         b = !b;
@@ -1892,10 +1901,13 @@ bool b = false;
   EEPROM.commit();
   setCalibrationLED(0);
   
-  sprintf(hi,"Calibration procedure completed cal_factor=%d\n",cal_factor);
+  sprintf(hi,"Completed cal_factor=%d\n",cal_factor);
   Serial.print(hi);
-  sprintf(hi,"Turn power-off the ADX board to start\n");
+  tft_print(hi);
+
+  sprintf(hi,"Power-off and re-start\n");
   Serial.print(hi);
+  tft_print(hi);
   
   while (true) {
     

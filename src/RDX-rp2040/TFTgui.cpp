@@ -145,7 +145,9 @@ class progressBar {
 
     progressBar(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g, int _n, byte _s, int bg);
     void show(int colour);
+    void show(int colour,int progress);
     void reset();
+    void print(int x,int y,char *t);
 
     /*----------
        Constructor
@@ -167,7 +169,17 @@ progressBar::progressBar(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, int _g,
   bg = _bg;
   progress = 0;
 }
+void progressBar::print(int x,int y,char *t) {
 
+  char line[80];
+  tft->setTextFont(2);
+  tft->setTextSize(1);
+  tft->setTextColor(TFT_CYAN, TFT_WHITE);
+
+  sprintf(line,"%s",t);
+  tft->drawString(line, x, y, 3); // Print the label
+
+}
 
 void progressBar::show(int colour) {
 
@@ -180,6 +192,11 @@ void progressBar::show(int colour) {
   tft->fillRect(x + XBTN , y, (progress) * 18, 6, colour);
 }
 
+void progressBar::show(int colour, int p) {
+  progress=p;
+  show(colour);
+  
+}
 void progressBar::reset() {
 
   progress = 0;
@@ -277,6 +294,9 @@ void linearMeter::show(int _m , int _v)
       case SUNIT : sprintf(lmode, "%s", "S  ");
         s = BLUE2BLUE;
         break;
+      case MET : sprintf(lmode, "%s", "CAL");
+        s = GREEN2RED;
+        break;
       case MIC   : sprintf(lmode, "%s", "MIC");
         s = GREEN2RED;
 
@@ -314,6 +334,19 @@ void linearMeter::show(int _m , int _v)
         }
         tft->drawString(mmode, x + b * (w + g), y + 1.5 * Y_CHAR1, 1);
       }
+
+      if (mode == MET) {
+        switch (b) {
+          case 1 : sprintf(mmode, "%s", "5"); break;
+          case 5 : sprintf(mmode, "%s", "25"); break;
+          case 10: sprintf(mmode, "%s", "50"); break;
+          case 12: sprintf(mmode, "%s", "60"); break;
+          case 15: sprintf(mmode, "%s", "75"); break;
+          default: sprintf(mmode, "%s", ""); break;
+        }
+        tft->drawString(mmode, x + b * (w + g), y + 1.5 * Y_CHAR1, 1);
+      }
+
 
       if (mode == SUNIT || mode == MIC) {
         if (b <= 9) {
@@ -1068,6 +1101,8 @@ class textPDX {        // The class
     void show();
     int checkPoint(int x, int y);
     void printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
+    void printline(char *s);
+
 
     void scroll();
     void demo();
@@ -1141,6 +1176,46 @@ void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_fr
   t[0].af_frequency=af_frequency;
   t[0].self_rx_snr=self_rx_snr;
   t[0].qsowindow=qsowindow;
+ 
+  tft->setTextColor(TFT_GREENYELLOW);
+  tft->setTextFont(2);
+  tft->setTextSize(1);
+  show();
+
+  char l[TEXTCOLS + 1];
+  
+  for (int i = 0; i < TEXTLINES; i++) {
+
+    int j = TEXTLINES - 1 - i;
+    tft->setTextColor(t[i].color, t[i].bg);
+    sprintf(l, "%s", t[i].msg);
+    tft->drawString(l, b.xStart + 2, b.yStart + 5 + (j * 9), 1); //
+
+  }
+  
+}
+void textPDX::printline(char *s) {
+  uint16_t _color;
+  uint16_t _bg;
+  if (!enabled) return;
+
+  scroll();
+  _color=TFT_BLACK;
+  _bg=TFT_WHITE;
+
+  t[0].bg = _bg;
+  t[0].color = _color;
+  char x[TEXTCOLS+1];
+  memcpy(x,s,TEXTCOLS);
+  memset(t[0].msg, 0, TEXTCOLS);
+  sprintf(t[0].msg, "%s", x);
+  sprintf(t[0].msg, "%-32s", t[0].msg);
+
+  strcpy(t[0].station_callsign,"");
+  strcpy(t[0].grid_square,"");
+  t[0].af_frequency=0;
+  t[0].self_rx_snr=0;
+  t[0].qsowindow=0;
  
   tft->setTextColor(TFT_GREENYELLOW);
   tft->setTextFont(2);
@@ -1478,16 +1553,8 @@ footerPDX foot = footerPDX(&tft, 2, 50 + 100 + 2 + 150, 480, 18, 10, TFT_WHITE, 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 //*                          Operation of GUI and support structures                                         *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
-void GUI_init() {
+void tft_init() {
 
-
-  tft.init();
-  tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
-  tft.fillScreen(TFT_BLACK);     //TFT_CYAN
-  tft.fillScreen(TFT_BLACK);
-
-  // Swap the colour byte order when rendering
-  tft.setSwapBytes(true);
 
   // Enable and show the different GUI objects
 
@@ -1541,7 +1608,6 @@ void GUI_init() {
 
   s.init();
 
-
   foot.init();
   delay(1000);
   foot.show();
@@ -1571,8 +1637,13 @@ void tft_setup() {
   // Use this calibration code in setup():
   tft.setTouch(calData);
 
-  // Initialize the GUI
-  GUI_init();
+  tft.init();
+  tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
+  tft.fillScreen(TFT_BLACK);     //TFT_CYAN
+  tft.fillScreen(TFT_BLACK);
+
+  // Swap the colour byte order when rendering
+  tft.setSwapBytes(true);
 
 } // main
 
@@ -1713,4 +1784,51 @@ void tft_updateBand() {
        s.reset();
        s.init();
    }    
+}
+
+
+progressBar a = progressBar(&tft, 50, 80, 300, 4, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
+
+
+void tft_error(uint16_t e) {
+
+  int x=e/5;
+  m.show(MET,x);
+  return;
+  
+}
+void tft_print(char *t) {
+  text.printline(t);
+  
+}
+void tft_autocal() {
+  // Enable and show the different GUI objects
+
+  wifiIcon.enabled=false;
+  termIcon.enabled=false;
+  calIcon.enabled=false;
+  catIcon.enabled=false;
+  cntIcon.enabled=false;
+  quadIcon.enabled=false;
+  wsjtIcon.enabled=false;
+  muteIcon.enabled=false;
+  spkrIcon.enabled=false;
+
+  d.enabled=false;
+  p.enabled=false;
+  s.enabled=false;
+
+  m.enabled=true;
+  foot.enabled=true;
+  text.enabled=true;
+
+// Show GUI compoments
+
+  m.show(MET, 100);
+  text.show();
+  foot.init();
+  delay(500);
+  strcpy(ip,"AutoCal");
+  foot.show();
+
 }

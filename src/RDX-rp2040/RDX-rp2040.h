@@ -188,6 +188,10 @@ extern CALLQSO  qsoReady;
 extern CALLBACK fftEnd;
 extern CALLBACK  txIdle;
 
+extern void tft_autocal();
+extern void tft_error(uint16_t e);
+extern void tft_print(char *t);
+
 extern void initSi5351();
 extern void AutoCalibration();
 extern void timeSync();
@@ -209,6 +213,7 @@ extern void tft_endoftime();
 extern void tft_checktouch();
 extern void tft_resetBar();
 extern void tft_endQSO();
+extern void tft_init();
 extern void tft_setBar(int colour);
 extern void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
 extern unsigned long Slot2Freq(int s);

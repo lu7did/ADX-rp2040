@@ -50,6 +50,7 @@ extern "C" {
 #define SWR         1
 #define SUNIT       2
 #define MIC         3
+#define MET         4
 
 /*---------------------
  * font dimension 

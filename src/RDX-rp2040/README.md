@@ -135,10 +135,17 @@ Turn power-off the ADX board to start
 Upon finalization a message will be sent thru the serial monitor and the TX led will stop to  blink, the board power needs to be cycled
 to restart the operation.
 
+While the autocalibration is performed the progress is also indicated at the TFT LCD GUI.
+
+*	The meter (upper right) will show progress in Hz difference.
+*	The text scroll will exhibit progress messages.
+*	The footer will be showing the label "AutoCal".
+
 ```
                                      *** Warning ***
 
-Calibration time might vary depending on the unique factory characteristics of the Si5351 chipset being used.
+Calibration time might vary depending on the unique factory characteristics of the Si5351 chipset being used. Upon finalization the power needs to
+be recycled for the board to restart.
 ```
 
 ## Time synchronization
@@ -347,6 +354,7 @@ functions will be tested as the implementation evolves.
 * Support for ATU reset
 * SWR indicator & control (as HW support is introduced)
 * Filter support (as HW support is introduced)
+* Support Si4732 based receiver (as HW support is introduced)
 
 ## rp2040-w specific
 * WiFi support
