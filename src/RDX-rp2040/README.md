@@ -36,6 +36,7 @@ features on this project are documented here.
 * Web browser console (access to File System in Flash memory).
 * Improvements in the FT8 protocol handling cycle.
 * GUI development.
+* ADIF logbook generation
 ```
 
 
@@ -204,6 +205,15 @@ When provided with WiFi AP access credentials the firmware would attempt to conn
 clock automatically during the initial start up without any action from the operator.
 This requires a rp2040_w model though.
 
+## ADIF Logbook 
+
+If the **#define FSBROWSER 1** and **#define ADIF 1** statements are included then a flash memory filesystem is configured and every QSO performed by the transceiver, either in
+manual or automatic mode, is logged using the ADIF format into a file called **"/rdx.adif"**
+In order for the flash memory based file system to be enabled the Tools/Flash Size IDE parameter must be set to "2M Sketch 1948KB FS 64KB", this will create a 64K flash memory
+based storage area managed using a simple file system. The capacity of the storage is very limited but enough to store about 100-sh FT8 contacts on it. To recover, edit or
+erase the file you can use the Web Browser File System facility (FSBROWSER needs to be activated for that).
+
+
 
 ## GUI
 
@@ -223,15 +233,14 @@ The main areas of the GUI are:
 		  take place while performing the synchronization. Upon boot up this activity is performed automatically if the
                   WiFi AP credentials are provided. This function is enabled when the RP2040_W directive is enabled.
 		  While performing the time synchronization a text message is placed in the waterfall area indicating that.
-		* **Web based File System browser**. When tapped the firmware will enable the Web browser based file system console, it
-		  can be accessed as *http://rdx.local/edit* . No FT8 decoding activity will take place while the web server is
-		  active. Tapping the icon again will disable it and resume the FT8 decoding activity. This function is enabled when
-		  the RP2040_W and FSBROWSER directives are enabled.
+		* **Web based File System browser**. This mode is enabled by simultaneously pressing UP+DOWN at boot up, 
+		  The tool can be accessed as *http://rdx.local/edit* . No FT8 decoding activity will take place while the web server is
+		  active. Reboot the transceiver to resume normal operation. The RP2040_W and FSBROWSER directives are enabled.
 		  While the browser is enabled a text message is placed in the waterfall area indicating that, no simultaneous FT8 operation
 		  can take place while the browser is active.
 		* **ADIF logging**. When tapped the firmware will generate an ADIF record for every QSO it is performed over the air,
-		  the resulting file is named **/RDX.adif** and can be retrieved using the Web based File System browser. Beware that
- 		  the file system has very limited space resources and therefore no large files can be handled.
+		  the resulting file is named **/rdx.adif** and can be retrieved using the Web based File System browser. Beware that
+ 		  the file system has very limited space resources and therefore no large files can be handled (see below for further information).
 		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it.
 
 ```
