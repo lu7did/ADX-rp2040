@@ -376,36 +376,28 @@ void identify_message_types(message_info message_list[], char *my_callsign) {
   
   for (int i = 0; i < kMax_decoded_messages; i++) {
 
-    //_INFOLIST("%s messsage<%s> grid(%s) snr(%s)\n",__func__,message_list[i].full_text,message_list[i].grid_square,message_list[i].snr_report);
-
     if (!(message_list[i].af_frequency)) { //checks if its empty
-      //_INFOLIST("%s af_frequency empty\n",__func__);
       return;
     }
 
 
     if (strstr(message_list[i].full_text, my_callsign)) {
-      //_INFOLIST("%s found as addressed to me\n",__func__);
       message_list[i].addressed_to_me = true;
     }
 
     if (strstr(message_list[i].full_text, "CQ")) {
-      //_INFOLIST("%s found as CQ\n",__func__);
       message_list[i].type_cq = true;
     }
 
     if (strstr(message_list[i].full_text, "RRR")) {
-      //_INFOLIST("%s found as RRR\n",__func__);
       message_list[i].type_RRR = true;
     }
 
     if (strstr(message_list[i].full_text, "73")) {
-      //_INFOLIST("%s found as 73\n",__func__);
       message_list[i].type_73 = true;
     }
 
     if (strstr(message_list[i].full_text, "RR73")) {
-      //_INFOLIST("%s found as RR73\n",__func__);
       message_list[i].type_RR73 = true;
     }
 
@@ -427,9 +419,11 @@ void identify_message_types(message_info message_list[], char *my_callsign) {
     fourth_word = strtok(NULL, delim);
 
     if (strlen(second_word) > 3 && !fourth_word) {
-      strcpy(message_list[i].station_callsign, second_word);
-    } else if (strlen(third_word) > 3 && fourth_word) {
-      strcpy(message_list[i].station_callsign, third_word);
+       strcpy(message_list[i].station_callsign, second_word);
+    } else {
+      if (strlen(third_word) > 3 && fourth_word)  {
+         strcpy(message_list[i].station_callsign, third_word);
+      }
     }
 
     if (!third_word) {
@@ -442,25 +436,21 @@ void identify_message_types(message_info message_list[], char *my_callsign) {
       } else {
         strcpy(message_list[i].grid_square, fourth_word);
       }
-    }
-
-    else if (strlen(third_word) == 4 && !strchr(third_word, '-') && !strchr(third_word, '+') && !strcmp(third_word, "RR73")) {
-      message_list[i].type_grid = true;
-      strcpy(message_list[i].grid_square, third_word);
-    }
-
-    else if (strchr(third_word, '-') || strchr(third_word, '+')) {
-      if (strchr(third_word, 'R')) {
-        message_list[i].type_Rsnr = true;
+    } else { 
+      if (strlen(third_word) == 4 && strchr(third_word, '-')==NULL && strchr(third_word, '+')==NULL && strcmp(third_word, "RR73")!=0 && strcmp(third_word,"73")!=0) {
+         message_list[i].type_grid = true;
+         strcpy(message_list[i].grid_square, third_word);
+      } else {
+         if (strchr(third_word, '-') || strchr(third_word, '+')) {
+            if (strchr(third_word, 'R')) {
+               message_list[i].type_Rsnr = true;
+            } else {
+               message_list[i].type_snr = true;
+            }
+            strcpy(message_list[i].snr_report, third_word);
+         }
       }
-      else {
-        message_list[i].type_snr = true;
-      }
-
-      strcpy(message_list[i].snr_report, third_word);
-    }
-
-    //_INFOLIST("%s station callsign: %s grid square: %s snr report: %s\n", __func__, message_list[i].station_callsign, message_list[i].grid_square, message_list[i].snr_report);
+    }  
   }
   return;
 }

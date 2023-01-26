@@ -9,7 +9,7 @@ struct m {
   uint16_t af_frequency;
   uint16_t qsowindow;
   float    time_offset;
-  char     full_text[19];
+  char     full_text[20];
   bool     addressed_to_me;
   bool     type_cq;
   bool     type_grid;
@@ -18,9 +18,9 @@ struct m {
   bool     type_RRR;
   bool     type_73;
   bool     type_RR73;
-  char     station_callsign[7];
-  char     grid_square[4];
-  char     snr_report[4];
+  char     station_callsign[8];
+  char     grid_square[5];
+  char     snr_report[5];
 };
 typedef m message_info;
 

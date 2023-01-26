@@ -153,6 +153,7 @@ char build[6];
  */
 char ip[16];
 
+
 /*------------------------------------------------------
  *   Internal clock handling
  */
@@ -172,15 +173,20 @@ uint8_t  maxTx = 6;
 uint8_t  maxTry = 5;
 uint8_t  nRx = 0;
 uint8_t  nTx = 0;
-uint8_t  state = 0;
+uint8_t  ft8_state = 0;
+
+/*---------------------
+ * System state variables
+ * 
+ */
 bool     qwait=true;
 bool     triggerCQ=false;
 bool     triggerCALL=false;
 bool     send = false;
 bool     justSent = false; //must recieve right after sending
-
-bool autosend = false;
-
+bool     logADIF=false;
+bool     autosend = false;
+bool     endQSO=false;
 /*---------------------
  * Definitions related to the autocalibration function
  */
@@ -199,13 +205,6 @@ message_info CurrentStation;
 UserSendSelection sendChoices;
 message_info message_list[kMax_decoded_messages]; // probably needs to be memset cleared before each decode
 
-/*
-bool fCQ = false;
-int  nCQ = 0;
-int  qCQ = 5;
-bool cq_only = false;
-*/
-
 uint64_t config_us;
 uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
@@ -218,7 +217,6 @@ uint32_t val;
 int temp;
 uint32_t val_EE;
 int addr = 0;
-
 
 /*------------------------------------------
  * Band and frequency information
@@ -272,7 +270,7 @@ bool timeWait() {
  * a waterfall display.
  */
 void fftCallBack() {
-  
+ 
     tft_updatewaterfall(magint);
     tft_checktouch();
     checkButton();
@@ -283,9 +281,9 @@ void fftCallBack() {
  * This is a callback handler which is called at the end of each decoding cycle
  */
 void endCallBack() {
-    tft_endoftime();
-    checkButton();
-    tft_run();
+   tft_endoftime();
+   checkButton();
+   tft_run();
 }
 /*----------------------------------------------------------------------------------------------
  * This is the callback handler called while sending FT8 tones
@@ -294,9 +292,9 @@ void endCallBack() {
  * being called
  */
 void idleCallBack() {
-    tft_checktouch();
-    checkButton();
-    tft_run();
+   tft_checktouch();
+   checkButton();
+   tft_run();
 }
 /*--------------------------------------------------------------------------------------------
  * This is a callback handler which is called when the ft8 decoding process has identified
@@ -306,7 +304,15 @@ void idleCallBack() {
 void qsoCallBack(int i) {
   tft_run();
 }
-
+/*---------------------------------------------------------------------------------------------
+ * Check size of heap memory to validate for memory leaks
+ */
+int heapLeft() {
+  char *p = (char*)malloc(256);   // try to avoid undue fragmentation
+  int left = &__StackLimit - p;
+  free(p);
+  return left;
+}
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  ft8 processing                                                                          *
 //*  setup and handle the ft8 processing, this is actually the orchestation of the ft8lib    *
@@ -342,6 +348,7 @@ void setup_ft8() {
      Establish a callback handler to be called at the end
      of each ADC sample (to update the waterfall)
   */
+
 
   fftReady=fftCallBack;
   fftEnd=endCallBack;
@@ -384,29 +391,32 @@ void setup_ft8() {
   ---------------------------------------------------------------------------------------------*/
 bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, message_info message_list[]) {
 
+
 /*----------------
  * State 0
  * Define if a CQ is going to be sent, this can happen because it's in auto mode
  * and just completed a receiving cycle or because it has been forced to call CQ
  */
-  _INFOLIST("%s processing state=%d\n",__func__,state);
+  _INFOLIST("%s processing state=%d\n",__func__,ft8_state);
   
-  if (state == 0  && !justSent && (autosend || triggerCQ)  ) {   //State 0 - Just completed a reception exploring if trigger a call (CQ Cycle)
+  if (ft8_state == 0  && !justSent && (autosend || triggerCQ)  ) {   //State 0 - Just completed a reception exploring if trigger a call (CQ Cycle)
     if (nTx < maxTx && !triggerCQ) {  //if autosend then transmit a CQ every maxTx to avoid overwhelming the channel
       nTx++;
-      _INFOLIST("%s state(%d) Tx(%d) autosend active waiting\n", __func__, state, nTx);
+      _INFOLIST("%s state(%d) Tx(%d) autosend active waiting\n", __func__, ft8_state, nTx);
     } else {
-      _INFOLIST("%s state(%d) Calling CQ\n", __func__, state);
-      state = 1;
+      _INFOLIST("%s state(%d) Calling CQ\n", __func__, ft8_state);
+      ft8_state = 1;
       triggerCQ=false;
       sendChoices->call_cq = true;
       strcpy(CurrentStation->station_callsign, "");
       strcpy(CurrentStation->grid_square, "");
-      CurrentStation->af_frequency=1500;
+      strcpy(CurrentStation->snr_report,"");
+      CurrentStation->af_frequency=AF_FREQ;
       CurrentStation->self_rx_snr=0;
       CurrentStation->qsowindow=getQSOwindow();
       nTry = 0;
       nTx=0;
+      endQSO=false;
       return true;
   }
   }
@@ -416,9 +426,9 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * This is while in idle, handle the special case of a triggerCALL
  * flag set
  */
-  if (state == 0 && !justSent && triggerCALL) {
+  if (ft8_state == 0 && !justSent && triggerCALL) {
        _INFOLIST("%s activating a response from triggerCALL station(%s) grid(%s) SNR(%d) af(%d)\n",__func__,call_station_callsign,call_grid_square,call_self_rx_snr,call_af_frequency);
-       state=5;                               //Synchro with FSM as if the CQ was answered automatically
+       ft8_state=5;                               //Synchro with FSM as if the CQ was answered automatically
        triggerCALL=false;
        sendChoices->send_grid = true;
        /*-----------
@@ -434,6 +444,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         */
        nTry = 0;
        nTx=0;
+       endQSO=false;
        return true;
   }
 /*-----------------
@@ -442,7 +453,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * somebody, if it's in auto mode then it might be wise to answer, but if there
  * are no decoded messages and it's at state 0 (idle) then it's a moot point to evaluate
  */
-  if (num_decoded == 0 && state == 0) {
+  if (num_decoded == 0 && ft8_state == 0) {
       _INFOLIST("%s num_decoded=%d returning without action\n",__func__,num_decoded);
       return false;
   }
@@ -453,12 +464,12 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * in auto mode then evaluate to answer it
  */
 
-  if (state == 0  && !justSent && autosend) {   //State 0 - Just completed a reception, check if somebody call CQ (Answering Cycle) if auto mode is enabled
-    _INFOLIST("%s state(%d) Looking for CQ\n", __func__, state);
+  if (ft8_state == 0  && !justSent && autosend) {   //State 0 - Just completed a reception, check if somebody call CQ (Answering Cycle) if auto mode is enabled
+    _INFOLIST("%s state(%d) Looking for CQ\n", __func__, ft8_state);
     for (int i = 0; i < num_decoded; i++) {
       if (message_list[i].type_cq) {
-        _INFOLIST("%s state(%d) msg[%d]=%s CQ call\n", __func__, state, i, message_list[i].full_text);
-        state = 5;
+        _INFOLIST("%s state(%d) msg[%d]=%s CQ call Grid(%s) snr(%s) self_snr(%d) Text(%s)\n", __func__, ft8_state, i, message_list[i].full_text, message_list[i].grid_square,message_list[i].snr_report,message_list[i].self_rx_snr,message_list[i].full_text);
+        ft8_state = 5;
         strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
         strcpy(CurrentStation->grid_square, message_list[i].grid_square);
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;
@@ -467,6 +478,7 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
         sendChoices->send_grid = true;
         nTry = 0;
         nTx=0;
+        endQSO=false;
         return true;
       }
     }
@@ -477,21 +489,23 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * In this state of the FSM a CQ has been sent, but it's yet to be answered
  * by somebody. So check if somebody answered to me with a valid frame.
  * If so, send the SNR to continue the QSO cycle. If not, send a CQ again until
- * the number of tries exceed the maximum, if so, reset the FSM to an idle state
+ * the number of tries exceed the maximum, if so, reset the FSM back to an idle state
  */
 
-  if ((state == 1) && !justSent) {  //State 1  - (CQ Cycle) Check if somebody answer my call, repeat the CQ if not
+  if ((ft8_state == 1) && !justSent) {  //State 1  - (CQ Cycle) Check if somebody answer my call, repeat the CQ if not
     for (int i = 0; i < num_decoded; i++) {
       if (message_list[i].addressed_to_me) {
-        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me Grid(%s) snr(%s)\n", __func__, state, i, message_list[i].full_text, message_list[i].grid_square,message_list[i].snr_report);
-        state = 2;
+        _INFOLIST("%s state(%d) msg[%d]=%s isGrid(%s) grid(%s)\n",__func__,ft8_state,i,message_list[i].full_text,BOOL2CHAR(message_list[i].type_grid),message_list[i].grid_square);
+        ft8_state = 2;
         strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
         strcpy(CurrentStation->grid_square, message_list[i].grid_square);
         CurrentStation->self_rx_snr=message_list[i].self_rx_snr;   
         CurrentStation->qsowindow=message_list[i].qsowindow;
+        _INFOLIST("%s assigned grid(%s)\n",__func__,CurrentStation->grid_square);
         sendChoices->send_snr = true;
         nTry = 0;
         nTx=0;
+        endQSO=false;
         return true;
       }
     }
@@ -499,23 +513,26 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
      * Nobody answered, thus start another CQ cycle
      */
     nTry++;
-    if (nTry<maxTry && state == 1) {
+    if (nTry<maxTry && ft8_state == 1) {
        _INFOLIST("%s no answer keep calling CQ nTry(%d)\n",__func__,nTry);
        sendChoices->call_cq = true;
        strcpy(CurrentStation->station_callsign, "");
        strcpy(CurrentStation->grid_square, "");
        CurrentStation->self_rx_snr=0;
        CurrentStation->qsowindow=0;
-       nTx=0;     
+       nTx=0;
+       endQSO=false;     
        return true; 
     }
     /*-------
      * The number of tries exceeded the allowed, so reset the FSM
+     * and assume the QSO to be ended
      */
-    _INFOLIST("%s state(%d) CQ not answered, reset\n", __func__, state);
-    state = 0;
+    _INFOLIST("%s state(%d) CQ not answered, reset\n", __func__, ft8_state);
+    ft8_state = 0;
     nTx = 0;
     nTry = 0;
+    endQSO=false;
     return false;
   }
 
@@ -526,14 +543,17 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * If the number of tries exceeds tha allowed then reset the FSM and return to idle (lost QSO).
  * Otherwise retry with a SNR report.
  */
-  if (state == 2 && !justSent) { // State 2 - (CQ Cycle) After an answer with a Grid was provided send the SNR
+  if (ft8_state == 2 && !justSent) { // State 2 - (CQ Cycle) After an answer with a Grid was provided send the SNR
     for (int i = 0; i < num_decoded; i++) {
       if (message_list[i].addressed_to_me && message_list[i].type_Rsnr) {
-        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and R-NN\n", __func__, state, i, message_list[i].full_text);
-        state = 3;
+        _INFOLIST("%s state(%d) msg[%d]=%s Rsnr message\n", __func__, ft8_state, i, message_list[i].full_text);
+
+        ft8_state = 3;
         sendChoices->send_RRR = true;
+        strcpy(CurrentStation->snr_report,message_list[i].snr_report);
         nTry = 0;
         nTx=0;
+        endQSO=false;
         return true;
       }
     }
@@ -542,18 +562,20 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
      * and reset if exceeded
      */
     if (nTry >= maxTry) {
-      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
-      state = 0;
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, ft8_state);
+      ft8_state = 0;
       nTx = 0;
       nTry = 0;
+      endQSO=false;
       return false;
     }
     /*---------------------------
      * Retry the SNR message
      */
-    _INFOLIST("%s state(%d) repeat SNR\n", __func__, state);
+    _INFOLIST("%s state(%d) repeat SNR\n", __func__, ft8_state);
     sendChoices->send_snr = true;
     nTry++;
+    endQSO=false;
     return true;
   }
 
@@ -563,13 +585,14 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * Check for number of retries and reset the FSM if exceeded
  * If not persevere into sending a 73 message
  */
-  if (state == 3 && !justSent) { // State 3 - (CQ Cycle) After an answer with the 73 finalize the cycle
+  if (ft8_state == 3 && !justSent) { // State 3 - (CQ Cycle) After an answer with the 73 finalize the cycle
     for (int i = 0; i < num_decoded; i++) {
       if (message_list[i].addressed_to_me && (message_list[i].type_73)) {
-        _INFOLIST("%s state(%d) msg[%d]=%s Addressed to me and 73 or RR73\n", __func__, state, i, message_list[i].full_text);
-        state = 4;
+        _INFOLIST("%s state(%d) msg[%d]=%s  73 or RR73 \n", __func__, ft8_state, i, message_list[i].full_text);
+        ft8_state = 4;
         sendChoices->send_73 = true;
         nTry = 12;
+        endQSO=true;
         nTx=0;
         return true;
       }
@@ -579,19 +602,21 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
      * reset if exceeded
      */
     if (nTry >= maxTry) {
-      _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, state);
-      state = 0;
+      _INFOLIST("%s state(%d) QSO finalized, reset\n", __func__, ft8_state);
+      ft8_state = 0;
       nTx = 0;
       nTry = 0;
+      endQSO=false;
       return false;
     }
     /*------------------------
      * Send a 73 frame again
      */
-    _INFOLIST("%s state(%d) repeat 73\n", __func__, state);
+    _INFOLIST("%s state(%d) repeat 73\n", __func__, ft8_state);
     sendChoices->send_73 = true;
     nTry++;
     nTx=0;
+    endQSO=false;
     return true;
   }
 
@@ -602,22 +627,25 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * If not retry the Grid message to answer the original CQ until the number
  * of retries is exceeded.
  */
-  if (state == 5 && !justSent) { // State 5 - (Answer Cycle) Somebody answer my grid with a SNR, respond back with RNNN (Rsnr)
+  if (ft8_state == 5 && !justSent) { // State 5 - (Answer Cycle) Somebody answer my grid with a SNR, respond back with RNNN (Rsnr)
     for (int i = 0; i < num_decoded; i++) {
       if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0 && message_list[i].addressed_to_me) {
         if (message_list[i].type_snr) {
-          _INFOLIST("%s state(%d) msg[%d]=%s SNR detected answering RSNR\n", __func__, state, i, message_list[i].full_text);
-          state = 6;
+          _INFOLIST("%s state(%d) msg[%d]=%s SNR(%s) SNR answer RSNR\n", __func__, ft8_state, i, message_list[i].full_text,message_list[i].snr_report);
+          strcpy(CurrentStation->snr_report, message_list[i].snr_report);
+          ft8_state = 6;
           sendChoices->send_Rsnr = true;
           nTry = 0;
           nTx=0;
+          endQSO=false;
           return true;
         }
         if (message_list[i].type_cq) { // State 5 - (Answer cycle) if the station is still calling the send the Grid again
-          _INFOLIST("%s state(%d) msg[%d]=%s still CQ, repeat grid\n", __func__, state, i, message_list[i].full_text);
+          _INFOLIST("%s state(%d) msg[%d]=%s still CQ, repeat grid\n", __func__, ft8_state, i, message_list[i].full_text);
           sendChoices->send_grid = true;
           strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
           nTry++;
+          endQSO=false;
           return true;
         }
       }
@@ -627,20 +655,22 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
      * and reset if exceeded
      */
     if (nTry >= maxTry) {
-      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
-      state = 0;
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, ft8_state);
+      ft8_state = 0;
       nTx = 0;
       nTry = 0;
+      endQSO=false;
       return false;
     }
 
     /*------------------------------
      * send the GRID message again
      */
-    _INFOLIST("%s state(%d) repeat grid\n", __func__, state);
+    _INFOLIST("%s state(%d) repeat grid\n", __func__, ft8_state);
     sendChoices->send_grid = true;
     nTry++;
     nTx=0;
+    endQSO=false;
     return true;
   }
   /*----------------------------
@@ -650,40 +680,43 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
    * If not received resend t RSNR message until the retries allowed
    * are exceeded.
    */
-  if (state == 6 && !justSent) {
+  if (ft8_state == 6 && !justSent) {
     for (int i = 0; i < num_decoded; i++) {
       if (strcmp(message_list[i].station_callsign, CurrentStation->station_callsign) == 0 && message_list[i].addressed_to_me) {
         if (message_list[i].type_RRR || message_list[i].type_RR73) {
-          _INFOLIST("%s state(%d) msg[%d]=%s RRR or RR73 message sending 73\n", __func__, state, i, message_list[i].full_text);
-          state = 7;
+          _INFOLIST("%s state(%d) msg[%d]=%s RRR or RR73 message sending 73\n", __func__, ft8_state, i, message_list[i].full_text);
+          ft8_state = 7;
           sendChoices->send_73 = true;
           strcpy(CurrentStation->station_callsign, message_list[i].station_callsign);
           nTry = 12;
           nTx=0;
+          endQSO=true;
           return true;
         }
         
         if (message_list[i].type_snr) {
-          _INFOLIST("%s state(%d) msg[%d]=%s Still SNR repeat RSNR\n", __func__, state, i, message_list[i].full_text);
+          _INFOLIST("%s state(%d) msg[%d]=%s Still SNR repeat RSNR\n", __func__, ft8_state, i, message_list[i].full_text);
           sendChoices->send_Rsnr = true;
           nTry++;
+          endQSO=false;
           return true;
         }
       }
     }
     if (nTry >= maxTry) {
-      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, state);
-      state = 0;
-      //tft_reset();
+      _INFOLIST("%s state(%d) retry exceeded, reset\n", __func__, ft8_state);
+      ft8_state = 0;
       nTx = 0;
       nTry = 0;
+      endQSO=false;
       return false;
     }
 
-    _INFOLIST("%s state(%d) repeat RSNR\n", __func__, state);
+    _INFOLIST("%s state(%d) repeat RSNR\n", __func__, ft8_state);
     sendChoices->send_Rsnr = true;
     nTry++;
     nTx=0;
+    endQSO=false;
     return true;
   }
 
@@ -719,7 +752,7 @@ void resetChoices (  UserSendSelection *sendChoices ) {
  * secs 00-14 and 30-44 are window 0 whilst
  * secs 15-29 and 45-59 are window 1
  * QSO frames heard within window 0 can be replied
- * on window 1 only and viceversa
+ * only on window 1 and viceversa
  */
 int getQSOwindow() {
     now = time(0) - t_ofs;
@@ -748,22 +781,23 @@ void ft8_run() {
      tft_checktouch();
      checkButton();
   }
-  //_INFOLIST("%s send(%s) isChoices(%s) CurrentStationWindow(%d) QSOwindow(%d)\n",__func__,BOOL2CHAR(send),BOOL2CHAR(isChoices(&sendChoices)),CurrentStation.qsowindow,getQSOwindow());  
   if (send && isChoices(&sendChoices) && CurrentStation.qsowindow != getQSOwindow())
   {
 
-    _INFOLIST("%s ------- TX w[%d]----------\n", __func__,getQSOwindow());
+    _INFOLIST("%s ------- TX w[%d/%d]----------\n", __func__,getQSOwindow(),heapLeft());
     /*---------------------------------------------------------------*
      *  If in autosend mode pick automatically the response message  *
      *  if not pick it manually                                      *
      *---------------------------------------------------------------*/
     uint32_t txstart = time_us_32();
-    if (state != 0) {
-      manual_gen_message(message, CurrentStation, sendChoices, my_callsign, my_grid);
-      resetChoices(&sendChoices);
-      _INFOLIST("%s manual_gen_message(%s)\n", __func__, message);
+    if (ft8_state != 0) {
       uint16_t qso=2;
       int self_rx_snr=0;
+      manual_gen_message(message, CurrentStation, sendChoices, my_callsign, my_grid);
+      if (!sendChoices.call_cq) {
+         qso=3;
+      }
+      resetChoices(&sendChoices);
       sprintf(msg,"%04d %4d %s", CurrentStation.af_frequency, self_rx_snr, message);
 
     /*---------------------------------------------------------------*
@@ -779,8 +813,30 @@ void ft8_run() {
      * If signaled just reset the state in order for this message to *
      * be the last sent.                                             *
      *---------------------------------------------------------------*/
+
+      if (logADIF && endQSO) {
+         char tstr[16];
+         char hstr[16];
+         char bstr[8];
+         char fstr[8];
+         strcpy(bstr,"");
+         
+         now = time(0) - t_ofs;  \
+         gmtime_r(&now, &timeinfo);  \
+         sprintf(tstr,"%04d%02d%02d",timeinfo.tm_year+1900,timeinfo.tm_mon+1,timeinfo.tm_mday); 
+         sprintf(hstr,"%02d%02d%02d",timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec); 
+         Band2Str(bstr);
+         sprintf(fstr,"%lu",(freq/1000));
+         _INFOLIST("%s generating ADIF grid(%s) SNR(%s) date(%s) time(%s) band(%s) freq(%s)\n",__func__,CurrentStation.grid_square,CurrentStation.snr_report,tstr,hstr,bstr,fstr); 
+         #ifdef ADIF
+         writeQSO((char*)ADIFFILE,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,(char*)QSO_MESSAGE);
+         #endif //ADIF
+         endQSO=false;
+      }
+      
       if (nTry >= 12) {
-        state = 0;
+        ft8_state = 0;
+        endQSO=false;
         tft_endQSO();
       }
     }
@@ -814,7 +870,7 @@ void ft8_run() {
      *  Collect energy information for 12.8 secs and pre-process     *
      *  magnitudes found                                             *
      *---------------------------------------------------------------*/
-    _INFOLIST("%s ------- RX w[%d]----------\n", __func__,getQSOwindow());
+    _INFOLIST("%s ------- RX w[%d/%d]----------\n", __func__,getQSOwindow(),heapLeft());
 
     inc_collect_power();
     /*---------------------------------------------------------------*
@@ -864,8 +920,9 @@ void ft8_run() {
   /*------------------------------------------------------------
    * Validate the conditions for the FSM to evaluate messages
    */  
-  if ((state != 0 && !justSent) || (autosend && !justSent) || (triggerCQ && !justSent) || (triggerCALL && !justSent)) {   //*Fix BUILD 41
+  if ((ft8_state != 0 && !justSent) || (autosend && !justSent) || (triggerCQ && !justSent) || (triggerCALL && !justSent)) {   //*Fix BUILD 41
     send = ft8bot(&CurrentStation, &sendChoices, message_list);
+    if (!send) tft_endQSO();
   } else {
     send = false;
   }
@@ -898,7 +955,7 @@ void setup()
   strcpy(programname,PROGNAME);
   strcpy(version,VERSION);
   strcpy(build,BUILD);
-  strcpy(ip,"127.0.0.1");
+  strcpy(ip," Disconnected ");
   
   /*-----------
      System initialization
@@ -906,6 +963,33 @@ void setup()
   INIT();
   initSi5351();
   tft_setup();
+
+#if defined(RP2040_W) && defined(FSBROWSER)
+  /*--------
+     If DOWN && UP is found pressed on startup then activates the FS browser
+  */
+  if ( digitalRead(DOWN) == LOW && digitalRead(UP) == LOW ) {
+    _INFOLIST("%s FS Browser activated\n", __func__);
+    tft_iconState(TERMICON,true);
+  }
+#endif //RP2040_W && FSBrowser  
+
+
+  if ( digitalRead(UP) == LOW && digitalRead(DOWN) == HIGH) {
+    _INFOLIST("%s Manual time-sync mode\n", __func__);
+    timeSync();
+  }
+
+#if defined(RP2040_W) && defined(FSBROWSER) && defined(ADIF)
+  _INFOLIST("%s initializing ADIF logbook sub-system Log(%s)\n",__func__,BOOL2CHAR(logADIF));
+  setup_adif();
+#endif 
+
+#ifdef RP2040_W
+   tft_iconState(WIFIICON,true);
+   tft_iconActive(WIFIICON,false);
+#endif 
+
 
   /*--------
      If DOWN is found pressed on startup then enters calibration mode
@@ -918,33 +1002,22 @@ void setup()
     AutoCalibration();
   }
 
-  /*-------[RP2040]------ Manual time-sync feature
-     if UP is found pressed on startup then enters manual time sync mode
-
-  */
-
-  if ( digitalRead(UP) == LOW ) {
-
-    _INFOLIST("%s Manual time-sync mode\n", __func__);
-    timeSync();
-
-  }
-  /*--- end of time-sync feature ----*/
-
-
   /*--------------------
      Place the receiver in reception mode
   */
-  digitalWrite(RX, LOW);
-  
+  digitalWrite(RX, LOW);  
+  tft_updateBand();
+  delay(200);
+
+
   /*--------------------
      Setup and initialize the FT8 structures
   */
 
   setup_ft8();
-  delay(1000);
-  tft_init();
-  tft_updateBand();
+  delay(500);
+
+  
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
@@ -955,6 +1028,7 @@ void setup()
 void loop()
 {
 
+  tft_process();
 
   /*-----------------------------------------------------------------------------*
                             Periodic dispatcher section
@@ -1144,82 +1218,31 @@ void Band_assign() {
   digitalWrite(FT4, LOW);
   digitalWrite(FT8, LOW);
 
-
   addr = 50;
   EEPROM.get(addr, Band_slot);
+  
 
-  if (Band_slot == 1) {
-    Band = Band1;
-
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
+  if (Band_slot < 1 || Band_slot > 4) {
+     _INFOLIST("%s invalid Band_slot(%d)\n",__func__,Band_slot);
+     return;
   }
 
-  if (Band_slot == 2) {
-    Band = Band2;
-
-    digitalWrite(JS8, HIGH);
+  Band=Bands[Band_slot-1];
+  int LED=8-Band_slot;
+  for (int i=0;i<4;i++) {
+    digitalWrite(LED, HIGH);
     delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
+    digitalWrite(LED, LOW);
   }
-
-  if (Band_slot == 3) {
-    Band = Band3;
-
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 4) {
-    Band = Band4;
-
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-  }
-
 
   delay(1000);
 }
 //******************************[ BAND SELECT Function]********************************
+void Band2Str(char *str) {
+   sprintf(str+strlen(str),"%02dm",Bands[Band_slot-1]);
+   _INFOLIST("%s Band(%s)\n",__func__,str);
+}
+
 void Band_Select() {
 
   digitalWrite(TX, 1);
@@ -1231,111 +1254,22 @@ void Band_Select() {
   digitalWrite(FT4, LOW);
   digitalWrite(FT8, LOW);
 
-
-  if (Band_slot == 1) {
-
-
-    digitalWrite(WSPR, HIGH);
+  int LED=8-Band_slot;
+  for (int i=0;i<4;i++) {
+    digitalWrite(LED, HIGH);
     delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
+    digitalWrite(LED, LOW);
   }
 
-  if (Band_slot == 2) {
-
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 3) {
-
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 4) {
-
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-  }
-
-Band_cont:
-
-  if (Band_slot == 1) {
-
-
-    digitalWrite(WSPR, HIGH);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
-  }
-
-  if (Band_slot == 2) {
-
-
-    digitalWrite(JS8, HIGH);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
-
-  }
-
-  if (Band_slot == 3) {
-    digitalWrite(FT4, HIGH);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT8, LOW);
-
-
-
-  }
-
-  if (Band_slot == 4) {
-    digitalWrite(JS8, LOW);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, HIGH);
-
-  }
-
+//Band_cont:
+  
+while (true) {
+  int LED=8-Band_slot;
+  digitalWrite(WSPR,LOW);
+  digitalWrite(JS8, LOW);
+  digitalWrite(FT4, LOW);
+  digitalWrite(FT8, LOW);
+  digitalWrite(LED, HIGH);
 
   UP_State = digitalRead(UP);
   DOWN_State = digitalRead(DOWN);
@@ -1376,15 +1310,12 @@ Band_cont:
     if (TX_State == LOW) {
 
       digitalWrite(TX, 0);
-
-      goto Band_exit;
+      break;
+      //goto Band_exit;
 
     }
   }
-
-  goto Band_cont;
-
-Band_exit:
+}
 
   updateEEPROM();
   Band_assign();
@@ -1402,6 +1333,7 @@ void updateEEPROM() {
   EEPROM.commit();
 
 }
+
 //*********************************[ END OF BAND SELECT ]*****************************
 
 
@@ -1669,50 +1601,108 @@ void INIT() {
   */
 
   EEPROM.begin(512);
-  addr = 30;
-  EEPROM.get(addr, temp);
+  EEPROM.get(EEPROM_ADDR_TEMP, temp);
+  EEPROM.get(EEPROM_ADDR_BUILD,build);
+    
 
-  if (temp != 100) {
-
-    addr = 10;
-    cal_factor = 100000;
-    EEPROM.put(addr, cal_factor);
-
-    addr = 40;
-    temp = 4;
-    EEPROM.put(addr, temp);
-
-    addr = 30;
-    temp = 100;
-    EEPROM.put(addr, temp);
-
-    addr = 50;
-    temp = 1;
-    EEPROM.put(addr, temp);
-    EEPROM.commit();
-
-
-  }
-
-  else
-
-  {
+  if (temp != 100 || strcmp(build,(char*)BUILD)!=0) {
+    resetEEPROM();
+  } else  {
     //--------------- EEPROM INIT VALUES
-    addr = 30;
-    EEPROM.get(addr, temp);
-
-    addr = 10;
-    EEPROM.get(addr, cal_factor);
-
-    addr = 50;
-    EEPROM.get(addr, Band_slot);
-
-
+    readEEPROM();
 
   }
   freq=Slot2Freq(Band_slot);
   tft_updateBand();
 
+}
+
+void listEEPROM() {
+  sprintf(hi,"\nEEPROM list\n");
+  _SERIAL.print(hi);
+  
+  int i = EEPROM_ADDR_CAL;
+  while (i < EEPROM_ADDR_END) {
+    
+    sprintf(hi, "%05d -- ", i);
+    _SERIAL.print(hi);
+    for (int j = 0; j < 10; j++) {
+      uint8_t b = EEPROM.read(i + j);
+      sprintf(hi, "%02x ", b);
+      _SERIAL.print(hi);
+    }
+    sprintf(hi,"\n");
+    _SERIAL.print(hi);
+    i = i + 10;
+  }
+  sprintf(hi,"\n>");
+  _SERIAL.print(hi);
+}
+/*----------------------------------
+ * Read configuration values from
+ * EEPROM
+ */
+void readEEPROM() {
+  
+    EEPROM.get(EEPROM_ADDR_CAL, cal_factor);
+    EEPROM.get(EEPROM_ADDR_SLOT, Band_slot);
+    EEPROM.get(EEPROM_ADDR_MYCALL,my_callsign);
+    EEPROM.get(EEPROM_ADDR_MYGRID,my_grid);
+    
+#ifdef RP2040_W    
+    EEPROM.get(EEPROM_ADDR_SSID,wifi_ssid);
+    EEPROM.get(EEPROM_ADDR_PSK,wifi_psk);
+    EEPROM.get(EEPROM_ADDR_HOST,hostname);
+    EEPROM.get(EEPROM_ADDR_PORT,tcp_port);
+#endif //RP2040_W
+    
+    _INFOLIST("%s completed\n",__func__);
+      
+}
+/*----------------------------------
+ * initialize the EEPROM contents on
+ * first load or when build changes
+ */
+void resetEEPROM() {
+  
+    cal_factor = 100000;
+    EEPROM.put(EEPROM_ADDR_CAL, cal_factor);
+
+    temp = 4;
+    EEPROM.put(EEPROM_ADDR_MODE, temp);
+
+    temp = 100;
+    EEPROM.put(EEPROM_ADDR_TEMP, temp);
+
+    temp = SLOT_1;
+    EEPROM.put(EEPROM_ADDR_SLOT, temp);
+
+    strcpy(my_callsign,MY_CALLSIGN);
+    strcpy(my_grid,MY_GRID);
+    
+    strcpy(build,BUILD);
+    
+    
+    EEPROM.put(EEPROM_ADDR_BUILD,build);
+    EEPROM.put(EEPROM_ADDR_MYCALL,my_callsign);
+    EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);
+
+#ifdef RP2040_W
+    strcpy(hostname,HOSTNAME);    
+    strcpy(wifi_ssid,WIFI_SSID);
+    strcpy(wifi_psk,WIFI_PSK);
+    tcp_port=TCP_PORT;
+     
+    EEPROM.put(EEPROM_ADDR_SSID,wifi_ssid);
+    EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
+    EEPROM.put(EEPROM_ADDR_HOST,hostname);
+    EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
+#endif //RP2040_W 
+    
+    EEPROM.commit();
+    _INFOLIST("%s EEPROM completed\n",__func__);
+    listEEPROM();
+    
 }
 //********************************[ END OF INITIALIZATION FUNCTION ]*************************************
 /*----------------------

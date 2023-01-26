@@ -463,24 +463,46 @@ uint16_t linearMeter::rainbowColor(uint8_t spectrum) {
 }
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-        iconPDX class
+        iconRDX class
         manages an specific icon
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-class iconPDX {        // The class
+class iconRDX {        // The class
   public:          // Access specifier
 
     uint16_t x;
     uint16_t y;
     uint16_t w;
     uint16_t h;
+    CALLBACK hdl;
+    
     bool enabled=false;
+    bool state=false;
+    bool click=false;
+    bool active=false;
+    
+    char name[8];
+    uint32_t tbounce;
+    
+    
+    bool exec=false;
     const short unsigned int* iconOn;
     const short unsigned int* iconOff;
+    uint16_t iconBuffer[1040];
     TFT_eSPI* tft;
-    iconPDX(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, const unsigned short* _iconOn, const unsigned short* _iconOff);
+    iconRDX(TFT_eSPI* _tft,char *iconName, int _x, int _y, int _w, int _h, const unsigned short* _iconOn, const unsigned short* _iconOff);
+
+  /*  
+    void show(bool _f, bool _falsify, bool _inverse);
     void show(bool f, bool falsify);
     void show(bool f);
+  */  
+    void show();
+
+    
     void falsifyIcon();
+    void onclick();
+    bool check(int _x, int _y);
+    void bitblt(uint16_t *out,uint16_t *img);
 
   private:
     uint16_t zambo;
@@ -488,20 +510,26 @@ class iconPDX {        // The class
 /*----------------------------
    Constructor
 */
-iconPDX::iconPDX(TFT_eSPI* _tft, int _x, int _y, int _w, int _h, const unsigned short* _iconOn, const unsigned short* _iconOff) {
+iconRDX::iconRDX(TFT_eSPI* _tft,char *iconName, int _x, int _y, int _w, int _h, const unsigned short* _iconOn, const unsigned short* _iconOff) {
   x = _x;
   y = _y;
   w = _w;
   h = _h;
 
   tft = _tft;
+  strcpy(name,iconName);
 
+  hdl=NULL;
   iconOn = _iconOn;
   iconOff = _iconOff;
+  state=false;
+  enabled=false;
+  active=false;
 }
-
-void iconPDX::falsifyIcon() {
-  if (!enabled) return;
+/*--------------------------------------------------------
+ * Draws a cross on the icon to invalidate
+ */
+void iconRDX::falsifyIcon() {
 
   for (int i = 0; i < 5; i++) {
     tft->drawLine(x + i, y, x + w, y + h - i, TFT_RED);
@@ -511,39 +539,68 @@ void iconPDX::falsifyIcon() {
 
   }
 
+/*-----------------------------------------------------------
+ * Negate the image to show it as inactive
+ */
 }
-void iconPDX::show(bool f, bool falsify) {
-  if (!enabled) return;
-
-  if (f == true) {
-    if (iconOn != NULL) {
-      tft->pushImage(x, y, w, h, iconOn);
-      if (falsify == true) {
-        falsifyIcon();
-      }
-    } else {
-      tft->fillRect(x, y, w, h, TFT_BLACK);
-      tft->drawRect(x, y, w, h, TFT_RED);
-    }
-  } else {
-    if (iconOff != NULL) {
-      tft->pushImage(x, y, w, h, iconOff);
-      if (falsify == true) {
-        falsifyIcon();
-      }
-    } else {
-      tft->fillRect(x, y, w, h, TFT_BLACK);
-      tft->drawRect(x, y, w, h, TFT_RED);
-    }
+void iconRDX::bitblt(uint16_t *out,uint16_t *img) {
+  for (int i=0;i<1040;i++) {
+     out[i]=~img[i];
   }
-
 }
-void iconPDX::show(bool f) {
-  if (!enabled) return;
+/*------------------------------------------------------------
+ * Check if the icon has been clicked
+ */
+bool iconRDX::check(int _x, int _y) {
 
-  show(f, false);
+   if (!enabled) return false;
+   if (_x >= x && _x <= (x+w) && _y >= y && _y <=(y+h)) {
+      if (time_us_32()-tbounce<200000) {
+         return false;
+      }
+      tbounce=time_us_32();
+      click=true;
+      //_INFOLIST("%s show(%s) enabled(%s) state(%s) active(%s)\n",__func__,name,BOOL2CHAR(enabled),BOOL2CHAR(state),BOOL2CHAR(active));
+      return true;
+   }
+   return false;
+}   
+/*--------------------------------------------------------------
+ * execute complimentary actions when clicked
+ */
+void iconRDX::onclick() {
+
+   //_INFOLIST("%s show(%s) enabled(%s) state(%s) active(%s)\n",__func__,name,BOOL2CHAR(enabled),BOOL2CHAR(state),BOOL2CHAR(active));
+   if (!enabled  || !active) {
+      show();
+      return;
+   }
+   if (hdl != NULL) hdl();
+   
 }
-
+/*---------------------------------------------------------------
+ * show the icon image based solely on the value of state
+ */
+void iconRDX::show() {
+   if (iconOn == NULL) return;
+   //_INFOLIST("%s show(%s) enabled(%s) state(%s) active(%s)\n",__func__,name,BOOL2CHAR(enabled),BOOL2CHAR(state),BOOL2CHAR(active));
+   if (!enabled) {
+    tft->pushImage(x,y,w,h,iconOn);
+    falsifyIcon();
+    return;
+   }
+   
+   if (state) {
+      tft->pushImage(x,y,w,h,iconOn);
+   } else {
+      bitblt(iconBuffer,(uint16_t*)iconOn);
+      tft->pushImage(x, y, w, h, iconBuffer);
+   }
+   return;
+}
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ * Button Class
+ */
 class buttonPDX {
   public:
 
@@ -560,10 +617,10 @@ buttonPDX::buttonPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint
 
 }
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-        displayPDX class
+        displayRDX class
         Manages an area with several controls
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-class displayPDX {        // The class
+class displayRDX {        // The class
   public:          // Access specifier
     roundedSquare b;
 
@@ -597,7 +654,7 @@ class displayPDX {        // The class
     btn btnPDX[BUTTON_END];
     bool redraw;
 
-    displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
+    displayRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void show(bool fShow);
     void check();
     void addBtn(int btnIndex, ButtonWidget* btn);
@@ -643,7 +700,7 @@ class displayPDX {        // The class
 /*---------------------
    Constructor and initialization
 */
-displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
+displayRDX::displayRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
 
   b.xStart = _x;
   b.yStart = _y;
@@ -695,7 +752,7 @@ displayPDX::displayPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, ui
 
 }
 
-void displayPDX::init() {
+void displayRDX::init() {
   if (!enabled) return;
   cq = false;
   cursor = S1KHZ;
@@ -704,7 +761,7 @@ void displayPDX::init() {
   setTriangle(TRIANGLE_RIGHT, false, false);
 
 }
-void displayPDX::onclickTriangle(int btnTriangle) {
+void displayRDX::onclickTriangle(int btnTriangle) {
   if (!enabled) return;
 
   switch(btnTriangle) {
@@ -726,7 +783,7 @@ void displayPDX::onclickTriangle(int btnTriangle) {
   setTriangle(btnTriangle,true,true);
 
 }
-int displayPDX::checkTriangle(int x, int y) {
+int displayRDX::checkTriangle(int x, int y) {
     if (!enabled) return -1;
 
     if (x >=trianglePDX[0].point1X && x <=trianglePDX[0].point2X && y>=trianglePDX[0].point3Y && y<=trianglePDX[0].point2Y) {
@@ -742,7 +799,7 @@ int displayPDX::checkTriangle(int x, int y) {
 
 }
 
-int displayPDX::checkButton(int x, int y) {
+int displayRDX::checkButton(int x, int y) {
   if (!enabled) return -1;
 
   for (int i = 0; i < 4; i++) {
@@ -773,7 +830,7 @@ int displayPDX::checkButton(int x, int y) {
 /*-------
    Handle Buttons
 */
-void displayPDX::fickleBtn(int btnIndex) {
+void displayRDX::fickleBtn(int btnIndex) {
   if (!enabled) return;
   if (btnPDX[btnIndex].fickle == true) {
     if (millis() - btnPDX[btnIndex].tfickle >= TOUT_FICKLE) {
@@ -783,12 +840,12 @@ void displayPDX::fickleBtn(int btnIndex) {
     }
   }
 }
-void displayPDX::addBtn(int btnIndex, ButtonWidget* b) {
+void displayRDX::addBtn(int btnIndex, ButtonWidget* b) {
   btnPDX[btnIndex].btn = b;
 
 }
 
-void displayPDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle) {
+void displayRDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle) {
   if (!enabled) return;
 
   strcpy(btnPDX[btnIndex].label, btnLabel);
@@ -797,7 +854,7 @@ void displayPDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle)
   btnPDX[btnIndex].fickle = fickle;
   btnPDX[btnIndex].tfickle = millis();
 }
-void displayPDX::set(int btnIndex,int v) {
+void displayRDX::set(int btnIndex,int v) {
   switch (btnIndex) {
     case BUTTON_BAND:
                     {
@@ -860,7 +917,7 @@ void displayPDX::set(int btnIndex,int v) {
 /*-------------------
  * Handler to onclick buttons
  */
-void displayPDX::onclick(int btnIndex) {
+void displayRDX::onclick(int btnIndex) {
   if (!enabled) return;
   switch (btnIndex) {
     
@@ -899,7 +956,7 @@ void displayPDX::onclick(int btnIndex) {
   }
 }
 
-void displayPDX::showBtn(int btnIndex) {
+void displayRDX::showBtn(int btnIndex) {
   if (!enabled) return;
 
   tft->setTextFont(2);
@@ -918,7 +975,7 @@ void displayPDX::showBtn(int btnIndex) {
    Handle triangles
 */
 
-void displayPDX::setTriangle(uint16_t t, bool inverse, bool fickle) {
+void displayRDX::setTriangle(uint16_t t, bool inverse, bool fickle) {
   if (!enabled) return;
 
   trianglePDX[t].inverse = inverse;
@@ -927,7 +984,7 @@ void displayPDX::setTriangle(uint16_t t, bool inverse, bool fickle) {
   showTriangle(t);
 }
 
-bool displayPDX::point(uint16_t x, uint16_t y) {
+bool displayRDX::point(uint16_t x, uint16_t y) {
   if (!enabled) return false;
   for (int i = 0; i < BUTTON_END; i++) {
     if (checkarea(x, y, btnPDX[i].x, btnPDX[i].y, btnPDX[i].x + btnPDX[i].w, btnPDX[i].y + btnPDX[i].h)) {
@@ -945,7 +1002,7 @@ bool displayPDX::point(uint16_t x, uint16_t y) {
 /*----
     show
 */
-void displayPDX::showTriangle(uint16_t t) {
+void displayRDX::showTriangle(uint16_t t) {
   if (!enabled) return;
   if (trianglePDX[t].inverse == true) {
     tft->fillTriangle(trianglePDX[t].point1X, trianglePDX[t].point1Y, trianglePDX[t].point2X, trianglePDX[t].point2Y, trianglePDX[t].point3X, trianglePDX[t].point3Y, TFT_BLUE);
@@ -958,7 +1015,7 @@ void displayPDX::showTriangle(uint16_t t) {
 /*--
    fickle
 */
-void displayPDX::fickleTriangle(uint16_t t) {
+void displayRDX::fickleTriangle(uint16_t t) {
   if (!enabled) return;
   if (trianglePDX[t].fickle == true) {
     if (millis() - trianglePDX[t].tfickle >= TOUT_FICKLE) {
@@ -973,7 +1030,7 @@ void displayPDX::fickleTriangle(uint16_t t) {
 /*------
    Check fickleness
 */
-void displayPDX::check() {
+void displayRDX::check() {
   if (!enabled) return;
   fickleTriangle(TRIANGLE_LEFT);
   fickleTriangle(TRIANGLE_RIGHT);
@@ -986,7 +1043,7 @@ void displayPDX::check() {
    Show main dialog canvas
 
 */
-void displayPDX::show(bool fShow) {
+void displayRDX::show(bool fShow) {
   if (!enabled) return;
   if (fShow == true) {
 
@@ -1008,7 +1065,7 @@ void displayPDX::show(bool fShow) {
    Show frequency and frequency cursor
 
 */
-void displayPDX::showFreq() {
+void displayRDX::showFreq() {
   if (!enabled) return;
 
   int xpos = b.xStart + XFREQ - 5;
@@ -1050,7 +1107,7 @@ void displayPDX::showFreq() {
 
 }
 
-void displayPDX::showCursor() {
+void displayRDX::showCursor() {
 
   if (!enabled) return;
   tft->setTextSize(1);
@@ -1065,7 +1122,7 @@ void displayPDX::showCursor() {
   text class
   Handle a scrolling text area in the display
  *********************************************************/
-class textPDX {        // The class
+class textRDX {        // The class
   public:          // Access specifier
 
 #define TEXTLINES 10
@@ -1097,7 +1154,7 @@ class textPDX {        // The class
 
     TFT_eSPI* tft;
 
-    textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
+    textRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void show();
     int checkPoint(int x, int y);
     void printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
@@ -1113,7 +1170,7 @@ class textPDX {        // The class
 
 };
 
-textPDX::textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
+textRDX::textRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
 
   b.xStart = _x;
   b.yStart = _y;
@@ -1141,7 +1198,7 @@ textPDX::textPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t
   fh = tft->fontHeight();
 
 }
-void textPDX::show() {
+void textRDX::show() {
   if (!enabled) return;
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
   tft->setTextColor(TFT_GREENYELLOW);
@@ -1149,7 +1206,7 @@ void textPDX::show() {
   tft->setTextSize(1);
 
 }  
-void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+void textRDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
   uint16_t _color;
   uint16_t _bg;
   if (!enabled) return;
@@ -1194,7 +1251,7 @@ void textPDX::printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_fr
   }
   
 }
-void textPDX::printline(char *s) {
+void textRDX::printline(char *s) {
   uint16_t _color;
   uint16_t _bg;
   if (!enabled) return;
@@ -1233,7 +1290,7 @@ void textPDX::printline(char *s) {
   }
   
 }
-void textPDX::scroll() {
+void textRDX::scroll() {
   if (!enabled) return;
 
   int i = TEXTLINES - 1;
@@ -1260,20 +1317,30 @@ void textPDX::scroll() {
   i = 0;
 
 }
-int textPDX::checkPoint(int x, int y) {
-  
+int textRDX::checkPoint(int x, int y) {
+
   if (!enabled) return -1;
   if ( (x >= b.xStart) && (x <= b.xStart + b.width) &&
        (y >= b.yStart) && (y <= b.yStart + b.height)) {
     int yPos = y - b.yStart + 5;
     yPos = yPos / 9;
     int yIndex = TEXTLINES - yPos;
-    return yIndex;
+    _INFOLIST("%s x(%d) y(%d) yIndex(%d)\n",__func__,x,y,yIndex);
+
+    /*--------
+     * Validate if this is a CQ call
+     */
+     if (yIndex >=0 && yIndex<TEXTLINES) {
+        _INFOLIST("%s qsowindow(%d) callsign(%s) state(%d) msg(%s)\n",__func__,t[yIndex].qsowindow,t[yIndex].station_callsign,ft8_state,t[yIndex].msg);
+        if (strstr(t[yIndex].msg, "CQ") && strcmp(t[yIndex].station_callsign,"") != 0 && ft8_state==0) {
+           return yIndex;      
+        }
+     }
   }
   return -1;
 }
 
-void textPDX::demo() {
+void textRDX::demo() {
 
 }
 
@@ -1282,7 +1349,7 @@ void textPDX::demo() {
   This class handles a waterfall (spectrum) where signals
   are shown
  *********************************************************/
-class spectrumPDX {        // The class
+class spectrumRDX {        // The class
   public:          // Access specifier
 
 #define BINS  480
@@ -1296,11 +1363,13 @@ class spectrumPDX {        // The class
     bool enabled=false;
     TFT_eSPI* tft;
 
-    spectrumPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
+    spectrumRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void init();
     void draw(int m[]);
     void linedraw();
     void reset();
+    void write(char *msg);
+
 
   private:
 
@@ -1308,7 +1377,7 @@ class spectrumPDX {        // The class
 
 };
 
-spectrumPDX::spectrumPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
+spectrumRDX::spectrumRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
 
   b.xStart = _x;
   b.yStart = _y;
@@ -1326,7 +1395,7 @@ spectrumPDX::spectrumPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, 
 /*----------------
    Initialize waterfall
 */
-void spectrumPDX::init() {
+void spectrumRDX::init() {
   if (!enabled) return;
 
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
@@ -1362,7 +1431,7 @@ void spectrumPDX::init() {
   tft->drawString(buf, b.xStart + 10 + 400, b.yStart + 2, 2); // Print the line
 
 }
-void spectrumPDX::linedraw() {
+void spectrumRDX::linedraw() {
   if (!enabled) return;
 
   tft->drawFastHLine (b.xStart, b.yStart + time_idx + 0 + 25  , b.width, TFT_CYAN);
@@ -1373,17 +1442,26 @@ void spectrumPDX::linedraw() {
   }
 
 }
-void spectrumPDX::reset() {
+void spectrumRDX::reset() {
   if (!enabled) return;
 
   tft->fillRect(b.xStart, b.yStart + 25, 478, LINES, TFT_BLUE);
   time_idx=0;
 }
 
+void spectrumRDX::write(char *msg) {
+
+  tft->fillRect(b.xStart+100, b.yStart + 50, 200, 80, TFT_RED);
+  tft->drawFastHLine (b.xStart+102, b.yStart + 52  , 196, TFT_WHITE);
+  tft->drawFastHLine (b.xStart+102, b.yStart + 50+78  , 196, TFT_WHITE);
+  tft->setTextColor(TFT_WHITE, TFT_RED);
+  tft->drawString(msg, b.xStart + 106, b.yStart + 60, 1); // Print the line
+ 
+}
 /*-----------------
    Draw waterfall directly from energy bins
 */
-void spectrumPDX::draw(int m[]) {
+void spectrumRDX::draw(int m[]) {
   if (!enabled) return;
   for (int i = 0; i < BINS; i++) {
     int v = m[i];
@@ -1421,7 +1499,7 @@ void spectrumPDX::draw(int m[]) {
   footer class
   Manages the footer of the display with static information
 *********************************************************/
-class footerPDX {        // The class
+class footerRDX {        // The class
   public:          // Access specifier
 
 
@@ -1434,7 +1512,7 @@ class footerPDX {        // The class
 
     TFT_eSPI* tft;
 
-    footerPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
+    footerRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg);
     void init();
     void show();
     void showtime();
@@ -1445,7 +1523,7 @@ class footerPDX {        // The class
     uint16_t zambo;
 
 };
-footerPDX::footerPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
+footerRDX::footerRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t _h, uint8_t _r, uint16_t _c, uint16_t _tx, uint16_t _bg) {
 
   b.xStart = _x;
   b.yStart = _y;
@@ -1458,7 +1536,7 @@ footerPDX::footerPDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint
   tx = _tx;
   tft = _tft;
 }
-void footerPDX::init() {
+void footerRDX::init() {
   if (!enabled) return;
 
   tft->fillRoundRect(b.xStart, b.yStart, b.width, b.height, b.cornerRadius, b.color);
@@ -1471,7 +1549,7 @@ void footerPDX::init() {
   gmtime_r(&now, &timeinfo);
 
 }
-void footerPDX::show() {
+void footerRDX::show() {
   if (!enabled) return;
 
   tft->setTextColor(TFT_GREENYELLOW);
@@ -1499,7 +1577,7 @@ void footerPDX::show() {
   }
   showtime();
 }
-void footerPDX::showtime() {
+void footerRDX::showtime() {
   if (!enabled) return;
   if (clock == false) {
     return;
@@ -1510,12 +1588,19 @@ void footerPDX::showtime() {
   tft->setTextColor(TFT_RED, TFT_WHITE);
   uint16_t fh = tft->fontHeight();
 
-  sprintf(hi, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  int tzhour=timeinfo.tm_hour;
+  if (TIMEZONE != 0) {
+     tzhour=tzhour+TIMEZONE;
+     if (tzhour>23) tzhour=tzhour-24;
+     if (tzhour<0)  tzhour=tzhour+24;
+  }
+
+  sprintf(hi, "%02d:%02d:%02d", tzhour, timeinfo.tm_min, timeinfo.tm_sec);
   tft->drawString(hi, b.xStart + XCLOCK, b.yStart + YCLOCK, 1); // Print the line
 
 }
 
-void footerPDX::update() {
+void footerRDX::update() {
 
   if (!enabled) return;
 
@@ -1533,41 +1618,33 @@ void footerPDX::update() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 //*                          Objects living on the GUI display                                               *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
-iconPDX wifiIcon = iconPDX(&tft, 2, 2, wifiSignWidth, wifiSignHeight, &wifiSign[0], NULL);
-iconPDX termIcon = iconPDX(&tft, 36, 2, terminalWidth, terminalHeight, &terminal[0], NULL);
-iconPDX calIcon  = iconPDX(&tft, 70, 2, infoWidth, infoHeight, &infoX[0], NULL);
-iconPDX catIcon  = iconPDX(&tft, 104, 2, termWidth, termHeight, &termSign[0], NULL);
-iconPDX cntIcon  = iconPDX(&tft, 138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL);
-iconPDX wsjtIcon = iconPDX(&tft, 172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL);
-iconPDX quadIcon = iconPDX(&tft, 206, 2, alertWidth, alertHeight, &alert[0], NULL);
-iconPDX muteIcon = iconPDX(&tft, 240, 2, micWidth, micHeight, &mic[0], NULL);
-iconPDX spkrIcon = iconPDX(&tft, 274, 2, speakerWidth, speakerHeight, &speaker[0], NULL);
+iconRDX icon[] = {iconRDX(&tft,(char*)"wifi",     2, 2, wifiSignWidth, wifiSignHeight, &wifiSign[0], NULL),
+                  iconRDX(&tft,(char*)"fsb",     36, 2, terminalWidth, terminalHeight, &terminal[0], NULL),
+                  iconRDX(&tft,(char*)"adif",    70, 2, infoWidth, infoHeight, &infoX[0], NULL),
+                  iconRDX(&tft, (char*)"x",     104, 2, termWidth, termHeight, &termSign[0], NULL),
+                  iconRDX(&tft, (char*)"x",     138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL),
+                  iconRDX(&tft, (char*)"x",     172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL),
+                  iconRDX(&tft, (char*)"reset", 206, 2, alertWidth, alertHeight, &alert[0], NULL),
+                  iconRDX(&tft, (char*)"x",     240, 2, micWidth, micHeight, &mic[0], NULL),
+                  iconRDX(&tft, (char*)"x",     274, 2, speakerWidth, speakerHeight, &speaker[0], NULL) };
+
 linearMeter m = linearMeter(&tft, 350, 2, 5, 25, 3, 15, BLUE2BLUE, TFT_BLACK);
-displayPDX d = displayPDX(&tft, 2, 50, 272, 99, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
+displayRDX d = displayRDX(&tft, 2, 50, 272, 99, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
 progressBar p = progressBar(&tft, 2, 44, 272, 4, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
-textPDX text = textPDX(&tft, 2 + 272 + 2, 50, 204, 99, 10, TFT_WHITE, TFT_BLACK, TFT_WHITE);
-spectrumPDX s = spectrumPDX(&tft, 2, 50 + 100 + 2, 480, 150, 10, TFT_BLUE, TFT_CYAN, TFT_WHITE); //previously 160-155
-footerPDX foot = footerPDX(&tft, 2, 50 + 100 + 2 + 150, 480, 18, 10, TFT_WHITE, TFT_RED, TFT_WHITE); //previously 160-155
+textRDX text = textRDX(&tft, 2 + 272 + 2, 50, 204, 99, 10, TFT_WHITE, TFT_BLACK, TFT_WHITE);
+spectrumRDX s = spectrumRDX(&tft, 2, 50 + 100 + 2, 480, 150, 10, TFT_BLUE, TFT_CYAN, TFT_WHITE); //previously 160-155
+footerRDX foot = footerRDX(&tft, 2, 50 + 100 + 2 + 150, 480, 18, 10, TFT_WHITE, TFT_RED, TFT_WHITE); //previously 160-155
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=[End of definitions]*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
 //*                          Operation of GUI and support structures                                         *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**=*=*
-void tft_init() {
+void tft_begin() {
 
 
   // Enable and show the different GUI objects
 
-  wifiIcon.enabled=true;
-  termIcon.enabled=true;
-  calIcon.enabled=true;
-  catIcon.enabled=true;
-  cntIcon.enabled=true;
-  quadIcon.enabled=true;
-  wsjtIcon.enabled=true;
-  muteIcon.enabled=true;
-  spkrIcon.enabled=true;
-
+  _INFOLIST("%s initialization\n",__func__);
   m.enabled=true;
   d.enabled=true;
   p.enabled=true;
@@ -1577,15 +1654,53 @@ void tft_init() {
 
 // Show GUI compoments
 
-  wifiIcon.show(true,true);
-  termIcon.show(true,true);
-  calIcon.show(true,true);
-  catIcon.show(true,true);
-  cntIcon.show(true, true);
-  quadIcon.show(true, true);
-  wsjtIcon.show(true, true);
-  muteIcon.show(true,true);
-  spkrIcon.show(true,true);
+/*----------------------------------------------------------------------------------*
+ * Active GUI Icons
+ *    - WiFi
+ *    - File System Browser
+ *    - ADIF Logbook
+ *    - reset QSO
+ *----------------------------------------------------------------------------------*/
+/*---------------------------------------
+ * Define icons, default is disabled
+ */
+  for (int i=0;i<MAXICON;i++) {
+    icon[i].enabled=false;
+    icon[i].state=false;
+    icon[i].active=true;
+    icon[i].click=false;
+    icon[i].show();
+  }
+ 
+#ifdef RP2040_W
+  icon[WIFIICON].enabled=true;
+  icon[WIFIICON].show();
+  icon[WIFIICON].hdl=tft_syncNTP;
+#endif //RP2040_W
+
+#ifdef FSBROWSER
+  icon[TERMICON].enabled=true;
+  icon[TERMICON].state=false; 
+  icon[TERMICON].active=true;
+  icon[TERMICON].show();
+  icon[TERMICON].hdl=tft_FSBrowser;
+  icon[TERMICON].active=true;
+#endif //RP2040_W && FSBROWSER
+
+#ifdef ADIF
+  icon[CALICON].enabled=true;
+  icon[CALICON].state=false;
+  icon[CALICON].active=true;
+  icon[CALICON].hdl=tft_ADIF;
+  icon[CALICON].show();
+#endif //ADIF
+
+  icon[QUADICON].enabled=true;
+  icon[QUADICON].state=true;
+  icon[QUADICON].hdl=tft_quad;
+  icon[QUADICON].show();
+
+/*--------------------------------------------------------------------------------*/
 
   m.show(SUNIT, 0);
 
@@ -1615,38 +1730,28 @@ void tft_init() {
   GUI_Enabled=true;
 
 }
+
 /*--------------------
- * Handler to GUI buttons
+ * Mark the end of a QSO
  */
 void tft_endQSO() {
   d.set(BUTTON_CQ,0);
   d.set(BUTTON_TX,0);
+  ft8_state=0;
+  endQSO=false;
 }
 
 void tft_set(int btnIndex,int v) {
   d.set(btnIndex,v);
 }
 
+/*------------------------------------------------------------------------
+ * initialzes
+ */
 /*********************************************************
   setup
   initializes the dialog
 *********************************************************/
-void tft_setup() {
-
-
-  // Use this calibration code in setup():
-  tft.setTouch(calData);
-
-  tft.init();
-  tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
-  tft.fillScreen(TFT_BLACK);     //TFT_CYAN
-  tft.fillScreen(TFT_BLACK);
-
-  // Swap the colour byte order when rendering
-  tft.setSwapBytes(true);
-
-} // main
-
 uint32_t t1 = time_us_32();
 uint32_t t2 = 0;
 uint32_t t3 = 0;
@@ -1655,10 +1760,10 @@ int hh = 16;
 int mm = 00;
 int ss = 00;
 /*-------------------------------------------------------------------
-   Verify if the touchscreen has been touched and the coordinates
-*/
+ * check for GUI objects to have been touch by the pen
+ */
 void tft_checktouch() {
-
+  
   foot.update();
 
   uint16_t x = 0, y = 0; // To store the touch coordinates
@@ -1698,7 +1803,14 @@ void tft_checktouch() {
        
        updateEEPROM();
     }
+
+    for (int i=0;i<MAXICON;i++) {
+       icon[i].check(x,y);
+    }
+
+    
     int i = text.checkPoint(x, y);
+  
     if (i == -1) return;
     d.set(BUTTON_CQ,2);
     
@@ -1712,10 +1824,36 @@ void tft_checktouch() {
   foot.update();
 
 }
+/*-----------------------------------------------------------------------------
+ * setup GUI resources
+ */
+void tft_setup() {
+
+  //_INFOLIST("%s \n",__func__);
+  // Use this calibration code in setup():
+  tft.setTouch(calData);
+  tft.init();
+
+  tft.setRotation(ROTATION_SETUP);   //ROTATION_SETUP
+  tft.fillScreen(TFT_BLACK);     //TFT_CYAN
+  tft.fillScreen(TFT_BLACK);
+
+  // Swap the colour byte order when rendering
+  tft.setSwapBytes(true);
+  tft.fillScreen(TFT_BLACK);
+
+/*------------------------------------------
+ * Create all GUI objects
+ */  
+  tft_begin();
+
+} // main
+
 /*-----------------------------
    update waterfall
 */
 void tft_updatewaterfall(int mag[]) {
+  
   if (time_us_32() - t1 >= 1000000) {
     t1 = time_us_32();
     s.draw(mag);
@@ -1740,30 +1878,57 @@ void tft_updatewaterfall(int mag[]) {
     //m.show(SUNIT,v);
   }
 }
+/*-------------------------------------------------------------------------
+ * update the IP address at the footer
+ */
+void tft_setIP(char *ip_address) {
+  strcpy(ip,ip_address);
+  foot.show();
+}
+/*-------------------------------------------------------------------------
+ * reset the Bar
+ */
+
 void tft_resetBar() {
   p.reset();
 }
+/*-------------------------------------------------------------------------
+ * set the bar to a given value
+ */
+
 void tft_setBar(int colour) {
   p.show(colour);
 }
+/*-------------------------------------------------------------------------
+ * update the bar while transmitting
+ */
 void tft_setBarTx() {
   p.progress++;
   p.show(TFT_RED);
 }
+/*-------------------------------------------------------------------------
+ * waterfall marker
+ */
 void tft_endoftime() {
+  
   s.linedraw();
   foot.update();
 
 }
-/*---------------------------------
- * Store a message with supplemental
- * data.
+/*-------------------------------------------------------------------------------
+ * This is the main loop and dispatcher for icons objects
  */
-void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
-   text.printline(qsowindow,_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
-}
+void tft_process() {
 
-/*---------------------
+  for (int i=0;i<MAXICON;i++) {
+     if (icon[i].click) {
+        icon[i].click=false;
+        icon[i].onclick();
+     }
+  }
+  
+}  
+/*---------------------------------------------------------------------------------
    This is the operational handling of the TFT
 */
 void tft_run() {
@@ -1773,6 +1938,50 @@ void tft_run() {
   d.check();
 
 }
+/*---------------------------------------------------------------------------------
+ * external procedure to change a given icon state
+ */
+void tft_iconState(int _icon,bool _state) {
+   if (_icon < 0 || _icon > (MAXICON-1)) {
+      return;
+   }
+   icon[_icon].state=_state;
+   icon[_icon].show();
+   icon[_icon].onclick();
+}
+/*---------------------------------------------------------------------------------
+ * external procedure to change a given icon enabled condition
+ */
+
+void tft_iconSet(int _icon,bool _enabled) {
+  
+   if (_icon < 0 || _icon > (MAXICON-1)) {
+      return;
+   }
+   icon[_icon].enabled=_enabled;
+   icon[_icon].show();
+}
+
+void tft_iconActive(int _icon,bool _active) {
+   if (_icon < 0 || _icon > (MAXICON-1)) {
+      return;
+   }
+   icon[_icon].active=_active;
+   icon[_icon].show();
+  
+}
+
+/*---------------------------------
+ * Store a QSO record with supplemental
+ * data using the ADIF format
+ */
+void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square) {
+   text.printline(qsowindow,_qso,s,af_frequency,self_rx_snr,station_callsign,grid_square);
+}
+
+/*--------------------------------------
+ * Update band on main dialog
+ */
 void tft_updateBand() {
      
    if (!GUI_Enabled) return; 
@@ -1786,10 +1995,11 @@ void tft_updateBand() {
    }    
 }
 
+/*----------------------------------------------------------
+ * Generic ussage of the progress bar 
+ */
 
 progressBar a = progressBar(&tft, 50, 80, 300, 4, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
-
-
 void tft_error(uint16_t e) {
 
   int x=e/5;
@@ -1797,22 +2007,23 @@ void tft_error(uint16_t e) {
   return;
   
 }
+/*---------------------------------------------------------
+ * Prints a generic message on the text area
+ */
 void tft_print(char *t) {
   text.printline(t);
   
 }
+/*---------------------------------------------------------
+ * This is the GUI definition when performing autocal
+ */
 void tft_autocal() {
   // Enable and show the different GUI objects
 
-  wifiIcon.enabled=false;
-  termIcon.enabled=false;
-  calIcon.enabled=false;
-  catIcon.enabled=false;
-  cntIcon.enabled=false;
-  quadIcon.enabled=false;
-  wsjtIcon.enabled=false;
-  muteIcon.enabled=false;
-  spkrIcon.enabled=false;
+  for (int i=0;i<MAXICON;i++) {
+     icon[i].enabled=false;
+     icon[i].show();
+  }
 
   d.enabled=false;
   p.enabled=false;
@@ -1831,4 +2042,87 @@ void tft_autocal() {
   strcpy(ip,"AutoCal");
   foot.show();
 
+}
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ *                              Icon handlers
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+void tft_syncNTP() {
+
+
+#ifdef RP2040_W  
+
+  icon[WIFIICON].state=true;
+  icon[WIFIICON].show();
+  s.write((char*)"WiFi NTP time sync");
+  setup_wifi();
+  _INFOLIST("%s WiFi NTP time sync ntp(%s,%s)\n",__func__,ntp_server1,ntp_server2);
+
+  checkAP(wifi_ssid,wifi_psk);
+  getClock((char*)ntp_server1,(char*)ntp_server2);
+  resetAP();
+  _INFOLIST("%s completed time sync\n",__func__);
+  
+#endif //RP2040_W
+
+  icon[WIFIICON].state=false;
+  icon[WIFIICON].show();
+  s.reset();
+  
+}
+
+/*-----------------------------------------------------------------
+ * Reset QSO
+ */
+void tft_quad() {
+
+  icon[QUADICON].state=false;
+  icon[QUADICON].show();
+  s.write((char*)"Reset QSO");
+  tft_endQSO();
+  delay(500);
+  s.reset();
+  icon[QUADICON].state=true;
+  icon[QUADICON].show();
+ 
+}
+/*--------------------------------------------------------------------
+ * handler for ADIF logbook recording
+ */
+void tft_ADIF() {
+  icon[CALICON].state=!icon[CALICON].state;
+  logADIF=icon[CALICON].state; 
+  icon[CALICON].show();
+}
+/*---------------------------------------------------------------------
+ * handler for File System Browser activation
+ */
+void tft_FSBrowser() {
+
+  icon[TERMICON].click=false;
+  icon[TERMICON].state=true;
+  icon[TERMICON].active=false;
+  icon[TERMICON].show();
+  
+  
+#ifdef FSBROWSER
+
+  _INFOLIST("%s starting Web Browser\n",__func__);
+  s.write((char*)"FS Web Browser active");
+  checkAP(wifi_ssid,wifi_psk);
+  _INFOLIST("%s WiFi connectivity established\n",__func__);
+  
+  setup_FSBrowser();
+  _INFOLIST("%s setup FS Browser completed\n",__func__);
+  while (true) {
+    loop_FSBrowser();
+    tft_checktouch();
+  } 
+  _INFOLIST("%s FS Browser terminated\n",__func__); 
+  resetAP();
+#endif //RP2040_W && FSBROWSER
+
+  icon[TERMICON].state=false;
+  icon[TERMICON].active=true;
+  icon[TERMICON].show();
+  s.reset();
 }

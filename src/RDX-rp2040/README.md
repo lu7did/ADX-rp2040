@@ -32,6 +32,10 @@ features on this project are documented here.
 * Automatic FT8 operation.
 * TFT LCD 480x320 support.
 * Autocalibration mode has been added check the appropriate section on how to enable and operate.
+* NTP protocol based time synchronization.
+* Web browser console (access to File System in Flash memory).
+* Improvements in the FT8 protocol handling cycle.
+* GUI development.
 ```
 
 
@@ -41,7 +45,7 @@ features on this project are documented here.
 Same hardware than the supported by the ADX-rp2040 firmware with the following additions.
 
 *	Audio amplifier (see modifications).
-*	TFT LCD IL99488 480x320 board (see wiring). 
+*	TFT LCD IL9488 480x320 board (see wiring). 
 
 
 # Firmware
@@ -144,7 +148,7 @@ While the autocalibration is performed the progress is also indicated at the TFT
 ```
                                      *** Warning ***
 
-Calibration time might vary depending on the unique factory characteristics of the Si5351 chipset being used. Upon finalization the power needs to
+Calibration total time might vary depending on the unique factory characteristics of the Si5351 chipset being used. Upon finalization the power needs to
 be recycled for the board to restart.
 ```
 
@@ -161,8 +165,20 @@ There are several strategies to address this problem:
 *	Using the NTP protocol over the Internet to synchronize with a time server.
 *	Some manual way to synchronize the time.
 
-At this point the later strategy is the selected, if not because it's the simplest and quickest to implement. Upon startup the rp2040 board starts it's internal
-clock is set arbitrarly. However, if the UP button is found pressed while performing the initial firmware setup the processing is held (all LEDs blinking
+At this point the NTP protocol and manual synchronization are used as an strategy, the manual synchronization is the simplest and quickest to implement, it can 
+be implemented on a minimum rp2040 configuration without any TCP/IP connectivity, the later having a rp2040_W model as a pre-requisite.
+
+### Time Zone
+
+Time zone can be set by modifying the **#define TIMEZONE x** statement which is the amount of hours to be added or substracted to the UTC time provided by the
+system clock. Without it the hour will be displayed as UTC.
+
+The system clock once calibrated to be synchronized at the second 0/15/30 or 45 of the minute has no effect on the FT8 decoding.
+
+### Manual time synchronization
+
+With a manual synchronization Upon startup the rp2040 board starts it's internal clock is set arbitrarly to zero. 
+However, if the UP button is found pressed while performing the initial firmware setup the processing is held (all LEDs blinking
 signals that situation). The button can be held pressed until the top of the minute and when released the internal clock is set to 00:00:00 and therefore
 left synchronized.
 
@@ -182,6 +198,13 @@ However a simple method is to use a clock which actually is digital but has an a
 must be released, this will account for some differences in the reaction time to do that and thus enhance the synchronization process. 
 ```
 
+### NTP based synchronization
+
+When provided with WiFi AP access credentials the firmware would attempt to connect to the Internet and synchronize the internal
+clock automatically during the initial start up without any action from the operator.
+This requires a rp2040_w model though.
+
+
 ## GUI
 
 The disposition of the LCD is just to make the hardware development more amenable, but it should be placed on top of the transceiver in some form of "sandwich" configuration.
@@ -193,29 +216,55 @@ The main areas of the GUI are:
 *	Icons.
 	Icons are meant to be used to activate or de-activate a given function such as WiFi, TCP/IP terminal, OTA firmware update, mount/extract a SD card, create an ADIF log and others.
 	When the function isn't active it's shown as crossed (as they are most at this time).
+	*	Active icons
+		Active icons are shown as reversed between active and inactive state, in most functions where the FT8 decoding is
+		stop while operating the function a red banner will appear over the waterfall showing the condition being activated.
+		* **Time synchronization**. When tapped the firmware will attempt a time synchronization. No FT8 decoding activity will 
+		  take place while performing the synchronization. Upon boot up this activity is performed automatically if the
+                  WiFi AP credentials are provided. This function is enabled when the RP2040_W directive is enabled.
+		  While performing the time synchronization a text message is placed in the waterfall area indicating that.
+		* **Web based File System browser**. When tapped the firmware will enable the Web browser based file system console, it
+		  can be accessed as *http://rdx.local/edit* . No FT8 decoding activity will take place while the web server is
+		  active. Tapping the icon again will disable it and resume the FT8 decoding activity. This function is enabled when
+		  the RP2040_W and FSBROWSER directives are enabled.
+		  While the browser is enabled a text message is placed in the waterfall area indicating that, no simultaneous FT8 operation
+		  can take place while the browser is active.
+		* **ADIF logging**. When tapped the firmware will generate an ADIF record for every QSO it is performed over the air,
+		  the resulting file is named **/RDX.adif** and can be retrieved using the Web based File System browser. Beware that
+ 		  the file system has very limited space resources and therefore no large files can be handled.
+		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it.
+
+```
+Warning
+
+When creating an ADIF file precise date and time are needed, therefore at build time this option is protected to be available
+only when the RP2040_W, FSBROWSER and ADIF directives are defined.
+
+```
+
 * 	Meter.
 	The meter is meant to display signal strenght (S-Units), power (in Watts), SWR or rx level. At this point only the S-meter is implemented to show a level proportional
 	to the energy in the passband, it will be calibrated approximately to S-units.
 * 	Display area.
 	The display area shows several controls.
-	*	Buttons.
+	*	**Buttons**.
 		There are four buttons.
-		*	TX
+		*	**TX**
 			When touched it will activate the transmission (similar to press the hardware TX button) and show as inverse, reversing it when touched again. 
 			It will also inverse if the board is placed in transmission mode by the firmware or when the TX is activated by pressing the TX button.
-		*	CQ/Call
+		*	**CQ/Call**
 			When touched will inverse and start sending CQ calls, eventually answering them and performing one full automated QSO until touched again (when the
 			Manual/Auto control is in Manual). When selecting a particular CQ call from the text area it will be shown as "Call" while the QSO is attempted.
-		*	Manual/Auto
+		*	**Manual/Auto**
 			When in Manual the firmware will call CQ when pressing the CQ button or will answer a call if selected from the text display, in Auto mode it will
 			call CQ periodically and attempt to answer the first CQ call heard.
-		*	Band
+		*	**Band**
 			Shows the current band, the firmware support the 40,30,20 and 10 meters band, it will circulate amont them by pressing the button. Tha band change can 
 			also be made by the standard ADX hardware procedure and changes made this way reflected in the value of the button. Also changes in the band performed
 			by the cursors will be reflected.
-	*	Cursors.
+	*	**Cursors**.
 		The left cursor will decrease the current band and the right cursor increase it. Changes made will be reflected in the board LED and in the Band button.
-	*	Frequency display.
+	*	**Frequency display**.
 		The frequency display will reflect the standard FT8 frequency of the selected band.
 * 	Text area.
 	This area will reflect several QSO lines using a color scheme to identify the type of it.
@@ -246,7 +295,6 @@ The hardware required by this transceiver derives directly from the ADX Transcei
 * Build an ADX transceiver and replace the Arduino Nano with the ADX2PDX daughter board created by Barb (WB2CBA), see below.
 
 ## ADX_rp2040 circuit
-
 
 The circuit used is esentially the ADX transceiver with the minimum set of modifications to accomodate a Raspberry pico (rp2040 processor) instead of an
  Arduino Nano (ATMEGA328p processor).
@@ -340,22 +388,22 @@ functions will be tested as the implementation evolves.
 * Hardware interface to SD-Card/Export
 * File system (Flash based)
 * File system (SD card based)
+* Export/Import file feature
 * ADIF generation
 
 ## low priority roadmap
 * Develop or adopt a PCB layout design.
-* CAT support (TS840).
+* CAT support (TS480).
 * WSPR beacon.
 * Support for QUAD multifilter board
-* CW operation.
-* GPS support & time alignment
+* CW operation (basic, emergency)
+* GPS support (time alignment & grid definition)
 * Support for Si4732 chipset
 * Support for smaller display 
 * Support for ATU reset
 * SWR indicator & control (as HW support is introduced)
 * Filter support (as HW support is introduced)
-* Support Si4732 based receiver (as HW support is introduced)
-
+* Support Si4732 based receiver (higher priority if HW support is introduced)
 ## rp2040-w specific
 * WiFi support
 * mDNS implementation (rdx.local resolution)

@@ -92,6 +92,7 @@ void setup_adc() {
 void collect_adc() {
 
   adc_fifo_drain();
+  adc_irq_set_enabled(false);
   adc_run(false);
       
   dma_channel_configure(dma_chan, &cfg,
@@ -100,5 +101,6 @@ void collect_adc() {
       CAPTURE_DEPTH,          // transfer count
       true            // start immediately
       );
+  adc_irq_set_enabled(true);
   adc_run(true);
 }

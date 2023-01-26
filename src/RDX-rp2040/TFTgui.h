@@ -159,6 +159,7 @@ extern "C" {
 enum agcMode {NONE, SLOW, FAST};
 enum bandMode {B160M, B80M, B60M, B40M, B30M, B20M, B17M, B15M, B12M, B10M};
 
+
 /*--------------------
  * Binary definition of a terminal icon
  *--------------------*/
