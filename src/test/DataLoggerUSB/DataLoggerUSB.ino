@@ -1,91 +1,85 @@
-
 // Simple logger with USB upload to PC
 // Uses SingleFileDrive to export an onboard LittleFS file to the computer
 // The PC can open/copy the file, and then the user can delete it to restart
 
 // Released to the public domain,  2022 - Earle F. Philhower, III
 
-#include "SingleFileDrive.h"
+#include <SingleFileDrive.h>
 #include <LittleFS.h>
 
-#include "pico/stdlib.h"
-#include "hardware/adc.h"
-#include "hardware/dma.h"
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <stdint.h>
-#include "hardware/watchdog.h"
-#include "Wire.h"
-#include <EEPROM.h>
-#include "pico/binary_info.h"
-#include "hardware/gpio.h"
-#include "hardware/sync.h"
-#include "hardware/structs/ioqspi.h"
-#include "hardware/structs/sio.h"
-#include <stdio.h>
-#include "hardware/pwm.h"
-#include "hardware/uart.h"
-#include <WiFi.h>
-#include <Time.h>
-#include <stdbool.h>
-#include <WiFiUdp.h>
-#include <si5351.h>
-#include "SPI.h"
-#include <FS.h>
+uint32_t cnt = 0;
+bool okayToWrite = true;
 
-bool safe=true;
-int lower = 1;
-int upper = 6;
-int count = 10;
+char hi[128];
 
-void myPlugCB(uint32_t data) {
-    // Tell my app not to write to flash, we're connected
-    safe=false;    
+
+// Make the CSV file and give it a simple header
+void headerCSV() {
+  //File f = LittleFS.open("rdx.txt", "w");
+  //f.printf("sample,millis,temp,rand\n");
+  //f.close();
+  cnt = 0;
 }
 
-void myUnplugCB(uint32_t data) {
-    // I can start writing to flash again
-    safe=true;
+// Called when the USB stick connected to a PC and the drive opened
+// Note this is from a USB IRQ so no printing to SerialUSB/etc.
+void plug(uint32_t i) {
+  (void) i;
+  okayToWrite = false;
 }
 
-void myDeleteCB(uint32_t data) {
-    // Maybe LittleFS.remove("myfile.txt")?  or do nothing
-    Serial.println("remove file");
+// Called when the USB is ejected or removed from a PC
+// Note this is from a USB IRQ so no printing to SerialUSB/etc.
+void unplug(uint32_t i) {
+  (void) i;
+  okayToWrite = true;
+}
+
+// Called when the PC tries to delete the single file
+// Note this is from a USB IRQ so no printing to SerialUSB/etc.
+void deleteCSV(uint32_t i) {
+  (void) i;
+  LittleFS.remove("rdx.txt");
+  headerCSV();
 }
 
 void setup() {
-    Serial.begin(115200);
-    while(!Serial);
-    Serial.flush();
-    Serial.println("SingleFileDrive ready");
-    
-    LittleFS.begin();
-    singleFileDrive.onPlug(myPlugCB);
-    singleFileDrive.onUnplug(myUnplugCB);
-    singleFileDrive.onDelete(myDeleteCB);
-    singleFileDrive.begin("littlefsfile.csv", "Data Recorder.csv");
+  Serial.begin(115200);
+  delay(5000);
+
+  LittleFS.begin();
+
+  // Set up the USB disk share
+  singleFileDrive.onDelete(deleteCSV);
+  singleFileDrive.onPlug(plug);
+  singleFileDrive.onUnplug(unplug);
+  singleFileDrive.begin("rdx.txt", "RDX Transceiver ADIF Logbook");
+
+  // Find the last written data
+  File f = LittleFS.open("rdx.txt", "r");
+  if (!f || !f.size()) {
+    cnt = 1;
+    headerCSV();
+  } else {
+    if (f.size() > 2048) {
+      f.seek(f.size() - 1024);
+    }
+    do {
+      String s = f.readStringUntil('\n');
+      sscanf(s.c_str(), "%lu,", &cnt);
+    } while (f.available());
+    f.close();
+    cnt++;
+  }
+  
 }
 
 void loop() {
 
-   // Take some measurements, delay, etc.
-   delay(1000);
-    if (safe) {
-        noInterrupts();
-        File f = LittleFS.open("littlefsfile.csv", "a");
-
-        int data1 = (rand() % (upper - lower + 1)) + lower;
-        int data2 = (rand() % (upper - lower + 1)) + lower;
-        int data3 = (rand() % (upper - lower + 1)) + lower;
-        
-        f.printf("%d,%d,%d\n", data1, data2, data3);
-        f.close();
-        interrupts();
-        Serial.println("Wrote file");
-    } else {
-        Serial.println("Unsafe to write");
-        delay(1000);
-    }
-
+  
+  noInterrupts();
+  if (okayToWrite) {
+  }
+  interrupts();
+  delay(10000);
 }

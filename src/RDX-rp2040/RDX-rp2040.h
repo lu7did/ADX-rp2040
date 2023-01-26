@@ -230,12 +230,11 @@ typedef void (*CALLQSO)(int i);
 //*                               TCP/IP related areas                                                    *
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 #define HOSTNAME              PROGNAME
-//#define NTP_SERVER1           "time.nist.gov"    //NTP server primary
-#define NTP_SERVER1           "132.163.97.1"    //NTP server primary
-#define NTP_SERVER2           "pool.ntp.org"     //NTP server secondary
+#define NTP_SERVER1           "132.163.97.1"    //time.nist.gov in case of a faulty DNS server
+#define NTP_SERVER2           "pool.ntp.org"     //NTP server secondary      
 #define INET_SERVER           "www.google.com"     //Check some relevant host or IP address of interest to check connectivity
 #define TIMEZONE              -3                 //Buenos Aires, Argentina
-#define ADIFFILE              "/rdx.adif"
+#define ADIFFILE              "/rdx.txt"
 #define QSO_MESSAGE           "73 and GL"
 
 

@@ -1644,7 +1644,7 @@ void tft_begin() {
 
   // Enable and show the different GUI objects
 
-  _INFOLIST("%s initialization\n",__func__);
+  //_INFOLIST("%s initialization\n",__func__);
   m.enabled=true;
   d.enabled=true;
   p.enabled=true;
