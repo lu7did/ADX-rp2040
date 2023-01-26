@@ -393,37 +393,43 @@ functions will be tested as the implementation evolves.
 
 # Pending
 
-* Organize and add functionality for icons
+* Develop or adopt a PCB layout design.
+* Organize and add functionality for icons (partial)
 * Hardware interface to SD-Card/Export
-* File system (Flash based)
 * File system (SD card based)
 * Export/Import file feature
-* ADIF generation
+* Support Si4732 based receiver (HW support being developed)
+* Support for Si4732 chipset
 
 ## low priority roadmap
-* Develop or adopt a PCB layout design.
+
 * CAT support (TS480).
 * WSPR beacon.
 * Support for QUAD multifilter board
 * CW operation (basic, emergency)
 * GPS support (time alignment & grid definition)
-* Support for Si4732 chipset
 * Support for smaller display 
 * Support for ATU reset
 * SWR indicator & control (as HW support is introduced)
 * Filter support (as HW support is introduced)
-* Support Si4732 based receiver (higher priority if HW support is introduced)
+
 ## rp2040-w specific
-* WiFi support
-* mDNS implementation (rdx.local resolution)
-* NTP support and clock alignment
+
 * Configuration terminal
 * OTA firmware update
 * Web based configuration tool
-* Web based ADIF export tool
 * USB based file system
 
+
 # Done
+
+* WiFi support
+* File system (Flash based)
+* ADIF generation
+* NTP support and clock alignment
+* mDNS implementation (rdx.local resolution)
+* Web based ADIF export tool
+* Organize and add functionality for icons
 * Port automatic calibration from ADX-rp2040
 * progress bar for RX/TX (green/red)
 * display dialog multiband
