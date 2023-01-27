@@ -119,6 +119,13 @@ int writeQSO(char *adifFile, char *call,char *grid, char *mode, char *rst_sent,c
 char adifStr[512];
 char adifHdr[24];
 
+#ifdef DATALOGGERUSB
+  if (!okayToWrite || SingleFileDriveactive) {
+     _INFOLIST("%s USB device busy, write request rejected\n",__func__);
+     return -1;
+  }
+#endif //DATALOGGERUSB
+
   LittleFS.begin();
   strcpy(adifStr,"");
 

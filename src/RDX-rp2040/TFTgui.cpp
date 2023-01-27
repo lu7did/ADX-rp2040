@@ -1621,7 +1621,7 @@ void footerRDX::update() {
 iconRDX icon[] = {iconRDX(&tft,(char*)"wifi",     2, 2, wifiSignWidth, wifiSignHeight, &wifiSign[0], NULL),
                   iconRDX(&tft,(char*)"fsb",     36, 2, terminalWidth, terminalHeight, &terminal[0], NULL),
                   iconRDX(&tft,(char*)"adif",    70, 2, infoWidth, infoHeight, &infoX[0], NULL),
-                  iconRDX(&tft, (char*)"x",     104, 2, termWidth, termHeight, &termSign[0], NULL),
+                  iconRDX(&tft, (char*)"USB",   104, 2, termWidth, termHeight, &termSign[0], NULL),
                   iconRDX(&tft, (char*)"x",     138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL),
                   iconRDX(&tft, (char*)"x",     172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL),
                   iconRDX(&tft, (char*)"reset", 206, 2, alertWidth, alertHeight, &alert[0], NULL),
@@ -1694,6 +1694,15 @@ void tft_begin() {
   icon[CALICON].hdl=tft_ADIF;
   icon[CALICON].show();
 #endif //ADIF
+
+#ifdef DATALOGGERUSB
+  icon[CNTICON].enabled=true;
+  icon[CNTICON].state=false;
+  icon[CNTICON].active=true;
+  icon[CNTICON].hdl=tft_DataLoggerUSB;
+  icon[CNTICON].show();
+#endif //DATALOGGER  
+
 
   icon[QUADICON].enabled=true;
   icon[QUADICON].state=true;
@@ -2092,6 +2101,29 @@ void tft_ADIF() {
   icon[CALICON].state=!icon[CALICON].state;
   logADIF=icon[CALICON].state; 
   icon[CALICON].show();
+}
+/*--------------------------------------------------------------------
+ * handler for Data Logger USB export file
+ */
+void tft_DataLoggerUSB() {
+
+  if (icon[CNTICON].state==false) {
+     icon[CNTICON].click=false;
+     icon[CNTICON].state=true;
+     icon[CNTICON].show();
+     data_setup();
+     _INFOLIST("%s USB export started\n",__func__);
+     return;
+  }
+     
+  icon[CNTICON].click=false;
+  icon[CNTICON].state=false;
+  icon[CNTICON].show();
+  data_stop();
+  _INFOLIST("%s USB export stopped\n",__func__);
+  return;
+  
+  
 }
 /*---------------------------------------------------------------------
  * handler for File System Browser activation

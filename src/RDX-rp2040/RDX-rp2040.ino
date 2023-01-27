@@ -819,6 +819,7 @@ void ft8_run() {
          char hstr[16];
          char bstr[8];
          char fstr[8];
+         char fileADIF[16];
          strcpy(bstr,"");
          
          now = time(0) - t_ofs;  \
@@ -829,7 +830,8 @@ void ft8_run() {
          sprintf(fstr,"%lu",(freq/1000));
          _INFOLIST("%s generating ADIF grid(%s) SNR(%s) date(%s) time(%s) band(%s) freq(%s)\n",__func__,CurrentStation.grid_square,CurrentStation.snr_report,tstr,hstr,bstr,fstr); 
          #ifdef ADIF
-         writeQSO((char*)ADIFFILE,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,(char*)QSO_MESSAGE);
+         sprintf(fileADIF,"/%s",(char*)ADIFFILE);
+         writeQSO(fileADIF,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,(char*)QSO_MESSAGE);
          #endif //ADIF
          endQSO=false;
       }

@@ -36,7 +36,8 @@ features on this project are documented here.
 * Web browser console (access to File System in Flash memory).
 * Improvements in the FT8 protocol handling cycle.
 * GUI development.
-* ADIF logbook generation
+* ADIF logbook generation.
+* USB ADIF logbook export.
 ```
 
 
@@ -241,6 +242,9 @@ The main areas of the GUI are:
 		* **ADIF logging**. When tapped the firmware will generate an ADIF record for every QSO it is performed over the air,
 		  the resulting file is named **/rdx.adif** and can be retrieved using the Web based File System browser. Beware that
  		  the file system has very limited space resources and therefore no large files can be handled (see below for further information).
+		* **ADIF Logbook USB export** When tapped the firmware will enable a "single file USB data export" with the ADIF logger content,
+		  the data can be edited, copied out or deleted. No logging will occur while the export is active. Tapping the icon alternatively
+		  will enable and disable the export. Log file will be exported as **rdx_logbook.txt**.
 		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it.
 
 ```
@@ -418,11 +422,12 @@ functions will be tested as the implementation evolves.
 * Configuration terminal
 * OTA firmware update
 * Web based configuration tool
+
+
+# Done (as per V2.0 build 60)
+
+* File system USB export
 * USB based file system
-
-
-# Done
-
 * WiFi support
 * File system (Flash based)
 * ADIF generation

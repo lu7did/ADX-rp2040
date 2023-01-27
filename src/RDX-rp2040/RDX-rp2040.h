@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "53"
+#define BUILD   "60"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -72,6 +72,7 @@ typedef void (*CALLQSO)(int i);
 #define ADIF                 1  //Comment out if an ADIF logging is not needed
 #endif //FSBROWSER
 
+#define DATALOGGERUSB        1
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
@@ -234,7 +235,8 @@ typedef void (*CALLQSO)(int i);
 #define NTP_SERVER2           "pool.ntp.org"     //NTP server secondary      
 #define INET_SERVER           "www.google.com"     //Check some relevant host or IP address of interest to check connectivity
 #define TIMEZONE              -3                 //Buenos Aires, Argentina
-#define ADIFFILE              "/rdx.txt"
+#define ADIFFILE              "/rdx.txt"         //ADIF Logbook internal FS name
+#define LOGBOOK               "rdx_logbook.txt"  //ADIF Logbook USB exported name
 #define QSO_MESSAGE           "73 and GL"
 
 
@@ -301,6 +303,9 @@ extern int8_t call_self_rx_snr;
 extern char call_station_callsign[8];
 extern char call_grid_square[4];
 extern uint16_t call_qsowindow;
+extern bool okayToWrite;
+extern bool SingleFileDriveactive;
+
 
 /*---------------------------------------------------
  * Time related variables
@@ -346,6 +351,8 @@ extern void tft_ADIF();
 extern void tft_syncNTP();
 extern void tft_quad();
 extern void tft_ADIF();
+extern void tft_DataLoggerUSB();
+
 
 extern void tft_iconState(int _icon,bool _state);
 extern void tft_iconSet(int _icon,bool _enabled);
@@ -359,6 +366,8 @@ extern bool getClock(char* n1, char* n2);
 
 extern int writeQSO(char *adifFile,char *call,char *grid, char *mode, char *rst_sent,char *rst_rcvd,char *qso_date,char *time_on, char *band, char *freq, char *mycall, char *mygrid, char *message);
 
+extern void data_stop();
+extern void data_setup();
 
 
 extern void initSi5351();
