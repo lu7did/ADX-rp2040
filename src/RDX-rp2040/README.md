@@ -13,22 +13,23 @@ ATMEL ATMEGA382p processor.
 In order to leverage the capabilities of the transceiver with a powerful processor such as the Raspberry Pi Pico
 which uses the rp2040 architecture this project was started.
 
-Then a map between the Arduino board I/O and the rp2040 I/O was made showing some differences needs to be addressed
-which requires additional circuitry.
+Then a map between the Arduino board I/O and the rp2040 I/O was made showing some differences that need to be addressed
+requiring additional circuitry, hardware modifications and firmware support.
 
 Once the hardware platform was defined the firmware was ported using the ADX_UnO_V1.3 firmware as a baseline, the
 porting didn't introduce any new feature or function, just the minimum number of changes to the code to accomodate
 the architecture differences between both platforms. The firmware version emerging from that initial effort
-can be found as [ADX-rp2040](https://github.com/lu7did/ADX-rp2040/tree/master/src/ADX-rp2040) firmware version
+can be found as the [ADX-rp2040](https://github.com/lu7did/ADX-rp2040/tree/master/src/ADX-rp2040) firmware version in this
+site.		
 
 Continuing with the roadmap of the project an experimental firmware able to operate as an autonomous transceiver by decoding and
-generating FT8 signals without the usage of an external program such as WSJT-X was created, documentation of the
-features on this project are documented here.
+generating FT8 signals **without** the usage of an external program such as WSJT-X was created, documentation of the
+features on this project called **RDX**, standing for **Raspberry Pico Digital Transceiver**, are documented in this branch of the site.
 
 ```
 *New in release 2.0 *
 
-* Initial experimental release, for evaluation purposes only
+* Initial alpha release, for experimentation purposes only
 * Automatic FT8 operation.
 * TFT LCD 480x320 support.
 * Autocalibration mode has been added check the appropriate section on how to enable and operate.
@@ -44,7 +45,8 @@ features on this project are documented here.
 
 # Hardware
 
-Same hardware than the supported by the ADX-rp2040 firmware with the following additions.
+Same hardware than the supported by the ADX-rp2040 firmware, in particular the latest version
+of the [Arduino pico core][https://github.com/earlephilhower/arduino-pico] by Earle F. Philhower III with the following additions.
 
 *	Audio amplifier (see modifications).
 *	TFT LCD IL9488 480x320 board (see wiring). 
@@ -73,14 +75,18 @@ Code excerpts gathered from manyfold sources to recognize here, large pieces of 
 
 ### Overall FT8 decoding logic
 
+The following UML graphic shows at high level the FT8 decoding cycle
+
 ![Alt Text](../../docs/RDX-rp2040-FT8.png "FT8 decoding cycle")
 
 
 ### FT8 protocol finite state machine
 
+The following UML graphic shows at high level the FT8 finite state machine controlling the behaviour of the 
+transceiver during the FT8 QSO cycle.
+
 ![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
 
-Experimental, yet to be documented.
 
 ## Automatic calibration (autocalibration)
 
@@ -92,7 +98,7 @@ The firmware allows the automatic calibration of the Si5351 dds using the follow
 
 ### Operation
 
-When started the firmware will look during the setup stage if the *DOWN* pushbutton is pressed, if so all the on-board LEDs will
+When started the firmware will look during the setup stage if the **DOWN** pushbutton is pressed, if so all the on-board LEDs will
 be lit with the exception of the TX LED indicating a waiting pattern, the autocalibration procedure will start as soon as the push
  button is released.
 
@@ -150,15 +156,15 @@ While the autocalibration is performed the progress is also indicated at the TFT
 ```
                                      *** Warning ***
 
-Calibration total time might vary depending on the unique factory characteristics of the Si5351 chipset being used. Upon finalization the power needs to
-be recycled for the board to restart.
+Calibration total time might vary depending on the unique factory characteristics of the Si5351 chipset
+being used. Upon finalization the power needs to be recycled for the board to restart.
 ```
 
 ## Time synchronization
 
 To operate using FT8 the transmission and reception must be synchronized in time among all operator with a tolerance of less than 2 seconds. The rp2040 lacks a 
-real time clock (RTC), it keeps track of the time quite precisely but starting from the boot moment, which in turn might happen at any arbitrary time, therefore 
-rendering the board unusable for FT8 decoding and emitting pursposes.
+real time clock (RTC), it keeps track of the time quite precisely but starting from zero at the boot moment, which in turn might happen at any arbitrary time,
+therefore rendering the board unusable for FT8 decoding and emitting pursposes.
 
 There are several strategies to address this problem:
 
@@ -167,27 +173,23 @@ There are several strategies to address this problem:
 *	Using the NTP protocol over the Internet to synchronize with a time server.
 *	Some manual way to synchronize the time.
 
-At this point the NTP protocol and manual synchronization are used as an strategy, the manual synchronization is the simplest and quickest to implement, it can 
-be implemented on a minimum rp2040 configuration without any TCP/IP connectivity, the later having a rp2040_W model as a pre-requisite.
-
-### Time Zone
-
-Time zone can be set by modifying the **#define TIMEZONE x** statement which is the amount of hours to be added or substracted to the UTC time provided by the
-system clock. Without it the hour will be displayed as UTC.
-
-The system clock once calibrated to be synchronized at the second 0/15/30 or 45 of the minute has no effect on the FT8 decoding.
+At this point the NTP protocol and manual synchronization has been adopted as viable strategies, however nothing in the hardware limit the future adoption of
+other means such as GPS or RTC based synchronization.
 
 ### Manual time synchronization
 
+The manual synchronization is the simplest and quickest to implement, it can be implemented on a minimum rp2040 configuration without any TCP/IP
+connectivity, the later having a rp2040_W model as a pre-requisite.
+
 With a manual synchronization Upon startup the rp2040 board starts it's internal clock is set arbitrarly to zero. 
-However, if the UP button is found pressed while performing the initial firmware setup the processing is held (all LEDs blinking
+However, if the **UP** button is found pressed while performing the initial firmware setup the processing is held (all LEDs blinking
 signals that situation). The button can be held pressed until the top of the minute and when released the internal clock is set to 00:00:00 and therefore
 left synchronized.
 
 To operate FT8 the actual time isn't needed, other administrative pursposes such as a log might require that, but the protocol itself needs to identify within a 1 sec
 precision the seconds 0,15,30 and 45 of each minute; once synchronized the internal clock is precise enough to do that.
 
-The synchronization is volatile and therefore needs to be performed everytime the board is powered, but it can be done with any celular phone or other precise time
+The manual synchronization is volatile and therefore needs to be performed everytime the board is powered, but it can be done with any celular phone or other precise time
 source (synchronized with a time server) where the second 00 of each minute can be precisely spot.
 
 ```
@@ -203,17 +205,60 @@ must be released, this will account for some differences in the reaction time to
 ### NTP based synchronization
 
 When provided with WiFi AP access credentials the firmware would attempt to connect to the Internet and synchronize the internal
-clock automatically during the initial start up without any action from the operator.
-This requires a rp2040_w model though.
+clock automatically during the initial start up without any action from the operator.This requires a rp2040_w model though.
+The Wifi access credentials can either be set within the code by defining at the RDX-rp2040.h file 
+```
+#define WIFI_SSID                  "Your WiFi SSID"
+#define WIFI_PSK                   "0123456789"
+
+```
+Or including the same directive on a file called ap.h located in the same directory than the code when built.
+
+### Time Zone
+
+Time zone can be set by modifying the **#define TIMEZONE x** statement which is the amount of hours to be added or substracted to the UTC time provided by the
+system clock. Without it the hour will be displayed as UTC.
+
+The system clock once calibrated to be synchronized at the second 0/15/30 or 45 of the minute has no effect on the FT8 decoding.
+
 
 ## ADIF Logbook 
 
-If the **#define FSBROWSER 1** and **#define ADIF 1** statements are included then a flash memory filesystem is configured and every QSO performed by the transceiver, either in
+If the **#define ADIF 1** statements are included then a flash memory filesystem is configured and every QSO performed by the transceiver, either in
 manual or automatic mode, is logged using the ADIF format into a file called **"/rdx.adif"**
-In order for the flash memory based file system to be enabled the Tools/Flash Size IDE parameter must be set to "2M Sketch 1948KB FS 64KB", this will create a 64K flash memory
-based storage area managed using a simple file system. The capacity of the storage is very limited but enough to store about 100-sh FT8 contacts on it. To recover, edit or
-erase the file you can use the Web Browser File System facility (FSBROWSER needs to be activated for that).
+In order for the flash memory based file system to be enabled the Tools/Flash Size IDE parameter must be set to **"2M Sketch 1948KB FS 64KB"**, this will create
+a 64K flash memory based storage area managed using a simple file system. The capacity of the storage is very limited but enough to store about 100-sh FT8 contacts on it.
+To recover, edit or erase the file you can use the Web Browser File System facility (FSBROWSER needs to be activated for that) or a USB Export (DATALOGGERUSB needs to 
+be activated for that).
 
+** Web File System Browser 
+A facility called File System Browser can be activated at compile time thru the **#define FSBROWSER 1** in the RDX-rp2040.h file.
+When activated the browser can be activated by simultaneously pressing **UP** and **DOWN** during the initizalization of the board, when activated a red spash screen
+will notice that.
+The web based file browser can be activated either by
+```
+http://{board IP address}/edit
+http://rdx.local/edit
+```
+Using this facility the files, can be more than one, could be edited, deleted or downloaded.
+
+In order to de-activate the web based file browser the board needs to be re-initialized by cycling the power of it.
+
+## USB Export of logbook
+A facility called USB export can be activated at compile time thru the **#define DATALOGGERUSB 1** directive in the RDX-rp2040.h file.
+When available is can be activated by the USB export icon, when enabled a single file is exported thru the USB. The file can be browsed, edited, deleted or copied
+to other place. The share finishes when the USB export icon is tapped again.
+This facility is based on a feature of the Arduino pico core called **SingleFileDrive** where a single file is mapped, in this case the file mapped is the
+**rdx.txt** used to store the ADIF logbook, the export name (the name used to be displayed in the host PC) will be **rdx-logbook.txt**.
+
+
+##mDNS support
+When TCP/IP is available, only the boards with rp2040-W are, and the function makes the TCP/IP connectivity to be ready the board can be reached by resolving
+the symbolic name **rdx.local**
+```
+Warning
+The mDNS resolution requires the client machine used for the access and the board to be in the same physical LAN.
+```
 
 
 ## GUI
@@ -242,10 +287,11 @@ The main areas of the GUI are:
 		* **ADIF logging**. When tapped the firmware will generate an ADIF record for every QSO it is performed over the air,
 		  the resulting file is named **/rdx.adif** and can be retrieved using the Web based File System browser. Beware that
  		  the file system has very limited space resources and therefore no large files can be handled (see below for further information).
-		* **ADIF Logbook USB export** When tapped the firmware will enable a "single file USB data export" with the ADIF logger content,
+		* **USB export** When tapped the firmware will enable a "single file USB data export" with the ADIF logger content,
 		  the data can be edited, copied out or deleted. No logging will occur while the export is active. Tapping the icon alternatively
 		  will enable and disable the export. Log file will be exported as **rdx_logbook.txt**.
-		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it.
+		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it. Even if enabled
+		  no log will be generated.
 
 ```
 Warning
@@ -289,7 +335,10 @@ only when the RP2040_W, FSBROWSER and ADIF directives are defined.
 * 	Waterfall.
 	This area will show a waterfall representation of the passband updated every second.
 * 	Footer.
-	This area will show configuration information such as firmware level, callsign, grid locator, time and IP address.
+	This area will show configuration information such as firmware level, callsign, grid locator, time and IP address. The time reflects the actual internal clock,
+	either if it is synchronized by some means or not. A timezone correction is applied if defined. The IP address shows the assignment made by the local AP thru
+	DHCP or "Disconnected" if not connected.
+
 
 
 ```
@@ -321,11 +370,10 @@ Check additionally mods required and TFT support requirements detailed below.
 The receiver, Si5351 clock, RF driver and final stages are identical to the standard ADX Transceiver, whilst changes are made around the rp2040 processor to
 accomodate the different signaling and voltages used.
 
-
 ### rp2040 pinout assignment
 
 Same as the ADX-rp2040 project
-
+![Alt Text](docs/rp2040_pinout.jpg "rp2040 pinout")
 
 ### Power supply
 
@@ -395,7 +443,11 @@ Same as the ADX-rp2040 project
 Only preliminar testing has been performed as it is just an alpha version of the firmware for preliminary evaluation purposes,
 functions will be tested as the implementation evolves.
 
-# Pending
+# Informal roadmap
+
+This is the informal roadmap followed to prioritize and implement the future features of the project
+
+## Pending
 
 * Develop or adopt a PCB layout design.
 * Organize and add functionality for icons (partial)
@@ -424,8 +476,9 @@ functions will be tested as the implementation evolves.
 * Web based configuration tool
 
 
-# Done (as per V2.0 build 60)
+## Done (as per V2.0 build 60)
 
+* Basic transceiver operation (manual and auto mode).
 * File system USB export
 * USB based file system
 * WiFi support
