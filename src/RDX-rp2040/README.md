@@ -60,7 +60,7 @@ Same build environment than the one used by the ADX-rp2040 firmware plus:
 
 ## Pre-requisites and libraries
 
-Same build environment than the one used by the ADX-rp2040 firmware the latest version of the (Arduino pico core)[https://github.com/earlephilhower/arduino-pico]
+Same build environment than the one used by the ADX-rp2040 firmware the latest version of the [Arduino pico core](https://github.com/earlephilhower/arduino-pico)
 by Earle F. Philhower III  plus the following libraries:
 
 
