@@ -375,7 +375,7 @@ accomodate the different signaling and voltages used.
 ### rp2040 pinout assignment
 
 Same as the ADX-rp2040 project
-![Alt Text](docs/rp2040_pinout.jpg "rp2040 pinout")
+![Alt Text](../../docs/rp2040_pinout.jpg "rp2040 pinout")
 
 ### Power supply
 
