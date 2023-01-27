@@ -45,8 +45,8 @@ features on this project called **RDX**, standing for **Raspberry Pico Digital T
 
 # Hardware
 
-Same hardware than the supported by the ADX-rp2040 firmware, in particular the latest version
-of the [Arduino pico core][https://github.com/earlephilhower/arduino-pico] by Earle F. Philhower III with the following additions.
+Same hardware than the supported by the ADX-rp2040 firmware,  with the following additions.
+
 
 *	Audio amplifier (see modifications).
 *	TFT LCD IL9488 480x320 board (see wiring). 
@@ -60,7 +60,9 @@ Same build environment than the one used by the ADX-rp2040 firmware plus:
 
 ## Pre-requisites and libraries
 
-Same build environment than the one used by the ADX-rp2040 firmware plus the following libraries:
+Same build environment than the one used by the ADX-rp2040 firmware the latest version of the (Arduino pico core)[https://github.com/earlephilhower/arduino-pico]
+by Earle F. Philhower III  plus the following libraries:
+
 
 *	[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library by Bodmer
 *	[TFT_eWidget](https://github.com/Bodmer/TFT_eWidget) Library by Bodmer 
