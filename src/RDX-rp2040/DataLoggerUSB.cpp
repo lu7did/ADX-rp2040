@@ -38,6 +38,8 @@
 uint32_t cnt = 0;
 bool okayToWrite = true;
 bool SingleFileDriveactive = false;
+char logbook[32];
+
 
 
 /*---------------------------------------------------------------
@@ -78,7 +80,7 @@ void unplugUSB(uint32_t i) {
  */
 void deleteADIF(uint32_t i) {
   (void) i;
-  LittleFS.remove((char*)ADIFFILE);
+  LittleFS.remove(adiffile);
   headerADIF();
 }
 /*--------------------------------------------------------------------
@@ -95,7 +97,7 @@ void data_setup() {
   singleFileDrive.onDelete(deleteADIF);
   singleFileDrive.onPlug(plugUSB);
   singleFileDrive.onUnplug(unplugUSB);
-  singleFileDrive.begin((char*)ADIFFILE,(char*)LOGBOOK);
+  singleFileDrive.begin(adiffile,logbook);
 
   /*-------------------------------------------
    * Find the end of the data
@@ -115,7 +117,7 @@ void data_setup() {
     f.close();
     cnt++;
   }
-  _INFOLIST("%s USB file (%s) export started\n",__func__,(char*)ADIFFILE);
+  _INFOLIST("%s USB file (%s) export started\n",__func__,adiffile);
   
 }
 /*-----------------------------------------------------

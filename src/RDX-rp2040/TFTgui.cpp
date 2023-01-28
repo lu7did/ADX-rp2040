@@ -1589,8 +1589,8 @@ void footerRDX::showtime() {
   uint16_t fh = tft->fontHeight();
 
   int tzhour=timeinfo.tm_hour;
-  if (TIMEZONE != 0) {
-     tzhour=tzhour+TIMEZONE;
+  if (timezone != 0) {
+     tzhour=tzhour+timezone;
      if (tzhour>23) tzhour=tzhour-24;
      if (tzhour<0)  tzhour=tzhour+24;
   }

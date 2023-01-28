@@ -3,7 +3,7 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 // Pedro (Pedro Colla) - LU7DZ - 2022
 //
-// Version 1.0
+// Version 2.0
 //
 // This is the implementation of a rp2040 firmware for a monoband, self-contained FT8 transceiver based on
 // the ADX hardware architecture, using Karliss Goba's ft8lib and leveraging on several other projects
@@ -140,6 +140,7 @@ uint32_t prevfreq = 0;
  */
 char my_callsign[16];
 char my_grid[8];
+char qso_message[16];
 
 /*-----------------------
  * Program identification
@@ -153,6 +154,11 @@ char build[6];
  */
 char ip[16];
 
+/*-----------------------
+ * ADIF logbook
+ */
+char adiffile[16];
+char hostname[16];
 
 /*------------------------------------------------------
  *   Internal clock handling
@@ -162,6 +168,7 @@ struct tm timeprev;        //epoch time
 time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
 time_t now;
 char timestr[12];
+int  timezone=0;
 
 /*-----------------------
  * FT8 decoding
@@ -169,11 +176,11 @@ char timestr[12];
 uint8_t  num_decoded = 0;
 uint32_t tdecode = 0;
 uint8_t  nTry = 0;
-uint8_t  maxTx = 6;
-uint8_t  maxTry = 5;
 uint8_t  nRx = 0;
 uint8_t  nTx = 0;
 uint8_t  ft8_state = 0;
+uint8_t  maxTx = MAXTX;
+uint8_t  maxTry = MAXTRY;
 
 /*---------------------
  * System state variables
@@ -222,15 +229,15 @@ int addr = 0;
  * Band and frequency information
  */
 const uint16_t Bands[BANDS] = {40, 30, 20, 10};     // Band1,Band2,Band3,Band4 (initial setup)
-const unsigned long slot[MAXBAND] = { 3573000UL,       //80m [0]
-                                      5357000UL,       //60m [1]
-                                      7074000UL,       //40m [2]
-                                     10136000UL,       //30m [3]
-                                     14074000UL,       //20m [4]
-                                     18100000UL,       //17m [5]
-                                     21074000UL,       //15m [6]
-                                     24915000UL,       //12m [7]
-                                     28074000UL};      //10m [8]
+const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},         //80m [0]
+                                         {5357000UL,5351000UL,5356000UL},         //60m [1]
+                                         {7074000UL,7000000UL,7300000UL},         //40m [2]
+                                         {10136000UL,10100000UL,10150000UL},      //30m [3]
+                                         {14074000UL,14000000UL,14350000UL},      //20m [4]
+                                         {18100000UL,18068000UL,18168000UL},      //17m [5]
+                                         {21074000UL,21000000UL,21450000UL},      //15m [6]
+                                         {24915000UL,24890000UL,24990000UL},      //12m [7]
+                                         {28074000UL,28000000UL,29700000UL}};     //10m [8]
 int Band_slot = 0;
 int Band = 0;
 
@@ -247,7 +254,7 @@ int TX_State = 0;
 int UP_State;
 int DOWN_State;
 int TXSW_State;
-int Bdly = 250;
+int Bdly = DELAY;
 
 Si5351 si5351;
 
@@ -358,7 +365,7 @@ void setup_ft8() {
   /*-------
    * Wait to settle
    */
-  sleep_ms(500);
+  sleep_ms(2*DELAY);
 
 } //end of the ft8 setup
 
@@ -819,7 +826,6 @@ void ft8_run() {
          char hstr[16];
          char bstr[8];
          char fstr[8];
-         char fileADIF[16];
          strcpy(bstr,"");
          
          now = time(0) - t_ofs;  \
@@ -830,8 +836,7 @@ void ft8_run() {
          sprintf(fstr,"%lu",(freq/1000));
          _INFOLIST("%s generating ADIF grid(%s) SNR(%s) date(%s) time(%s) band(%s) freq(%s)\n",__func__,CurrentStation.grid_square,CurrentStation.snr_report,tstr,hstr,bstr,fstr); 
          #ifdef ADIF
-         sprintf(fileADIF,"/%s",(char*)ADIFFILE);
-         writeQSO(fileADIF,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,(char*)QSO_MESSAGE);
+         writeQSO(adiffile,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,qso_message);
          #endif //ADIF
          endQSO=false;
       }
@@ -947,6 +952,8 @@ void setup()
   while (!_SERIAL);
   delay(200);
   _SERIAL.flush();
+  sprintf(hi,"%s Raspberry Pico Digital Transceiver\nVersion(%s) Build(%s) (c)%s\n",PROGNAME,VERSION,BUILD,AUTHOR); 
+  _SERIAL.print(hi);
 #endif //DEBUG
 
   /*-----------
@@ -958,6 +965,11 @@ void setup()
   strcpy(version,VERSION);
   strcpy(build,BUILD);
   strcpy(ip," Disconnected ");
+  strcpy(adiffile,(char*)ADIFFILE);
+  timezone=TIMEZONE;
+  strcpy(hostname,HOSTNAME);    
+  strcpy(qso_message,QSO_MESSAGE);
+  strcpy(logbook,LOGBOOK);
   
   /*-----------
      System initialization
@@ -1009,7 +1021,7 @@ void setup()
   */
   digitalWrite(RX, LOW);  
   tft_updateBand();
-  delay(200);
+  delay(Bdly);
 
 
   /*--------------------
@@ -1017,7 +1029,7 @@ void setup()
   */
 
   setup_ft8();
-  delay(500);
+  delay(2*Bdly);
 
   
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
@@ -1100,7 +1112,7 @@ void checkButton() {
   */
 
   if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
-    delay(100);
+    delay(Bdly/2);
     UP_State = digitalRead(UP);
     DOWN_State = digitalRead(DOWN);
     if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
@@ -1113,7 +1125,7 @@ void checkButton() {
   TXSW_State = digitalRead(TXSW);
 
   if ((TXSW_State == LOW) && (TX_State == 0)) {
-    delay(50);
+    delay(Bdly/4);
 
     TXSW_State = digitalRead(TXSW);
     if ((TXSW_State == LOW) && (TX_State == 0)) {
@@ -1136,7 +1148,7 @@ void timeSync() {
   gmtime_r(&now, &timeprev);
   _INFOLIST("%s Initial time=[%02d:%02d:%02d]\n", __func__, timeprev.tm_hour, timeprev.tm_min, timeprev.tm_sec);
   while (digitalRead(UP) == LOW) {
-    delay(500);
+    delay(Bdly);
     if (millis() - ts > 500) {
       digitalWrite(WSPR, flipLED);
       digitalWrite(JS8, flipLED);
@@ -1237,7 +1249,7 @@ void Band_assign() {
     digitalWrite(LED, LOW);
   }
 
-  delay(1000);
+  delay(4*DELAY);
 }
 //******************************[ BAND SELECT Function]********************************
 void Band2Str(char *str) {
@@ -1330,6 +1342,7 @@ while (true) {
 }
 void updateEEPROM() {
 
+  _INFOLIST("%s EEPROM content being updated\n",__func__);
   addr = 50;
   EEPROM.put(addr, Band_slot);
   EEPROM.commit();
@@ -1514,7 +1527,7 @@ unsigned long Slot2Freq(int s) {
   digitalWrite(FT8, LOW);
   digitalWrite(8-Band_slot,HIGH);
 
-  return slot[i];
+  return slot[i][0];
 
 }
 /*----------------------------------------------
@@ -1608,9 +1621,11 @@ void INIT() {
     
 
   if (temp != 100 || strcmp(build,(char*)BUILD)!=0) {
+    _INFOLIST("%s New build detected (%s-%s), EEPROM being reset\n",__func__,VERSION,BUILD);
     resetEEPROM();
   } else  {
     //--------------- EEPROM INIT VALUES
+    _INFOLIST("%s EEPROM reading completed\n",__func__);
     readEEPROM();
 
   }
@@ -1619,6 +1634,9 @@ void INIT() {
 
 }
 
+/*-----------------------------------
+ * List EEPROM in HEX
+ */
 void listEEPROM() {
   sprintf(hi,"\nEEPROM list\n");
   _SERIAL.print(hi);
@@ -1690,7 +1708,6 @@ void resetEEPROM() {
     EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);
 
 #ifdef RP2040_W
-    strcpy(hostname,HOSTNAME);    
     strcpy(wifi_ssid,WIFI_SSID);
     strcpy(wifi_psk,WIFI_PSK);
     tcp_port=TCP_PORT;

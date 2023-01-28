@@ -151,7 +151,7 @@ bool getClock(char* n1, char* n2) {
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 #include <MDNS_Generic.h>
 MDNS mdns(udp);
-char hostname[32];
+//char hostname[32];
 int  tcp_port;
 
 /*----
@@ -187,7 +187,7 @@ void nameFound(const char* name, IPAddress ip)
  */
 void init_mdns() {
   
-  strcpy(hostname,HOSTNAME);
+  //strcpy(hostname,HOSTNAME);
   toLowerCase(hostname);
   strrepl(hostname,' ','-');
   strrepl(hostname,'_','-');

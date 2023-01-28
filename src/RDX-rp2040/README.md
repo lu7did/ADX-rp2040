@@ -53,6 +53,26 @@ Same hardware than the supported by the ADX-rp2040 firmware,  with the following
 
 
 # Firmware
+
+## Binary distribution
+
+Although not the preferred nor recommended mode of updating the firmware some specific levels might have a binary version (.uf2) available. It can be located at the **bin** directory.
+The files are named using the following convention:
+```
+rdx-rp2040-v{version}-b{build}.uf2   for the Raspberry pico version
+rdx-rp2040-v{version}-b{build}-W.uf2 for the Raspberry pico W (wireless) version
+
+The compilation occurs with specific feature and function configuration definitions.
+```
+Procedure for Windows 10
+
+In order to update the firmware the following procedure must be executed:
+
+*	Connect the Raspberry Pico board with the PC USB port while pressing the **BOOTSEL** button.
+*	Release the button once connected, a File Explorer window will appear.
+*	Drag and drop the desired .uf2 file into that window. The file will be copied and shortly thereafter the Explorer window will be closed.
+*	If no error message are shown the firmware has been updated.
+
 ## Build environment
 
 Same build environment than the one used by the ADX-rp2040 firmware plus:

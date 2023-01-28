@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "RDX-rp2040.h"
-#if defined(RP2040_W) && defined(FSBROWSER) && defined(ADIF)          //This sub-system makes no sense without TCP/IP connectivity
+#ifdef ADIF 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * adif.cpp                                                                                    *
  * ADIF logging facility                                                                       *

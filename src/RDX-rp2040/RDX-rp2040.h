@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "60"
+#define BUILD   "63"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -61,18 +61,16 @@ typedef void (*CALLQSO)(int i);
 /*--------------------------------------------------
  * Program configuration parameters
  */
-#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
 
 #if defined(RP2040_W)
 #define FSBROWSER            1  //Comment out if a File System browser is not needed
 #endif //RP2040_W
 
-#if defined(FSBROWSER)
 #define ADIF                 1  //Comment out if an ADIF logging is not needed
-#endif //FSBROWSER
-
 #define DATALOGGERUSB        1
+
 #undef  UART
 #define BAUD            115200
 #define FSK_IDLE          1000    //Standard wait without signal
@@ -81,7 +79,6 @@ typedef void (*CALLQSO)(int i);
 #define FSKMAX            3000    //Maximum FSK frequency computed
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
-
 
 /*----
    Output control lines
@@ -173,6 +170,9 @@ typedef void (*CALLQSO)(int i);
 #define BANDS          4            //Max number of bands allowed
 #define MAXBAND        9
 #define AF_FREQ     1500
+#define MAXTRY         5
+#define DELAY        250
+#define MAXTX          6
 
 /*-----------------------------------------------------
    Definitions for autocalibration
@@ -191,7 +191,7 @@ typedef void (*CALLQSO)(int i);
 #define EEPROM_ADDR_MODE    40       //MODE  int
 #define EEPROM_ADDR_SLOT    50       //SLOT  int
 
-#define EEPROM_ADDR_BUILD   60       //      int
+#define EEPROM_ADDR_BUILD   60       //BUILD  int
 #define EEPROM_ADDR_MYCALL  70       //MYCALL  char[16]
 #define EEPROM_ADDR_MYGRID  80       //GRID  char[8]
 #define EEPROM_ADDR_SSID    90       //SSID  char[40]
@@ -263,13 +263,17 @@ extern Si5351 si5351;
 extern char my_callsign[16];
 extern char my_grid[8];
 extern uint8_t nTry;
+extern uint8_t maxTry;
 extern int Band_slot;
 extern const uint16_t Bands[BANDS];
+extern char hostname[16];
+extern char qso_message[16];
+extern char logbook[32];
+extern char adiffile[16];
 
 #ifdef RP2040_W
 extern char wifi_ssid[40];
 extern char wifi_psk[16];
-extern char hostname[32];
 extern int  tcp_port;
 #endif //RP2040_W
 
@@ -298,14 +302,16 @@ extern char version[6];
 extern char build[6];
 extern char ip[16];
 extern uint8_t ft8_state;
+extern int timezone;
+
 extern uint16_t call_af_frequency;
 extern int8_t call_self_rx_snr;
 extern char call_station_callsign[8];
 extern char call_grid_square[4];
 extern uint16_t call_qsowindow;
+
 extern bool okayToWrite;
 extern bool SingleFileDriveactive;
-
 
 /*---------------------------------------------------
  * Time related variables
@@ -352,8 +358,6 @@ extern void tft_syncNTP();
 extern void tft_quad();
 extern void tft_ADIF();
 extern void tft_DataLoggerUSB();
-
-
 extern void tft_iconState(int _icon,bool _state);
 extern void tft_iconSet(int _icon,bool _enabled);
 extern void tft_iconActive(int _icon,bool _active);
@@ -363,7 +367,6 @@ extern int checkAP(char* s, char* p);
 extern void resetAP();
 extern int setup_wifi();
 extern bool getClock(char* n1, char* n2);
-
 extern int writeQSO(char *adifFile,char *call,char *grid, char *mode, char *rst_sent,char *rst_rcvd,char *qso_date,char *time_on, char *band, char *freq, char *mycall, char *mygrid, char *message);
 
 extern void data_stop();
@@ -392,7 +395,9 @@ extern void setup_adif();
 
 extern void startTX();
 extern void stopTX();
-
+extern void readEEPROM();
+extern void resetEEPROM();
+extern void updateEEPROM();
 
 /*-------------------------------------------------------
  * Debug and development aid tracing
