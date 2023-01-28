@@ -56,13 +56,14 @@ Same hardware than the supported by the ADX-rp2040 firmware,  with the following
 
 ## Binary distribution
 
-Although not the preferred nor recommended mode of updating the firmware some specific levels might have a binary version (.uf2) available. It can be located at the **bin** directory.
+Although not the preferred nor recommended mode of updating the firmware some specific levels might have a binary version (.uf2) available. It can be located at the source directory.
 The files are named using the following convention:
 ```
-rdx-rp2040-v{version}-b{build}.uf2   for the Raspberry pico version
-rdx-rp2040-v{version}-b{build}-W.uf2 for the Raspberry pico W (wireless) version
+RDX-rp2040.ino.rpipico.uf2  for the Raspberry pico version
+RDX-rp2040.ino.rpipicow.uf2 for the Raspberry pico Wireless version
 
-The compilation occurs with specific feature and function configuration definitions.
+The compilation occurs with specific feature and function configuration definitions, typically the documented in the .ino source file
+if a different configuration is needed a full compilation needs to be performed
 ```
 Procedure for Windows 10
 

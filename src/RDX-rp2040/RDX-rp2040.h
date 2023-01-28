@@ -61,7 +61,7 @@ typedef void (*CALLQSO)(int i);
 /*--------------------------------------------------
  * Program configuration parameters
  */
-//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
 
 #if defined(RP2040_W)
