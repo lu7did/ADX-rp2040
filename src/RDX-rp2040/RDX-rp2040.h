@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "63"
+#define BUILD   "64"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -190,19 +190,23 @@ typedef void (*CALLQSO)(int i);
 #define EEPROM_ADDR_TEMP    30
 #define EEPROM_ADDR_MODE    40       //MODE  int
 #define EEPROM_ADDR_SLOT    50       //SLOT  int
-
 #define EEPROM_ADDR_BUILD   60       //BUILD  int
-#define EEPROM_ADDR_MYCALL  70       //MYCALL  char[16]
-#define EEPROM_ADDR_MYGRID  80       //GRID  char[8]
-#define EEPROM_ADDR_SSID    90       //SSID  char[40]
-#define EEPROM_ADDR_PSK    130       //PSK   char[16]
-#define EEPROM_ADDR_MAXTX  140       //TX    
-#define EEPROM_ADDR_MAXTRY 150       //TRY
-#define EEPROM_ADDR_AUTO   160       //AUTO
-#define EEPROM_ADDR_HOST   170       //HOST
-#define EEPROM_ADDR_PORT   180       //PORT
-
-#define EEPROM_ADDR_END    250
+#define EEPROM_ADDR_MYCALL  70       //MYCALL  char[16] -- 10
+#define EEPROM_ADDR_MYGRID  80       //GRID  char[8]    -- 10
+#define EEPROM_ADDR_SSID    90       //SSID  char[40]   -- 40
+#define EEPROM_ADDR_PSK    130       //PSK   char[16]   -- 10
+#define EEPROM_ADDR_MAXTX  140       //TX    uint8_t    -- 2
+#define EEPROM_ADDR_MAXTRY 142       //TRY   uint8_t    -- 2
+#define EEPROM_ADDR_AUTO   144       //AUTO  bool       -- 2
+#define EEPROM_ADDR_WRITE  146       //WRITE bool       -- 2
+#define EEPROM_ADDR_HTTP   148       //HTTP  int        -- 2
+#define EEPROM_ADDR_HOST   170       //HOST  char[16]   -- 10
+#define EEPROM_ADDR_PORT   180       //PORT  int        -- 2
+#define EEPROM_ADDR_TZ     182       //TZ    int        -- 2
+#define EEPROM_ADDR_ADIF   190       //ADIF  char[16]   -- 20
+#define EEPROM_ADDR_LOG    210       //LOG   char[32]   -- 30
+#define EEPROM_ADDR_MSG    240       //QSO   char[16]   -- 20
+#define EEPROM_ADDR_END    260
 
 /*------------------------------------------------------------
  * GUI Icon enumeration
@@ -224,8 +228,6 @@ typedef void (*CALLQSO)(int i);
 #define SLOT_2               2
 #define SLOT_3               3
 #define SLOT_4               4
-
-//#include "ap.h"        //This is a trick to provide credentials on a file outside of the GitHub package
 
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                               TCP/IP related areas                                                    *
@@ -249,6 +251,7 @@ typedef void (*CALLQSO)(int i);
 #define WIFI_TOUT            20        //WiFi connection timeout (in Secs)
 #define UDP_PORT           2237        //UDP Port to listen
 #define TCP_PORT           9000        //TCP Port to listen for connections
+#define HTTP_PORT            80
 #define UDP_BUFFER          256
 
 
@@ -264,6 +267,7 @@ extern char my_callsign[16];
 extern char my_grid[8];
 extern uint8_t nTry;
 extern uint8_t maxTry;
+extern uint8_t maxTx;
 extern int Band_slot;
 extern const uint16_t Bands[BANDS];
 extern char hostname[16];
@@ -275,6 +279,7 @@ extern char adiffile[16];
 extern char wifi_ssid[40];
 extern char wifi_psk[16];
 extern int  tcp_port;
+extern int  http_port;
 #endif //RP2040_W
 
 
@@ -347,6 +352,7 @@ extern void tft_checktouch();
 extern void tft_resetBar();
 extern void tft_endQSO();
 extern void tft_init();
+extern void tft_cli();
 extern void tft_setBar(int colour);
 extern void tft_setIP(char *ip_address);
 extern void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
@@ -357,10 +363,14 @@ extern void tft_ADIF();
 extern void tft_syncNTP();
 extern void tft_quad();
 extern void tft_ADIF();
+extern void tft_footupdate();
 extern void tft_DataLoggerUSB();
 extern void tft_iconState(int _icon,bool _state);
 extern void tft_iconSet(int _icon,bool _enabled);
 extern void tft_iconActive(int _icon,bool _active);
+extern bool popBang(char *s,char *t,const char delimiter);
+extern bool parse(char *s,char *t);
+
 
 
 extern int checkAP(char* s, char* p);
@@ -371,6 +381,8 @@ extern int writeQSO(char *adifFile,char *call,char *grid, char *mode, char *rst_
 
 extern void data_stop();
 extern void data_setup();
+extern void cli_command();
+extern void cli_prompt(char *_out);
 
 
 extern void initSi5351();
@@ -379,6 +391,8 @@ extern void AutoCalibration();
 extern void timeSync();
 extern int getQSOwindow();
 
+extern void readEEPROM();
+extern void resetEEPROM();
 extern void updateEEPROM();
 extern void setCALL();
 extern void INIT();
@@ -398,6 +412,11 @@ extern void stopTX();
 extern void readEEPROM();
 extern void resetEEPROM();
 extern void updateEEPROM();
+extern void tolowerStr(char *s);
+extern void toupperStr(char *s);
+extern bool getEEPROM(int *i,char *buffer);
+extern bool isNumeric(char *s);
+
 
 /*-------------------------------------------------------
  * Debug and development aid tracing

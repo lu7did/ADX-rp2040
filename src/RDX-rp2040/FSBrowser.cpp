@@ -74,6 +74,7 @@ SDFSConfig fileSystemConfig = SDFSConfig();
 
 #define DBG_OUTPUT_PORT Serial
 
+/*
 #ifndef STASSID
 #define STASSID "Fibertel WiFi996 2.4GHz"
 #define STAPSK "00413322447"
@@ -82,8 +83,9 @@ SDFSConfig fileSystemConfig = SDFSConfig();
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const char* host = "fsbrowser";
+*/
 
-WebServer server(80);
+WebServer server(http_port);
 
 static bool fsOK;
 String unsupportedFiles = String();
@@ -626,8 +628,8 @@ void setup_FSBrowser() {
 */
   ////////////////////////////////
   // MDNS INIT
-  if (MDNS.begin(host)) {
-    MDNS.addService("http", "tcp", 80);
+  if (MDNS.begin(hostname)) {
+    MDNS.addService("http", "tcp", http_port);
     
     //DBG_OUTPUT_PORT.print(F("Open http://"));
     //DBG_OUTPUT_PORT.print(host);

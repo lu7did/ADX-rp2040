@@ -39,6 +39,7 @@ features on this project called **RDX**, standing for **Raspberry Pico Digital T
 * GUI development.
 * ADIF logbook generation.
 * USB ADIF logbook export.
+* Serial configuration terminal.
 ```
 
 
@@ -87,9 +88,20 @@ by Earle F. Philhower III  plus the following libraries:
 
 *	[TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) Library by Bodmer
 *	[TFT_eWidget](https://github.com/Bodmer/TFT_eWidget) Library by Bodmer 
+*	[MDNS_Generic](https://github.com/khoih-prog/MDNS_Generic) Library by Khoi Hoang.
+
+```
+Warning
+The TFT_eSPI library requires the configuration of the TFT board in the **User_Setup.h* file, as the library support a 
+large number of possible boards, each one with different modes the update of this file might be intimidating and 
+error prone at first. A file already configured for the IL9488 board can be found in the **./ADX-rp2040/src/misc**
+directory.
+```
+
 
 Code excerpts gathered from manyfold sources to recognize here, large pieces of code were extracted from former projects
 
+* [ADX-rp2040](https://github.com/lu7did/ADX-rp2040).
 * [PixiePi](https://github.com/lu7did/PixiePi).
 * [Pixino](https://github.com/lu7did/Pixino).
 * [OrangeThunder](https://github.com/lu7did/OrangeThunder).
@@ -109,6 +121,73 @@ The following UML graphic shows at high level the FT8 finite state machine contr
 transceiver during the FT8 QSO cycle.
 
 ![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
+
+## Configuration terminal
+Most options which needs to be configured on a particular station can be modified at build time by correcting (or enabling, or disabling) the appropriate parameter
+before compiling and flashing the firmware. Usually modifications needs to be done in the **RDX-rp2040.h** file.
+However there are ocassions where the possibility to perform modifications is limited, either because the firmware was flashed from a pre-compiled version (.uf2 file)
+or because the build environment isn't available or otherwise practical to be executed.
+A number of parameters can be changed at run time using a built-in configuration terminal, this facility is activated if when the firmware is starting the
+DOWN and TX buttons are found as pressed or by selecting the "HS" icon on the GUI, when executed a red banner shows the availability of the terminal at the GUI panel.
+Either way of starting the terminal can be accessed using a serial port, with a suitable serial client such as Putty or minicom configured for the serial port used
+by the USB Serial of the Raspberry Pico board.
+This facility can be handy to change the operation parameters in response to an environment change, i.e. change the callsign, the grid locator, the credentials for 
+the WiFi access point or other values.
+When started the following banner is shown:
+```
+RDX 2.0 build(63) command interpreter
+[16:51:59] >
+```
+A list of the available commands can be obtained by:
+```
+[16:51:59] >?
+help list load save reset ? call grid adif ssid psk log msg host writelog autosend tx tcpport http ft8try ft8tx tz quit
+[16:52:39] >
+```
+And a reduced help of the meaning of each command can be obtained by:
+```
+[16:52:39] >help
+(help) - help for all commands
+(list) - list EEPROM content
+(load) - load EEPROM content
+(save) - save EEPROM content
+(reset) - reset EEPROM content to default
+(?) - list all commands
+(call) - station callsign
+(grid) - station grid locator
+(adif) - logbook name
+(ssid) - WiFi AP SSID
+(psk) - WiFi AP password
+(log) - USB exported logbook
+(msg) - FT8 ADIF message
+(host) - host name
+(writelog) - enable ADIF log write
+(autosend) - enable FT8 QSO auto
+(tx) - turn TX on/off
+(tcpport) - Telnet Port
+(http) - FS HTTP Port
+(ft8try) - FT8 Max tries
+(ft8tx) - FT8 Max tx
+(tz) - TZ offset from UTC
+(quit) - quit terminal mode
+[16:53:36] >
+```
+Each command when executed without arguments will show the current value of the associated variable, if a valid argument is given the variable is replaced by the argument.
+
+Some commands aren't related to variables but provided to execute directives such as:
+```
+load	Load the content of the EEPROM
+save	Save current values of variables into EEPROM
+reset	Reset EEPROM to default values
+list	List contents of the EEPROM
+tx	transmitter status
+?	list of commands
+help	Help on commands
+quit	terminate session
+
+```
+Upon termination the board needs to be restarted for all changes to be made effective.
+
 
 
 ## Automatic calibration (autocalibration)
@@ -313,6 +392,8 @@ The main areas of the GUI are:
 		* **USB export** When tapped the firmware will enable a "single file USB data export" with the ADIF logger content,
 		  the data can be edited, copied out or deleted. No logging will occur while the export is active. Tapping the icon alternatively
 		  will enable and disable the export. Log file will be exported as **rdx_logbook.txt**.
+		* **Configuration terminal (HS)** When tapped the serial configuration terminal is opened, access to the configuration menu and 
+		  functions can be made using a terminal program configured for the USB serial port of the board. 
 		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it. Even if enabled
 		  no log will be generated.
 
@@ -321,6 +402,13 @@ Warning
 
 When creating an ADIF file precise date and time are needed, therefore at build time this option is protected to be available
 only when the RP2040_W, FSBROWSER and ADIF directives are defined.
+
+```
+```
+Warning
+
+Because of internal timing considerations the GUI can be activated at any time but the effects of the actions selected will be
+operative at the end of each FT8 cycle.
 
 ```
 
@@ -473,12 +561,12 @@ This is the informal roadmap followed to prioritize and implement the future fea
 ## Pending
 
 * Develop or adopt a PCB layout design.
-* Organize and add functionality for icons (partial)
+* Support for Si4732 chipset
+* Support for Si4732 chipset
 * Hardware interface to SD-Card/Export
 * File system (SD card based)
-* Export/Import file feature
 * Support Si4732 based receiver (HW support being developed)
-* Support for Si4732 chipset
+* Organize and add functionality for icons (partial)
 
 ## low priority roadmap
 
@@ -494,13 +582,15 @@ This is the informal roadmap followed to prioritize and implement the future fea
 
 ## rp2040-w specific
 
-* Configuration terminal
 * OTA firmware update
 * Web based configuration tool
 
 
 ## Done (as per V2.0 build 60)
 
+* Organize and add functionality for icons (partial)
+* Export/Import file feature
+* Configuration terminal
 * Basic transceiver operation (manual and auto mode).
 * File system USB export
 * USB based file system

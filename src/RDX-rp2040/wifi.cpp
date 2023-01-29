@@ -10,6 +10,8 @@
 #include <WiFiUdp.h>
 
 WiFiUDP udp;                           //UDP server
+
+
 bool ntpok=false;
 bool pingit=false;
 char wifi_ssid[40];
@@ -152,7 +154,7 @@ bool getClock(char* n1, char* n2) {
 #include <MDNS_Generic.h>
 MDNS mdns(udp);
 //char hostname[32];
-int  tcp_port;
+//int  tcp_port;
 
 /*----
  * this is a callback function addressed by the mDNS library when a name

@@ -1622,7 +1622,7 @@ iconRDX icon[] = {iconRDX(&tft,(char*)"wifi",     2, 2, wifiSignWidth, wifiSignH
                   iconRDX(&tft,(char*)"fsb",     36, 2, terminalWidth, terminalHeight, &terminal[0], NULL),
                   iconRDX(&tft,(char*)"adif",    70, 2, infoWidth, infoHeight, &infoX[0], NULL),
                   iconRDX(&tft, (char*)"USB",   104, 2, termWidth, termHeight, &termSign[0], NULL),
-                  iconRDX(&tft, (char*)"x",     138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL),
+                  iconRDX(&tft, (char*)"config",138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL),
                   iconRDX(&tft, (char*)"x",     172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL),
                   iconRDX(&tft, (char*)"reset", 206, 2, alertWidth, alertHeight, &alert[0], NULL),
                   iconRDX(&tft, (char*)"x",     240, 2, micWidth, micHeight, &mic[0], NULL),
@@ -1709,6 +1709,11 @@ void tft_begin() {
   icon[QUADICON].hdl=tft_quad;
   icon[QUADICON].show();
 
+  icon[CATICON].enabled=true;
+  icon[CATICON].state=true;
+  icon[CATICON].hdl=tft_cli;
+  icon[CATICON].show();
+
 /*--------------------------------------------------------------------------------*/
 
   m.show(SUNIT, 0);
@@ -1769,11 +1774,17 @@ int hh = 16;
 int mm = 00;
 int ss = 00;
 /*-------------------------------------------------------------------
+ * externalize the clock update
+ */
+void tft_footupdate() {
+  foot.update();
+}
+/*-------------------------------------------------------------------
  * check for GUI objects to have been touch by the pen
  */
 void tft_checktouch() {
-  
-  foot.update();
+
+  tft_footupdate();
 
   uint16_t x = 0, y = 0; // To store the touch coordinates
 
@@ -2094,6 +2105,26 @@ void tft_quad() {
   icon[QUADICON].show();
  
 }
+/*-----------------------------------------------------------------
+ * Reset QSO
+ */
+void tft_cli() {
+
+  icon[CATICON].state=false;
+  icon[CATICON].show();
+  s.write((char*)"Configuration terminal");
+  cli_command();
+  watchdog_enable(1, 1);
+  while(true);
+/*-----
+ * never to be reached
+ */
+  s.reset();
+  icon[CATICON].state=true;
+  icon[CATICON].show();
+ 
+}
+
 /*--------------------------------------------------------------------
  * handler for ADIF logbook recording
  */

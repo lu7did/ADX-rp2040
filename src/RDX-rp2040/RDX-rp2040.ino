@@ -52,11 +52,15 @@
 //
 // The firmware has been developed with a Raspberry Pi Pico W version but it should work with a regular Raspberry Pi Pico
 // ----------------------------------------------------------------------------------------------------------------------
-// Etherkit Si5351 (Needs to be installed via Library Manager to arduino ide)
-// SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
 //*****************************************************************************************************
-// Arduino "Wire.h" I2C library(built-into arduino ide)
-// Arduino "EEPROM.h" EEPROM Library(built-into arduino ide)
+// Arduino "Wire.h" I2C library         (built-into arduino ide)
+// Arduino "EEPROM.h" EEPROM Library    (built-into arduino ide)
+// To be installed using the Arduino IDE Library Manager
+// Etherkit Si5351
+// SI5351       (https://github.com/etherkit/Si5351Arduino) Library by Jason Mildrum (NT7S) 
+// TFT_eSPI     (https://github.com/Bodmer/TFT_eSPI) Library by Bodmer
+// TFT_eWidget  (https://github.com/Bodmer/TFT_eWidget) Library by Bodmer
+// MDNS_Generic (https://github.com/khoih-prog/MDNS_Generic) Library by Khoi Hoang.
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 //*************************************[ LICENCE]*********************************************
 // License
@@ -68,7 +72,6 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject
 // to the following conditions:
-//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
 //
@@ -159,6 +162,8 @@ char ip[16];
  */
 char adiffile[16];
 char hostname[16];
+int http_port=HTTP_PORT;
+int tcp_port=TCP_PORT;
 
 /*------------------------------------------------------
  *   Internal clock handling
@@ -257,6 +262,68 @@ int TXSW_State;
 int Bdly = DELAY;
 
 Si5351 si5351;
+
+/*------------------------
+ * Generic parsing tool
+ */
+bool popBang(char *s,char *t,const char delimiter) {
+  strcpy(t,"");
+  for (int j=0;j<= strlen(s);j++) {
+     if ((char)s[j]==delimiter) {
+        strcpy(s,(char*)&s[j+1]);
+        if (strlen(s) == 0) {
+           return false;
+        } else {
+           return true;
+        }
+     }
+     t[j]=s[j];
+     t[j+1]=0x00;
+  }
+  strcpy(s,"");
+  return false;
+}
+/*------------------------
+ * Specialized version of popBang when the delimiter is a blank space
+ */
+bool parse(char *s,char *t) {
+   return popBang(s,t,' ');
+}
+
+
+/*----------------------------------
+ * tolowerStr()
+ */
+void tolowerStr(char *s) {
+  char tmp[strlen(s)+10];
+  for (int i=0;i<strlen(s);i++) {
+     tmp[i]=tolower(s[i]);
+     tmp[i+1]=0x00;
+  }
+  strcpy(s,tmp);
+}
+/*----------------------------------
+ * toupperStr()
+ */
+void toupperStr(char *s) {
+  char tmp[strlen(s)+10];
+  for (int i=0;i<strlen(s);i++) {
+     tmp[i]=toupper(s[i]);
+     tmp[i+1]=0x00;
+  }
+  strcpy(s,tmp);
+}
+/*----------------------------------
+ * toupperStr()
+ */
+bool isNumeric(char *s) {
+  for (int i=0;i<strlen(s);i++) {
+     char a=s[i];
+     if ((a >= 0x30 && a <= 0x39) || a=='+' || a=='-' || a=='.' ) return true;
+  }
+  return false;
+}
+
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  Time sync, wait till second 0,15,30 or 45                                               *
@@ -959,17 +1026,22 @@ void setup()
   /*-----------
      Data area initialization
   */
-  strcpy(my_callsign, MY_CALLSIGN);
+  strcpy(my_callsign,MY_CALLSIGN);
   strcpy(my_grid, MY_GRID);
   strcpy(programname,PROGNAME);
   strcpy(version,VERSION);
   strcpy(build,BUILD);
   strcpy(ip," Disconnected ");
   strcpy(adiffile,(char*)ADIFFILE);
-  timezone=TIMEZONE;
-  strcpy(hostname,HOSTNAME);    
-  strcpy(qso_message,QSO_MESSAGE);
+  strcpy(logbook,(char*)LOGBOOK);
+  strcpy(hostname,(char*)HOSTNAME);    
+  strcpy(qso_message,(char*)QSO_MESSAGE);
   strcpy(logbook,LOGBOOK);
+
+  http_port=HTTP_PORT;
+  tcp_port=TCP_PORT;
+  timezone=TIMEZONE;
+  
   
   /*-----------
      System initialization
@@ -978,18 +1050,23 @@ void setup()
   initSi5351();
   tft_setup();
 
+  bool upKey=digitalRead(UP);
+  bool downKey=digitalRead(DOWN);
+  bool txKey=digitalRead(TXSW);
+  _INFOLIST("%s initial key configuration up(%s) down(%s) tx(%s)\n",__func__,BOOL2CHAR(upKey),BOOL2CHAR(downKey),BOOL2CHAR(txKey));
+
 #if defined(RP2040_W) && defined(FSBROWSER)
   /*--------
      If DOWN && UP is found pressed on startup then activates the FS browser
   */
-  if ( digitalRead(DOWN) == LOW && digitalRead(UP) == LOW ) {
+  if ( downKey == LOW && upKey == LOW && txKey == HIGH ) {
     _INFOLIST("%s FS Browser activated\n", __func__);
     tft_iconState(TERMICON,true);
   }
 #endif //RP2040_W && FSBrowser  
 
 
-  if ( digitalRead(UP) == LOW && digitalRead(DOWN) == HIGH) {
+  if ( upKey == LOW && downKey == HIGH && txKey == HIGH) {
     _INFOLIST("%s Manual time-sync mode\n", __func__);
     timeSync();
   }
@@ -1009,12 +1086,26 @@ void setup()
      If DOWN is found pressed on startup then enters calibration mode
   */
 
-  if ( digitalRead(DOWN) == LOW ) {
-
+  if ( downKey == LOW && upKey == HIGH && txKey == HIGH ) {
     _INFOLIST("%s Auto calibration mode started\n", __func__);
     tft_autocal();
     AutoCalibration();
   }
+
+  /*--------
+     If DOWN and TX are found pressed on startup then enters configuration terminal mode
+  */
+
+  if ( downKey == LOW && upKey == HIGH && txKey == LOW ) {
+
+    _INFOLIST("%s Configuration command processor started\n", __func__);
+    digitalWrite(FT8,HIGH);
+    digitalWrite(WSPR,HIGH);
+    tft_iconState(CATICON,true);
+    while(true);
+  }
+
+
 
   /*--------------------
      Place the receiver in reception mode
@@ -1342,9 +1433,47 @@ while (true) {
 }
 void updateEEPROM() {
 
-  _INFOLIST("%s EEPROM content being updated\n",__func__);
-  addr = 50;
-  EEPROM.put(addr, Band_slot);
+    _INFOLIST("%s EEPROM content being updated\n",__func__);
+    addr = 50;
+    EEPROM.put(addr, Band_slot);
+ 
+    cal_factor = 100000;
+    EEPROM.put(EEPROM_ADDR_CAL, cal_factor);
+
+    temp = 4;
+    EEPROM.put(EEPROM_ADDR_MODE, temp);
+
+    temp = 100;
+    EEPROM.put(EEPROM_ADDR_TEMP, temp);
+
+    temp = Band_slot;
+    EEPROM.put(EEPROM_ADDR_SLOT, temp);
+    
+    EEPROM.put(EEPROM_ADDR_BUILD,build);
+    EEPROM.put(EEPROM_ADDR_MYCALL,my_callsign);
+    EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);  
+    EEPROM.put(EEPROM_ADDR_ADIF,adiffile);
+    EEPROM.put(EEPROM_ADDR_LOG,logbook);
+    EEPROM.put(EEPROM_ADDR_MSG,qso_message);
+    EEPROM.put(EEPROM_ADDR_AUTO,autosend);
+    EEPROM.put(EEPROM_ADDR_WRITE,logADIF);
+    EEPROM.put(EEPROM_ADDR_TZ,timezone);
+    EEPROM.put(EEPROM_ADDR_MAXTRY,maxTry);
+    EEPROM.put(EEPROM_ADDR_MAXTX,maxTx);
+    
+#ifdef RP2040_W   
+    EEPROM.put(EEPROM_ADDR_SSID,wifi_ssid);
+    EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
+    EEPROM.put(EEPROM_ADDR_HOST,hostname);
+    EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
+#endif //RP2040_W 
+    
+    EEPROM.commit();
+    _INFOLIST("%s EEPROM completed\n",__func__);
+
+
+
+  
   EEPROM.commit();
 
 }
@@ -1621,7 +1750,7 @@ void INIT() {
     
 
   if (temp != 100 || strcmp(build,(char*)BUILD)!=0) {
-    _INFOLIST("%s New build detected (%s-%s), EEPROM being reset\n",__func__,VERSION,BUILD);
+    _INFOLIST("%s New build detected (prev %s- current %s), EEPROM being reset\n",__func__,VERSION,BUILD);
     resetEEPROM();
   } else  {
     //--------------- EEPROM INIT VALUES
@@ -1633,30 +1762,50 @@ void INIT() {
   tft_updateBand();
 
 }
+/*------------------------------
+ * generate HEX/ASCII out of the
+ * EEPROM contents
+ */
+bool getEEPROM(int* i,char *buffer) {
 
+  sprintf(buffer+strlen(buffer),"%s","|");   
+  while (*i < EEPROM_ADDR_END) {
+    sprintf(buffer+strlen(buffer), "%05d -- ", *i);
+    for (int j = 0; j < 10; j++) {
+      uint8_t b = EEPROM.read(*i + j);
+      sprintf(buffer+strlen(buffer), "%02x ", b);
+    }
+    sprintf(buffer+strlen(buffer),"%s","|");
+    for (int j = 0; j < 10; j++) {
+      uint8_t b = EEPROM.read(*i + j);
+      if (b<0x20 || b>0x7e) {
+          b='.';
+      }     
+      sprintf(buffer+strlen(buffer), "%c", b);
+    }
+    sprintf(buffer+strlen(buffer),"%s","|");   
+    sprintf(buffer+strlen(buffer),"\n");
+    *i = *i + 10;
+    return false;
+  }
+  return true;  
+}
 /*-----------------------------------
  * List EEPROM in HEX
  */
 void listEEPROM() {
-  sprintf(hi,"\nEEPROM list\n");
-  _SERIAL.print(hi);
-  
+
   int i = EEPROM_ADDR_CAL;
-  while (i < EEPROM_ADDR_END) {
-    
-    sprintf(hi, "%05d -- ", i);
-    _SERIAL.print(hi);
-    for (int j = 0; j < 10; j++) {
-      uint8_t b = EEPROM.read(i + j);
-      sprintf(hi, "%02x ", b);
-      _SERIAL.print(hi);
-    }
-    sprintf(hi,"\n");
-    _SERIAL.print(hi);
-    i = i + 10;
-  }
-  sprintf(hi,"\n>");
-  _SERIAL.print(hi);
+  char buffer[128];
+
+  sprintf(buffer,"\nEEPROM list\n");
+  _SERIAL.print(buffer);
+  while (!getEEPROM(&i,buffer)) {
+    _SERIAL.print(buffer);
+    strcpy(buffer,"");
+  }  
+  strcpy(buffer,"\n");
+  _SERIAL.print(buffer);
 }
 /*----------------------------------
  * Read configuration values from
@@ -1668,12 +1817,23 @@ void readEEPROM() {
     EEPROM.get(EEPROM_ADDR_SLOT, Band_slot);
     EEPROM.get(EEPROM_ADDR_MYCALL,my_callsign);
     EEPROM.get(EEPROM_ADDR_MYGRID,my_grid);
+
+    EEPROM.get(EEPROM_ADDR_MAXTX,maxTx);
+    EEPROM.get(EEPROM_ADDR_MAXTRY,maxTry);
+    EEPROM.get(EEPROM_ADDR_AUTO,autosend);
+    EEPROM.get(EEPROM_ADDR_WRITE,logADIF);
+    EEPROM.get(EEPROM_ADDR_TZ,timezone);
+
+    EEPROM.get(EEPROM_ADDR_ADIF,adiffile);
+    EEPROM.get(EEPROM_ADDR_LOG,logbook);
+    EEPROM.get(EEPROM_ADDR_MSG,qso_message);
     
 #ifdef RP2040_W    
     EEPROM.get(EEPROM_ADDR_SSID,wifi_ssid);
     EEPROM.get(EEPROM_ADDR_PSK,wifi_psk);
     EEPROM.get(EEPROM_ADDR_HOST,hostname);
     EEPROM.get(EEPROM_ADDR_PORT,tcp_port);
+    EEPROM.get(EEPROM_ADDR_HTTP,http_port);
 #endif //RP2040_W
     
     _INFOLIST("%s completed\n",__func__);
@@ -1686,41 +1846,35 @@ void readEEPROM() {
 void resetEEPROM() {
   
     cal_factor = 100000;
-    EEPROM.put(EEPROM_ADDR_CAL, cal_factor);
-
-    temp = 4;
-    EEPROM.put(EEPROM_ADDR_MODE, temp);
-
-    temp = 100;
-    EEPROM.put(EEPROM_ADDR_TEMP, temp);
-
-    temp = SLOT_1;
-    EEPROM.put(EEPROM_ADDR_SLOT, temp);
 
     strcpy(my_callsign,MY_CALLSIGN);
-    strcpy(my_grid,MY_GRID);
-    
+    strcpy(my_grid,MY_GRID);   
     strcpy(build,BUILD);
-    
-    
-    EEPROM.put(EEPROM_ADDR_BUILD,build);
-    EEPROM.put(EEPROM_ADDR_MYCALL,my_callsign);
-    EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);
 
+    strcpy(adiffile,ADIFFILE);
+    strcpy(logbook,LOGBOOK);
+    strcpy(qso_message,QSO_MESSAGE);
+    
+    
+    autosend=false;
+    logADIF=true;
+    timezone=TIMEZONE;
+    maxTry=MAXTRY;
+    maxTx=MAXTX;
+
+    
 #ifdef RP2040_W
+
     strcpy(wifi_ssid,WIFI_SSID);
     strcpy(wifi_psk,WIFI_PSK);
+    strcpy(hostname,HOSTNAME);
     tcp_port=TCP_PORT;
+    http_port=HTTP_PORT;
      
-    EEPROM.put(EEPROM_ADDR_SSID,wifi_ssid);
-    EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
-    EEPROM.put(EEPROM_ADDR_HOST,hostname);
-    EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
 #endif //RP2040_W 
     
-    EEPROM.commit();
-    _INFOLIST("%s EEPROM completed\n",__func__);
-    listEEPROM();
+    updateEEPROM();
+    _INFOLIST("%s EEPROM reset completed\n",__func__);
     
 }
 //********************************[ END OF INITIALIZATION FUNCTION ]*************************************
