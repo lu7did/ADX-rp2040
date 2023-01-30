@@ -86,7 +86,10 @@ Same build environment than the one used by the ADX-rp2040 firmware plus the add
 ### Arduino IDE board configuration
 
 The following configuration applies for the Arduino IDE when using a Raspberry Pi Pico Wireless
+
 ![Alt Text](../../docs/arduino_ide.png "Arduino IDE board configuration")
+
+
 For the standard Raspberry Pi Pico (non Wireless) use the same parameters but selecting the Raspberry Pico board instead.
 
 
