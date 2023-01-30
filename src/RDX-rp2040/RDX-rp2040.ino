@@ -173,7 +173,7 @@ struct tm timeprev;        //epoch time
 time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
 time_t now;
 char timestr[12];
-int  timezone=0;
+int  timezone=TIMEZONE;
 
 /*-----------------------
  * FT8 decoding
@@ -1750,7 +1750,7 @@ void INIT() {
     
 
   if (temp != 100 || strcmp(build,(char*)BUILD)!=0) {
-    _INFOLIST("%s New build detected (prev %s- current %s), EEPROM being reset\n",__func__,VERSION,BUILD);
+    _INFOLIST("%s New build detected (version %s build %s), EEPROM being reset\n",__func__,VERSION,BUILD);
     resetEEPROM();
   } else  {
     //--------------- EEPROM INIT VALUES

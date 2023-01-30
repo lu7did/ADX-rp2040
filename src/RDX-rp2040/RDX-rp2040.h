@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "64"
+#define BUILD   "65"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -195,18 +195,18 @@ typedef void (*CALLQSO)(int i);
 #define EEPROM_ADDR_MYGRID  80       //GRID  char[8]    -- 10
 #define EEPROM_ADDR_SSID    90       //SSID  char[40]   -- 40
 #define EEPROM_ADDR_PSK    130       //PSK   char[16]   -- 10
-#define EEPROM_ADDR_MAXTX  140       //TX    uint8_t    -- 2
-#define EEPROM_ADDR_MAXTRY 142       //TRY   uint8_t    -- 2
-#define EEPROM_ADDR_AUTO   144       //AUTO  bool       -- 2
-#define EEPROM_ADDR_WRITE  146       //WRITE bool       -- 2
-#define EEPROM_ADDR_HTTP   148       //HTTP  int        -- 2
-#define EEPROM_ADDR_HOST   170       //HOST  char[16]   -- 10
-#define EEPROM_ADDR_PORT   180       //PORT  int        -- 2
-#define EEPROM_ADDR_TZ     182       //TZ    int        -- 2
-#define EEPROM_ADDR_ADIF   190       //ADIF  char[16]   -- 20
-#define EEPROM_ADDR_LOG    210       //LOG   char[32]   -- 30
-#define EEPROM_ADDR_MSG    240       //QSO   char[16]   -- 20
-#define EEPROM_ADDR_END    260
+#define EEPROM_ADDR_MAXTX  150       //TX    uint8_t    -- 2
+#define EEPROM_ADDR_MAXTRY 160       //TRY   uint8_t    -- 2
+#define EEPROM_ADDR_AUTO   170       //AUTO  bool       -- 2
+#define EEPROM_ADDR_WRITE  180       //WRITE bool       -- 2
+#define EEPROM_ADDR_HTTP   190       //HTTP  int        -- 2
+#define EEPROM_ADDR_HOST   200       //HOST  char[16]   -- 10
+#define EEPROM_ADDR_PORT   220       //PORT  int        -- 2
+#define EEPROM_ADDR_TZ     230       //TZ    int        -- 2
+#define EEPROM_ADDR_ADIF   240       //ADIF  char[16]   -- 20
+#define EEPROM_ADDR_LOG    260       //LOG   char[32]   -- 30
+#define EEPROM_ADDR_MSG    300       //QSO   char[16]   -- 20
+#define EEPROM_ADDR_END    320
 
 /*------------------------------------------------------------
  * GUI Icon enumeration

@@ -201,6 +201,7 @@ bool ft8txCmd(int idx, char *_cmd,char *_arg,char *_out) {
 }
 bool tzCmd(int idx, char *_cmd,char *_arg,char *_out) {
      bool rc=handleNum(idx,&timezone,_arg,_out);
+     _INFOLIST("%s timezone is %d\n",__func__,timezone);
      return rc;
 }
 
@@ -222,7 +223,6 @@ bool txCmd(int idx, char *_cmd,char *_arg,char *_out) {
         stopTX();
         sprintf(_out+strlen(_out),"TX-\n");
      }
-     _INFOLIST("%s TX(%s)\n",__func__,BOOL2CHAR(tx));
      return rc;
 }
 
@@ -279,7 +279,6 @@ bool loadCmd(int idx, char *_cmd,char *_arg,char *_out) {
 bool saveCmd(int idx, char *_cmd,char *_arg,char *_out) {
 
    updateEEPROM();
-   sprintf(_out+strlen(_out),"EEPROM values updated\n>");
    return false;
 }
 
