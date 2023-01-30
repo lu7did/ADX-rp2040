@@ -39,7 +39,7 @@
 // This firmware is meant to be compiled using the latest Arduino IDE environment with the following parameters
 //
 // Board: "Raspberry Pi Pico W"
-// Flash size: "2 Mb (no FS)
+// Flash size: "2 Mb (Sketch: 1948 KB FS: 64 KB"
 // CPU Speed: 133 MHz
 // Optimize: Small -Os (Standard)
 // RTTi: disabled
@@ -47,7 +47,7 @@
 // C++ Exceptions: disabled
 // Debug port: disabled
 // Debug level: none
-// USB stack: "Adafruit TinyUSB"
+// USB stack: "Pico SDK"
 // IP Stack: "IPv4 only"
 //
 // The firmware has been developed with a Raspberry Pi Pico W version but it should work with a regular Raspberry Pi Pico
