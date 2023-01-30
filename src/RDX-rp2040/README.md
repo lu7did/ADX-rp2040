@@ -69,7 +69,7 @@ if a different configuration is needed a full compilation needs to be performed
 Please note the ./src directory might have binary files but would usually be intermediate development versions not recommended to flash as firmware, when using a 
 binary distribution always pick it from the binary directory as it would be a more stable version.
 
-###Procedure for Windows 10
+### Procedure for Windows 10
 
 In order to update the firmware the following procedure must be executed:
 
