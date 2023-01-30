@@ -184,12 +184,23 @@ bool handleByte(int idx, uint8_t* _num, char *_arg,char *_out) {
 /*                                Parameter specific handlers                                  */
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 bool tcpportCmd(int idx, char *_cmd,char *_arg,char *_out) {
+#ifdef RP2040_W  
      bool rc=handleNum(idx,&tcp_port,_arg,_out);
      return rc;
+#else
+     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
+     return false;
+#endif     
 }
 bool httpportCmd(int idx, char *_cmd,char *_arg,char *_out) {
+#ifdef RP2040_W  
      bool rc=handleNum(idx,&http_port,_arg,_out);
      return rc;
+#else
+     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
+     return false;
+#endif     
+     
 }
 bool ft8tryCmd(int idx, char *_cmd,char *_arg,char *_out) {
      bool rc=handleByte(idx,&maxTry,_arg,_out);
@@ -240,12 +251,23 @@ bool adifCmd(int idx, char *_cmd,char *_arg,char *_out) {
      return handleStr(idx,adiffile,_arg,_out);
 }
 bool ssidCmd(int idx, char *_cmd,char *_arg,char *_out) {
+#ifdef RP2040_W  
      char v[32];
      return handleStr(idx,wifi_ssid,_arg,_out);
+#else
+     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
+     return false;
+#endif     
+     
 }
 bool pskCmd(int idx, char *_cmd,char *_arg,char *_out) {
      char v[32];
+#ifdef RP2040_W
      return handleStr(idx,wifi_psk,_arg,_out);
+#else
+     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
+     return false;
+#endif         
 }
 bool logCmd(int idx, char *_cmd,char *_arg,char *_out) {
      char v[32];
@@ -257,7 +279,13 @@ bool msgCmd(int idx, char *_cmd,char *_arg,char *_out) {
 }
 bool hostCmd(int idx, char *_cmd,char *_arg,char *_out) {
      char v[32];
+#ifdef RP2040_W     
      return handleStr(idx,hostname,_arg,_out);
+#else
+     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
+     return false;
+#endif     
+     
 }
 
 bool listCmd(int idx, char *_cmd,char *_arg,char *_out) {
@@ -327,6 +355,7 @@ bool cli_execute(char *buffer, char *outbuffer) {
 char cmd[128]="";
 char argv[128]="";
 bool exitcode=false;
+
      parse(buffer,cmd);
      strcpy(argv,buffer);
      tolowerStr(cmd);

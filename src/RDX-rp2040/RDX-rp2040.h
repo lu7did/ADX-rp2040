@@ -69,17 +69,18 @@ typedef void (*CALLQSO)(int i);
 #endif //RP2040_W
 
 #define ADIF                 1  //Comment out if an ADIF logging is not needed
-#define DATALOGGERUSB        1
+#define DATALOGGERUSB        1  //Enable log export as a single file thru USB when active
 
-#undef  UART
-#define BAUD            115200
-#define FSK_IDLE          1000    //Standard wait without signal
+#undef  UART                    //define for other than USB serial
+#define BAUD            115200  //Standard Serial port
+/*
+#define FSK_IDLE          1000  //Standard wait without signal
 #define FSK_ERROR            4
 #define FSKMIN             300    //Minimum FSK frequency computed
 #define FSKMAX            3000    //Maximum FSK frequency computed
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
-
+*/
 /*----
    Output control lines
 */

@@ -72,19 +72,6 @@ SDFSConfig fileSystemConfig = SDFSConfig();
 #endif
 
 
-#define DBG_OUTPUT_PORT Serial
-
-/*
-#ifndef STASSID
-#define STASSID "Fibertel WiFi996 2.4GHz"
-#define STAPSK "00413322447"
-#endif
-
-const char* ssid = STASSID;
-const char* password = STAPSK;
-const char* host = "fsbrowser";
-*/
-
 WebServer server(http_port);
 
 static bool fsOK;
@@ -112,13 +99,11 @@ void replyNotFound(String msg) {
 }
 
 void replyBadRequest(String msg) {
-  //DBG_OUTPUT_PORT.println(msg);
   _INFOLIST("%s %s\n",__func__,msg);
   server.send(400, FPSTR(TEXT_PLAIN), msg + "\r\n");
 }
 
 void replyServerError(String msg) {
-  //DBG_OUTPUT_PORT.println(msg);
   _INFOLIST("%s %s\n",__func__,msg);
   server.send(500, FPSTR(TEXT_PLAIN), msg + "\r\n");
 }
@@ -151,7 +136,6 @@ String checkForUnsupportedPath(String filename) {
    Return the FS type, status and size info
 */
 void handleStatus() {
-  //DBG_OUTPUT_PORT.println("handleStatus");
   _INFOLIST("%s\n",__func__);
   FSInfo fs_info;
   String json;
@@ -196,7 +180,6 @@ void handleFileList() {
     return replyBadRequest("BAD PATH");
   }
 
-  //DBG_OUTPUT_PORT.println(String("handleFileList: ") + path);
   _INFOLIST("%s %s\n",__func__,path.c_str());
 
   Dir dir = fileSystem->openDir(path);
@@ -215,7 +198,6 @@ void handleFileList() {
 #ifdef USE_SPIFFS
     String error = checkForUnsupportedPath(dir.fileName());
     if (error.length() > 0) {
-      //DBG_OUTPUT_PORT.println(String("Ignoring ") + error + dir.fileName());
       _INFOLIST("%s Ignoring %s %s\n",__func__,error.c_str(),dir.fileName().c_str());
 
       continue;
@@ -262,7 +244,6 @@ void handleFileList() {
 */
 bool handleFileRead(String path) {
   
-  //DBG_OUTPUT_PORT.println(String("handleFileRead: ") + path);
   _INFOLIST("%s %s\n",__func__,path.c_str());
   if (!fsOK) {
     replyServerError(FPSTR(FS_INIT_ERROR));
@@ -288,7 +269,6 @@ bool handleFileRead(String path) {
     File file = fileSystem->open(path, "r");
     if (server.streamFile(file, contentType) != file.size()) {
       
-      //DBG_OUTPUT_PORT.println("Sent less data than expected!");
       _INFOLIST("%s Sent less data than expected! %d bytes",__func__,file.size());
 
     }
@@ -312,9 +292,7 @@ String lastExistingParent(String path) {
       path = String();  // No slash => the top folder does not exist
     }
   }
-  //DBG_OUTPUT_PORT.println(String("Last existing parent: ") + path);
   _INFOLIST("%s Last existing parent:%s\n",__func__,path.c_str());
-
   return path;
 }
 
@@ -355,7 +333,6 @@ void handleFileCreate() {
   String src = server.arg("src");
   if (src == "") {
     // No source specified: creation
-    //DBG_OUTPUT_PORT.println(String("handleFileCreate: ") + path);
     _INFOLIST("%s %s\n",__func__,path.c_str());
 
     if (path.endsWith("/")) {
@@ -387,7 +364,6 @@ void handleFileCreate() {
       return replyBadRequest(F("SRC FILE NOT FOUND"));
     }
 
-    //DBG_OUTPUT_PORT.println(String("handleFileCreate: ") + path + " from " + src);
     _INFOLIST("%s %s from %s\n",__func__,path.c_str(),src.c_str());
 
     if (path.endsWith("/")) {
@@ -453,7 +429,6 @@ void handleFileDelete() {
     return replyBadRequest("BAD PATH");
   }
 
-  //DBG_OUTPUT_PORT.println(String("handleFileDelete: ") + path);
   _INFOLIST("%s %s\n",__func__,path.c_str());
 
   if (!fileSystem->exists(path)) {
@@ -481,14 +456,12 @@ void handleFileUpload() {
     if (!filename.startsWith("/")) {
       filename = "/" + filename;
     }
-    //DBG_OUTPUT_PORT.println(String("handleFileUpload Name: ") + filename);
     _INFOLIST("%s %s\n",__func__,filename.c_str());
 
     uploadFile = fileSystem->open(filename, "w");
     if (!uploadFile) {
       return replyServerError(F("CREATE FAILED"));
     }
-    //DBG_OUTPUT_PORT.println(String("Upload: START, filename: ") + filename);
     _INFOLIST("%s %s\n",__func__,filename.c_str());
 
   } else if (upload.status == UPLOAD_FILE_WRITE) {
@@ -498,14 +471,12 @@ void handleFileUpload() {
         return replyServerError(F("WRITE FAILED"));
       }
     }
-    //DBG_OUTPUT_PORT.println(String("Upload: WRITE, Bytes: ") + upload.currentSize);
     _INFOLIST("%s Upload: WRITE %d bytes\n",__func__,upload.currentSize);
 
   } else if (upload.status == UPLOAD_FILE_END) {
     if (uploadFile) {
       uploadFile.close();
     }
-    //DBG_OUTPUT_PORT.println(String("Upload: END, Size: ") + upload.totalSize);
     _INFOLIST("%s Upload: END %d\n",__func__,upload.totalSize);
 
   }
@@ -548,7 +519,7 @@ void handleNotFound() {
   message += "path=";
   message += server.arg("path");
   message += '\n';
-  DBG_OUTPUT_PORT.print(message);
+  _SERIAL.print(message);
 
   return replyNotFound(message);
 }
@@ -573,10 +544,6 @@ void handleGetEdit() {
 }
 
 void setup_FSBrowser() {
-  ////////////////////////////////
-  // SERIAL INIT
-  //DBG_OUTPUT_PORT.begin(115200);
-  //DBG_OUTPUT_PORT.print('\n');
   
   ////////////////////////////////
   // FILESYSTEM INIT
@@ -584,56 +551,33 @@ void setup_FSBrowser() {
   fileSystemConfig.setAutoFormat(false);
   fileSystem->setConfig(fileSystemConfig);
   fsOK = fileSystem->begin();
-  //DBG_OUTPUT_PORT.println(fsOK ? F("Filesystem initialized.") : F("Filesystem init failed!"));
   _INFOLIST("%s %s\n",__func__,fsOK ? F("Filesystem initialized.") : F("Filesystem init failed!"));
 
 #ifdef USE_SPIFFS
   // Debug: dump on console contents of filesystem with no filter and check filenames validity
   Dir dir = fileSystem->openDir("");
-  //DBG_OUTPUT_PORT.println(F("List of files at root of filesystem:"));
   _INFOLIST("%s %s\n",__func__,F("List of files at root of filesystem:"));
 
   while (dir.next()) {
     String error = checkForUnsupportedPath(dir.fileName());
     String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + "b)");
     
-    //DBG_OUTPUT_PORT.println(error + fileInfo);
     _INFOLIST("%s %s %s\n",__func__,error.c_str(),fileInfo.c_str());
 
     if (error.length() > 0) {
       unsupportedFiles += error + fileInfo + '\n';
     }
   }
-  DBG_OUTPUT_PORT.println();
+  _SERIAL.println();
 
   // Keep the "unsupportedFiles" variable to show it, but clean it up
   unsupportedFiles.replace("\n", "<br/>");
   unsupportedFiles = unsupportedFiles.substring(0, unsupportedFiles.length() - 5);
 #endif
 
-  ////////////////////////////////
-  // WI-FI INIT
-/*  
-  DBG_OUTPUT_PORT.printf("Connecting to %s\n", ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    DBG_OUTPUT_PORT.print(".");
-  }
-  DBG_OUTPUT_PORT.println("");
-  DBG_OUTPUT_PORT.print(F("Connected! IP address: "));
-  DBG_OUTPUT_PORT.println(WiFi.localIP());
-*/
-  ////////////////////////////////
   // MDNS INIT
   if (MDNS.begin(hostname)) {
-    MDNS.addService("http", "tcp", http_port);
-    
-    //DBG_OUTPUT_PORT.print(F("Open http://"));
-    //DBG_OUTPUT_PORT.print(host);
-    //DBG_OUTPUT_PORT.println(F(".local/edit to open the FileSystem Browser"));
+    MDNS.addService("http", "tcp", http_port);   
     _INFOLIST("%s open http://%s.local/edit to open the FileSystem Browser\n",__func__,hostname);
   }
 
@@ -667,7 +611,6 @@ void setup_FSBrowser() {
   // Start server
   server.begin();
   _INFOLIST("%s HTTP server started\n",__func__);
-  //DBG_OUTPUT_PORT.println("HTTP server started");
 }
 
 
