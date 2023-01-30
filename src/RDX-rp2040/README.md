@@ -81,10 +81,16 @@ In order to update the firmware the following procedure must be executed:
 
 ## Build environment
 
-Same build environment than the one used by the ADX-rp2040 firmware plus:
+Same build environment than the one used by the ADX-rp2040 firmware plus the additional conditions stated below.
+
+### Arduino IDE board configuration
+
+The following configuration applies for the Arduino IDE when using a Raspberry Pi Pico Wireless
+![Alt Text](../../docs/arduino_ide.png "Arduino IDE board configuration")
+For the standard Raspberry Pi Pico (non Wireless) use the same parameters but selecting the Raspberry Pico board instead.
 
 
-## Pre-requisites and libraries
+### Pre-requisites and libraries
 
 Same build environment than the one used by the ADX-rp2040 firmware the latest version of the [Arduino pico core](https://github.com/earlephilhower/arduino-pico)
 by Earle F. Philhower III  plus the following libraries:
