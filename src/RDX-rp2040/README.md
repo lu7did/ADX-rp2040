@@ -141,6 +141,9 @@ transceiver during the FT8 QSO cycle.
 
 ![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
 
+## Configuration Web server
+
+
 ## Configuration terminal
 Most options which needs to be configured on a particular station can be modified at build time by correcting (or enabling, or disabling) the appropriate parameter
 before compiling and flashing the firmware. Usually modifications needs to be done in the **RDX-rp2040.h** file.
@@ -416,6 +419,8 @@ The main areas of the GUI are:
 		  will enable and disable the export. Log file will be exported as **rdx_logbook.txt**.
 		* **Configuration terminal (HS)** When tapped the serial configuration terminal is opened, access to the configuration menu and 
 		  functions can be made using a terminal program configured for the USB serial port of the board. 
+		* **Web based configuration tool** When tapped a connection with the configured WiFi AP is started and an internal web server initiated,
+		  using it status information is shown and configuration parameters can be changed.
 		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it. Even if enabled
 		  no log will be generated.
 
