@@ -83,6 +83,12 @@ In order to update the firmware the following procedure must be executed:
 
 Same build environment than the one used by the ADX-rp2040 firmware plus the additional conditions stated below.
 
+### Arduino Pico Core
+
+This firmware requires the [Arduino Pico Core](https://github.com/earlephilhower) created by Earle F. Philhower, III in order to setup a build chain
+based on the Arduino IDE.
+Check for installation and configuration instructions at this [link](https://www.upesy.com/blogs/tutorials/install-raspberry-pi-pico-on-arduino-ide-software).
+
 ### Arduino IDE board configuration
 
 The following configuration applies for the Arduino IDE when using a Raspberry Pi Pico Wireless
