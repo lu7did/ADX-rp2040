@@ -64,10 +64,10 @@ RDX-rp2040.ino.rpipicow.uf2 for the Raspberry pico Wireless version
 
 The compilation occurs with specific feature and function configuration definitions, typically the documented in the .ino source file
 if a different configuration is needed a full compilation needs to be performed
+
 ```
 Please note the ./src directory might have binary files but would usually be intermediate development versions not recommended to flash as firmware, when using a 
 binary distribution always pick it from the binary directory as it would be a more stable version.
-```
 
 ###Procedure for Windows 10
 
@@ -147,11 +147,14 @@ by the USB Serial of the Raspberry Pico board.
 This facility can be handy to change the operation parameters in response to an environment change, i.e. change the callsign, the grid locator, the credentials for 
 the WiFi access point or other values.
 When started the following banner is shown:
+
 ```
 RDX 2.0 build(63) command interpreter
 [16:51:59] >
 ```
+
 A list of the available commands can be obtained by:
+
 ```
 [16:51:59] >?
 help list load save reset ? call grid adif ssid psk log msg host writelog autosend tx tcpport http ft8try ft8tx tz quit
