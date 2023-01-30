@@ -56,7 +56,7 @@ Same hardware than the supported by the ADX-rp2040 firmware,  with the following
 ## Binary distribution
 
 Although not the preferred nor recommended mode of updating the firmware some specific levels might have a binary version (.uf2) available. It can be located at the
- ./src/RDX-rp2040//bin directory.
+ ./bin directory.
 The files are named using the following convention:
 ```
 RDX-rp2040.ino.rpipico.uf2  for the Raspberry pico version
