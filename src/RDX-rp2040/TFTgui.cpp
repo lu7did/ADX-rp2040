@@ -1623,12 +1623,13 @@ iconRDX icon[] = {iconRDX(&tft,(char*)"wifi",     2, 2, wifiSignWidth, wifiSignH
                   iconRDX(&tft,(char*)"adif",    70, 2, infoWidth, infoHeight, &infoX[0], NULL),
                   iconRDX(&tft, (char*)"USB",   104, 2, termWidth, termHeight, &termSign[0], NULL),
                   iconRDX(&tft, (char*)"config",138, 2, readoutWidth, readoutHeight, &readoutSign[0], NULL),
-                  iconRDX(&tft, (char*)"x",     172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL),
-                  iconRDX(&tft, (char*)"reset", 206, 2, alertWidth, alertHeight, &alert[0], NULL),
+                  iconRDX(&tft, (char*)"web",   172, 2, wsjtXWidth, wsjtXHeight, &wsjtX[0], NULL),
+                  iconRDX(&tft, (char*)"reset", 206, 2, updateWidth, updateHeight, &updateSign[0], NULL),                  
                   iconRDX(&tft, (char*)"x",     240, 2, micWidth, micHeight, &mic[0], NULL),
-                  iconRDX(&tft, (char*)"x",     274, 2, speakerWidth, speakerHeight, &speaker[0], NULL) };
+                  iconRDX(&tft, (char*)"x",     274, 2, speakerWidth, speakerHeight, &speaker[0], NULL),                   
+                  iconRDX(&tft, (char*)"update",308, 2, alertWidth, alertHeight, &alert[0], NULL)};
 
-linearMeter m = linearMeter(&tft, 350, 2, 5, 25, 3, 15, BLUE2BLUE, TFT_BLACK);
+linearMeter m = linearMeter(&tft, 355, 2, 5, 25, 3, 15, BLUE2BLUE, TFT_BLACK);
 displayRDX d = displayRDX(&tft, 2, 50, 272, 99, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
 progressBar p = progressBar(&tft, 2, 44, 272, 4, 10, TFT_CYAN, TFT_BLUE, TFT_BLACK);
 textRDX text = textRDX(&tft, 2 + 272 + 2, 50, 204, 99, 10, TFT_WHITE, TFT_BLACK, TFT_WHITE);
@@ -1713,6 +1714,16 @@ void tft_begin() {
   icon[CATICON].state=true;
   icon[CATICON].hdl=tft_cli;
   icon[CATICON].show();
+
+  icon[WSJTICON].enabled=true;
+  icon[WSJTICON].state=true;
+  icon[WSJTICON].hdl=tft_Web;
+  icon[WSJTICON].show();
+
+  icon[TUNEICON].enabled=true;
+  icon[TUNEICON].state=false;
+  icon[TUNEICON].active=false;
+  icon[TUNEICON].show();
 
 /*--------------------------------------------------------------------------------*/
 
@@ -1824,8 +1835,17 @@ void tft_checktouch() {
        updateEEPROM();
     }
 
+    bool f=false;
     for (int i=0;i<MAXICON;i++) {
        icon[i].check(x,y);
+       if (icon[i].click) {
+           f=true;
+       }
+    }
+    if (f) {
+       icon[TUNEICON].state=true;
+       icon[TUNEICON].show();
+       f=false;
     }
 
     
@@ -1942,8 +1962,11 @@ void tft_process() {
 
   for (int i=0;i<MAXICON;i++) {
      if (icon[i].click) {
-        icon[i].click=false;
-        icon[i].onclick();
+        icon[TUNEICON].state=false;
+        icon[TUNEICON].show
+     }
+     icon[i].click=false;
+     icon[i].onclick();
      }
   }
   
@@ -2155,6 +2178,34 @@ void tft_DataLoggerUSB() {
   return;
   
   
+}
+/*---------------------------------------------------------------------
+ * handler for File System Browser activation
+ */
+void tft_Web() {
+
+  icon[WSJTICON].click=false;
+  icon[WSJTICON].state=true;
+  icon[WSJTICON].active=false;
+  icon[WSJTICON].show();
+  
+  _INFOLIST("%s starting Web Browser\n",__func__);
+  s.write((char*)"Web configuration tool active");
+  checkAP(wifi_ssid,wifi_psk);
+  _INFOLIST("%s WiFi connectivity established\n",__func__);
+  
+  setup_Web();
+  _INFOLIST("%s setup Web configuration tool completed\n",__func__);
+  while (true) {
+    process_Web();
+    tft_checktouch();
+  } 
+  _INFOLIST("%s Web configuration tool terminated\n",__func__); 
+  resetAP();
+  icon[WSJTICON].state=false;
+  icon[WSJTICON].active=true;
+  icon[WSJTICON].show();
+  s.reset();
 }
 /*---------------------------------------------------------------------
  * handler for File System Browser activation

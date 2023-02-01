@@ -18,6 +18,7 @@ char wifi_ssid[40];
 char wifi_psk[16];
 char ipstr[16];
 int tz=TIMEZONE;
+char ipAddress[16];
 
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/

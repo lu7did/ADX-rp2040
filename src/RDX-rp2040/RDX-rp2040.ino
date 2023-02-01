@@ -162,8 +162,10 @@ char ip[16];
  */
 char adiffile[16];
 char hostname[16];
+
 int http_port=HTTP_PORT;
 int tcp_port=TCP_PORT;
+int web_port=WEB_PORT;
 
 /*------------------------------------------------------
  *   Internal clock handling
@@ -1038,6 +1040,7 @@ void setup()
   strcpy(qso_message,(char*)QSO_MESSAGE);
   strcpy(logbook,LOGBOOK);
 
+  web_port=WEB_PORT;
   http_port=HTTP_PORT;
   tcp_port=TCP_PORT;
   timezone=TIMEZONE;
@@ -1466,6 +1469,9 @@ void updateEEPROM() {
     EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
     EEPROM.put(EEPROM_ADDR_HOST,hostname);
     EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
+    EEPROM.put(EEPROM_ADDR_WEB,web_port);
+    EEPROM.put(EEPROM_ADDR_HTTP,http_port);
+    
 #endif //RP2040_W 
     
     EEPROM.commit();
@@ -1834,6 +1840,8 @@ void readEEPROM() {
     EEPROM.get(EEPROM_ADDR_HOST,hostname);
     EEPROM.get(EEPROM_ADDR_PORT,tcp_port);
     EEPROM.get(EEPROM_ADDR_HTTP,http_port);
+    EEPROM.get(EEPROM_ADDR_WEB,web_port);
+    
 #endif //RP2040_W
     
     _INFOLIST("%s completed\n",__func__);
@@ -1870,6 +1878,7 @@ void resetEEPROM() {
     strcpy(hostname,HOSTNAME);
     tcp_port=TCP_PORT;
     http_port=HTTP_PORT;
+    web_port=WEB_PORT;
      
 #endif //RP2040_W 
     

@@ -25,59 +25,11 @@
  *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
  
 #include <stddef.h>
+#include "cli.h"
 
 char outBuffer[1024];
 char inBuffer[128];
 int  ptrBuffer=0;
-
-/*---------------------------------------------
- * supporting structures
- */
-typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
-struct cmdSet {
-  char token[12];
-  char help[32];
-  char typearg;
-  bool toUpper;
-  bool toLower;
-  int  min;
-  int  max;
-  CMD  handlerCmd;
-};
-/*------------------------------------------------
- * Command token definition
- */
-#define MAXTOKEN     25
-cmdSet langSet[MAXTOKEN] =
-                      {{"help","help for all commands",0x00,false,false,0,0,NULL},
-                      {"list","list EEPROM content",0x00,false,false,0,0,NULL},
-                      {"load","load EEPROM content",0x00,false,false,0,0,NULL},
-                      {"save","save EEPROM content",0x00,false,false,0,0,NULL},
-                      {"reset","reset EEPROM content to default",0x00,false,false,0,0,NULL},
-                      
-                      {"?","list all commands",0x00,false,false,0,0,NULL},
-                      
-                      {"call","station callsign",'a',true,false,0,0,NULL},
-                      {"grid","station grid locator",'a',true,false,0,0,NULL},
-                      {"adif","logbook name",'a',false,true,0,0,NULL},
-                      {"ssid","WiFi AP SSID",'a',false,false,0,0,NULL},
-                      {"psk","WiFi AP password",'a',false,false,0,0,NULL},
-                      {"log","USB exported logbook",'a',false,false,0,0,NULL},
-                      {"msg","FT8 ADIF message",'a',true,false,0,0,NULL},
-                      {"host","host name",'a',false,false,0,0,NULL},
-                      
-                      {"writelog","enable ADIF log write",'b',false,false,0,0,NULL},
-                      {"autosend","enable FT8 QSO auto",'b',false,false,0,0,NULL},
-                      {"tx","turn TX on/off",'b',false,false,0,0,NULL},
-
-                      {"tcpport","Telnet Port",'i',false,false,23,10000,NULL},
-                      {"http","FS HTTP Port",'i',false,false,80,10000,NULL},
-                      {"ft8try","FT8 Max tries",'n',false,false,1,12,NULL},
-                      {"ft8tx","FT8 Max tx",'n',false,false,1,12,NULL},
-                      {"tz","TZ offset from UTC",'i',false,false,-12,+12,NULL},
-                      
-                      {"quit","quit terminal mode",0x00,false,false,0,0,NULL},
-                      {"","",0x00,false,false,0,0,NULL}};
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                     Generic handlers                                        */
@@ -179,6 +131,41 @@ bool handleByte(int idx, uint8_t* _num, char *_arg,char *_out) {
      return false;
 
 }
+/*------------------------------------------------
+ * Command token definition table
+ * Don't touch unless you really know how to handle
+ * C pointers (a lot).
+ */
+cmdSet langSet[MAXTOKEN] =
+                      {{"help","Help for all commands",0x00,false,false,0,0,NULL,NULL},
+                      {"list","List EEPROM content",0x00,false,false,0,0,NULL,NULL},
+                      {"load","Load EEPROM content",0x00,false,false,0,0,NULL,NULL},
+                      {"save","Save EEPROM content",0x00,false,false,0,0,NULL,NULL},
+                      {"reset","Reset EEPROM to default",0x00,false,false,0,0,NULL,NULL},                     
+                      {"?","List all commands",0x00,false,false,0,0,NULL,NULL},
+                      
+                      {"call","Station callsign",'a',true,false,0,0,NULL,(void*)&my_callsign},
+                      {"grid","Station grid locator",'a',true,false,0,0,NULL,(void*)&my_grid},
+                      {"adif","Logbook name",'a',false,true,0,0,NULL,(void*)&adiffile},
+                      {"ssid","WiFi AP SSID",'a',false,false,0,0,NULL,(void*)&wifi_ssid},
+                      {"psk","WiFi AP password",'a',false,false,0,0,NULL,(void*)&wifi_psk},
+                      {"log","USB exported logbook",'a',false,false,0,0,NULL,(void*)&logbook},
+                      {"msg","FT8 ADIF message",'a',true,false,0,0,NULL,(void*)&qso_message},
+                      {"host","Host name",'a',false,false,0,0,NULL,(void*)&hostname},
+                      
+                      {"writelog","Enable ADIF log write",'b',false,false,0,0,NULL,(void*)&logADIF},
+                      {"autosend","Enable FT8 QSO auto",'b',false,false,0,0,NULL,(void*)&autosend},
+                      {"tx","Turn TX on/off",'b',false,false,0,0,NULL,NULL},
+
+                      {"tcpport","Telnet Port",'i',false,false,23,10000,NULL,&tcp_port},
+                      {"http","FS HTTP Port",'i',false,false,80,10000,NULL,(void*)&http_port},
+                      {"web","Web tool Port",'i',false,false,80,10000,NULL,(void*)&web_port},
+                      {"ft8try","FT8 Max tries",'n',false,false,1,12,NULL,(void*)&maxTry},
+                      {"ft8tx","FT8 Max tx",'n',false,false,1,12,NULL,(void*)&maxTx},
+                      {"tz","TZ offset from UTC",'i',false,false,-12,+12,NULL,(void*)&timezone},
+                      
+                      {"quit","quit terminal mode",0x00,false,false,0,0,NULL,NULL},
+                      {"","",0x00,false,false,0,0,NULL,NULL}};
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                Parameter specific handlers                                  */
@@ -342,7 +329,14 @@ bool shortCmd(int idx, char *_cmd,char *_arg,char *_out) {
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                Command processor                                            */
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-
+int cliFind(char *cmd) {
+  for (int i=0;i<MAXTOKEN;i++) {
+    if (strcmp(cmd,langSet[i].token)==0) {
+       return i;
+    }
+  }
+  return -1;
+}
 /*----------------------------------
  * Main command dispatcher
  * the parsed command is contained in the area pointed by c

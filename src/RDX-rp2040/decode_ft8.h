@@ -28,10 +28,8 @@ typedef m message_info;
 /*                                      Decoding parameters                                                              *
 /*                              Tune for performance and capacity considerations                                         *
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-#define kMin_score            10 // Minimum sync score threshold for candidates
-#define kMax_candidates       30 // Original was 120
-#define kLDPC_iterations      10 // Original was 20
-#define kMax_decoded_messages 14 //was 50, change to 14 since there's 14 buttons on the 4x4 membrane keyboard
+
+
 #define kFreq_osr              1 //both default 2
 #define kTime_osr              1
 #define kFSK_dev            6.25 // tone deviation in Hz and symbol rate

@@ -36,6 +36,7 @@
 #include <WiFi.h>
 #include <Time.h>
 #include <stdbool.h>
+#include "RDX-rp2040_User_Setup.h"
 
 /*------------------------------------------------
    IDENTIFICATION DIVISION.
@@ -44,7 +45,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "65"
+#define BUILD   "66"
 /*-------------------------------------------------
  * Macro expansions
  */
@@ -56,31 +57,11 @@
 #define _NOP (byte)0
 typedef void (*CALLBACK)();
 typedef void (*CALLQSO)(int i);
+typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
 
 
-/*--------------------------------------------------
- * Program configuration parameters
- */
-#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
-#define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
-
-#if defined(RP2040_W)
-#define FSBROWSER            1  //Comment out if a File System browser is not needed
-#endif //RP2040_W
-
-#define ADIF                 1  //Comment out if an ADIF logging is not needed
-#define DATALOGGERUSB        1  //Enable log export as a single file thru USB when active
-
-#undef  UART                    //define for other than USB serial
 #define BAUD            115200  //Standard Serial port
-/*
-#define FSK_IDLE          1000  //Standard wait without signal
-#define FSK_ERROR            4
-#define FSKMIN             300    //Minimum FSK frequency computed
-#define FSKMAX            3000    //Maximum FSK frequency computed
-#define FSK_USEC       1000000    //Constant to convert T to f
-#define VOX_MAXTRY          15    //VOX control cycles
-*/
+
 /*----
    Output control lines
 */
@@ -136,34 +117,6 @@ typedef void (*CALLQSO)(int i);
 */
 #define CAL             9      //Automatic calibration entry
 
-/*----------------------------------------------------
- * ft8 definitions
- */
-
-#define MY_CALLSIGN "LU2EIC"
-#define MY_GRID "GF05"
-
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//*                               WiFi Access Point credentials                                           *
-//* Replace the AP SSID and password of your choice, if not modified the firmware won't be able to sync   *
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-#ifndef WIFI_SSID
-//The ap.h file must contain valid Wifi credentials following the format
-//#define WIFI_SSID                  "Your WiFi SSID"
-//#define WIFI_PSK                   "0123456789"
-//You might replace that include with a couple of #define for WIFI_SSID and WIFI_PSK for your Wifi AP
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-#if __has_include("ap.h")
-#include "ap.h"
-#else
-#include "Y:\Documents\GitHub\ap.h"        //This is a trick to provide credentials on a file outside of the GitHub package
-                                           //This is an horrendous practice that should be avoided, the only reason is
-                                           //not to forget and publish my WiFi credentials (I test with)
-                                           //Once you create your own ap.h file just place it at the folder where the rest
-                                           //of the firmware is and replace the include with
-                                           //     #include "ap.h"
-#endif                                           
-#endif //WIFI_SSID
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 //*                      GENERAL PURPOSE GLOBAL DEFINITIONS                                     *
@@ -184,6 +137,17 @@ typedef void (*CALLQSO)(int i);
 #define CAL_COMMIT         12
 #define CAL_ERROR           1
 
+
+/*--------------------------------------------------------------
+ * Magic numbers
+ * Do not even think to touch them
+ * 
+ */
+#define kMin_score            10 // Minimum sync score threshold for candidates
+#define kMax_candidates       KMAX_CANDIDATES       // Original was 120
+#define kLDPC_iterations      KLDPC_ITERATIONS      // Original was 20
+#define kMax_decoded_messages KMAX_DECODED_MESSAGES //was 50, change to 14 since there's 14 buttons on the 4x4 membrane keyboard
+
 /*------------------------------------------------------
  * EEPROM Address Map
  */
@@ -202,17 +166,18 @@ typedef void (*CALLQSO)(int i);
 #define EEPROM_ADDR_WRITE  180       //WRITE bool       -- 2
 #define EEPROM_ADDR_HTTP   190       //HTTP  int        -- 2
 #define EEPROM_ADDR_HOST   200       //HOST  char[16]   -- 10
-#define EEPROM_ADDR_PORT   220       //PORT  int        -- 2
-#define EEPROM_ADDR_TZ     230       //TZ    int        -- 2
-#define EEPROM_ADDR_ADIF   240       //ADIF  char[16]   -- 20
-#define EEPROM_ADDR_LOG    260       //LOG   char[32]   -- 30
-#define EEPROM_ADDR_MSG    300       //QSO   char[16]   -- 20
-#define EEPROM_ADDR_END    320
+#define EEPROM_ADDR_WEB    220       //WEB   int        -- 2
+#define EEPROM_ADDR_PORT   230       //PORT  int        -- 2
+#define EEPROM_ADDR_TZ     240       //TZ    int        -- 2
+#define EEPROM_ADDR_ADIF   250       //ADIF  char[16]   -- 20
+#define EEPROM_ADDR_LOG    270       //LOG   char[32]   -- 30
+#define EEPROM_ADDR_MSG    310       //QSO   char[16]   -- 20
+#define EEPROM_ADDR_END    330
 
 /*------------------------------------------------------------
  * GUI Icon enumeration
  */
-#define MAXICON  9
+#define MAXICON  10
 
 #define WIFIICON 0
 #define TERMICON 1
@@ -223,6 +188,7 @@ typedef void (*CALLQSO)(int i);
 #define QUADICON 6
 #define MUTEICON 7
 #define SPKRICON 8
+#define TUNEICON 9
 
 
 #define SLOT_1               1
@@ -230,17 +196,6 @@ typedef void (*CALLQSO)(int i);
 #define SLOT_3               3
 #define SLOT_4               4
 
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//*                               TCP/IP related areas                                                    *
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-#define HOSTNAME              PROGNAME
-#define NTP_SERVER1           "132.163.97.1"    //time.nist.gov in case of a faulty DNS server
-#define NTP_SERVER2           "pool.ntp.org"     //NTP server secondary      
-#define INET_SERVER           "www.google.com"     //Check some relevant host or IP address of interest to check connectivity
-#define TIMEZONE              -3                 //Buenos Aires, Argentina
-#define ADIFFILE              "/rdx.txt"         //ADIF Logbook internal FS name
-#define LOGBOOK               "rdx_logbook.txt"  //ADIF Logbook USB exported name
-#define QSO_MESSAGE           "73 and GL"
 
 
 #define SYNC_OK               0
@@ -251,8 +206,6 @@ typedef void (*CALLQSO)(int i);
 
 #define WIFI_TOUT            20        //WiFi connection timeout (in Secs)
 #define UDP_PORT           2237        //UDP Port to listen
-#define TCP_PORT           9000        //TCP Port to listen for connections
-#define HTTP_PORT            80
 #define UDP_BUFFER          256
 
 
@@ -279,9 +232,11 @@ extern char adiffile[16];
 #ifdef RP2040_W
 extern char wifi_ssid[40];
 extern char wifi_psk[16];
+#endif //RP2040_W
+
 extern int  tcp_port;
 extern int  http_port;
-#endif //RP2040_W
+extern int  web_port;
 
 
 /*------------------------------------------------------------------
@@ -318,6 +273,8 @@ extern uint16_t call_qsowindow;
 
 extern bool okayToWrite;
 extern bool SingleFileDriveactive;
+
+extern int af_frequency;
 
 /*---------------------------------------------------
  * Time related variables
@@ -371,6 +328,9 @@ extern void tft_iconSet(int _icon,bool _enabled);
 extern void tft_iconActive(int _icon,bool _active);
 extern bool popBang(char *s,char *t,const char delimiter);
 extern bool parse(char *s,char *t);
+extern int heapLeft();
+extern int cliFind(char *cmd);
+
 
 
 
@@ -384,6 +344,7 @@ extern void data_stop();
 extern void data_setup();
 extern void cli_command();
 extern void cli_prompt(char *_out);
+extern void tft_Web();
 
 
 extern void initSi5351();
@@ -417,6 +378,8 @@ extern void tolowerStr(char *s);
 extern void toupperStr(char *s);
 extern bool getEEPROM(int *i,char *buffer);
 extern bool isNumeric(char *s);
+extern void setup_Web();
+extern void process_Web();
 
 
 /*-------------------------------------------------------
