@@ -435,6 +435,11 @@ The main areas of the GUI are:
 		  using it status information is shown and configuration parameters can be changed.
 		* **FT8 QSO reset**. When tapped the firmware will reset the current QSO status back to idle, effectively cancelling it. Even if enabled
 		  no log will be generated.
+		* **MIC** (not used, future use)
+		* **SPEAKER^** (not used, future use)
+		* **Warning** This icon isn't activable and provides a visual clue that the tap of an icon has been registered and it's pending for
+		  execution. The icon actions can only be processed at the end of the FT8 cycle. Once the icon activation is performed the icon
+		  is placed in off condition.
 
 ```
 Warning
