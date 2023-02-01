@@ -1074,7 +1074,7 @@ void setup()
     timeSync();
   }
 
-#if defined(RP2040_W) && defined(FSBROWSER) && defined(ADIF)
+#if defined(ADIF)
   _INFOLIST("%s initializing ADIF logbook sub-system Log(%s)\n",__func__,BOOL2CHAR(logADIF));
   setup_adif();
 #endif 
@@ -1125,7 +1125,7 @@ void setup()
   setup_ft8();
   delay(2*Bdly);
 
-  
+  tft_set(BUTTON_AUTO,autosend);
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }

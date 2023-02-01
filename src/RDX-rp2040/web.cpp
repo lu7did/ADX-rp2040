@@ -125,7 +125,13 @@ void setFooter(char *out) {
   sprintf(out+strlen(out),"</form>");
   
   sprintf(out+strlen(out),"<form method=\"post\" enctype=\"application/x-www-form-urlencoded\" action=\"/posttx/\">");
-  sprintf(out+strlen(out),"<td><input type=\"submit\" value=\"Tx\"></td>");
+  char txstr[4];
+  if (TX_State==0) {
+     strcpy(txstr,"Tx+");
+  } else {
+     strcpy(txstr,"Tx-");
+  }
+  sprintf(out+strlen(out),"<td><input type=\"submit\" value=\"%s\"></td>",txstr);
   sprintf(out+strlen(out),"</form>");
   
   sprintf(out+strlen(out),"</tr>");
@@ -211,27 +217,64 @@ void Web_handlePlain() {
 void Web_handleForm() {
   char message[1024];
   char strVal[64];
+  char strWarn[12];
   
   strcpy(message,"");
+  strcpy(strWarn,"");
+  
   if (Web_server.method() != HTTP_POST) {
     Web_server.send(405, "text/plain", "Method Not Allowed");
   } else {
     sprintf(message+strlen(message),"POST form was:\n");
     for (uint8_t i = 0; i < Web_server.args(); i++) {
+      strcpy(strWarn,"");
       strcpy(strVal,"<nil>");
       int idx=cliFind((char*)Web_server.argName(i).c_str());
       if (idx>=0) {
          if (langSet[idx].typearg=='a') {
             sprintf(strVal,"%s",static_cast<char*>(langSet[idx].var));
+            if (strcmp(strVal,(char*)Web_server.arg(i).c_str())!=0) {
+               sprintf(strWarn,"*CHANGE*");
+               strcpy(static_cast<char*>(langSet[idx].var),(char*)Web_server.arg(i).c_str());
+            }
          }
+         
+         if (langSet[idx].typearg=='i') {
+            int v=*(int *)langSet[idx].var;
+            sprintf(strVal,"%d",v);
+            int x=atoi((char*)Web_server.arg(i).c_str());
+            if (v!=x) {
+               sprintf(strWarn,"*CHANGE*");
+               *(int *)langSet[idx].var=x;
+            }
+         }
+         
+         if (langSet[idx].typearg=='n') {
+            uint8_t v=*(uint8_t *)langSet[idx].var;
+            sprintf(strVal,"%d",v);
+            uint8_t x=(uint8_t)atoi((char*)Web_server.arg(i).c_str());
+            if (v!=x) {
+               sprintf(strWarn,"*CHANGE*");
+               *(uint8_t *)langSet[idx].var=x;
+            }
+         }
+         
+         if (langSet[idx].typearg=='b') {
+            bool v=*(bool *)langSet[idx].var;
+            sprintf(strVal,"%d",v);
+            bool x=(bool)atoi((char*)Web_server.arg(i).c_str());
+            if (v!=x) {
+               sprintf(strWarn,"*CHANGE*");
+               *(bool *)langSet[idx].var=x;
+            }
+         }
+         
       }
-      sprintf(message+strlen(message)," idx(%d) %s:%s prev(%s)\n",(char*)idx,Web_server.argName(i).c_str(),(char*)Web_server.arg(i).c_str(),strVal);
-      if (strcmp(strVal,(char*)Web_server.arg(i).c_str())!=0) {
-         sprintf(message+strlen(message)," *CHANGE*");
-      }
+      //sprintf(message+strlen(message)," idx(%d) %s:%s prev(%s)  %s\n",(char*)idx,Web_server.argName(i).c_str(),(char*)Web_server.arg(i).c_str(),strVal,strWarn);
       //message += " " + Web_server.argName(i) + ": " + Web_server.arg(i) + "\n";
     }
-    Web_server.send(200, "text/plain", message);
+    //Web_server.send(200, "text/plain", message);
+    Web_handleRoot();
   }
 }
 /*---------------------------------------------------------------
@@ -251,9 +294,13 @@ void Web_handleNotFound() {
   }
   Web_server.send(404, "text/plain", message);
 }
-
+/*---------------------------------------------------------
+ * Handle the Save button to commit changes into EEPROM
+ */
 void Web_handleSave() {
 
+  updateEEPROM();
+  /*
   String message = "Save EEPROM\n\n";
   message += "URI: ";
   message += Web_server.uri();
@@ -266,10 +313,21 @@ void Web_handleSave() {
     message += " " + Web_server.argName(i) + ": " + Web_server.arg(i) + "\n";
   }
   Web_server.send(404, "text/plain", message);
-  
+  */
+  Web_handleRoot();
+
 }
+/*-----------------------------------------------------------
+ * Handle the TX button to turn on/off the transmitter
+ */
 void Web_handleTx() {
 
+  if (TX_State == 0) {
+     startTX();
+  } else {
+     stopTX();
+  }
+  /*
   String message = "Turn On/Off Tx\n\n";
   message += "URI: ";
   message += Web_server.uri();
@@ -282,6 +340,8 @@ void Web_handleTx() {
     message += " " + Web_server.argName(i) + ": " + Web_server.arg(i) + "\n";
   }
   Web_server.send(404, "text/plain", message);
+  */
+  Web_handleRoot();
   
 }
 

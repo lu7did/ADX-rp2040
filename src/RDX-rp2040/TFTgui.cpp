@@ -857,8 +857,7 @@ void displayRDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle)
 void displayRDX::set(int btnIndex,int v) {
   switch (btnIndex) {
     case BUTTON_BAND:
-                    {
-                     
+                    {                 
                     char bandstr[6];
                     sprintf(bandstr,"%dm",Bands[v]);
                     setBtn(btnIndex,bandstr,false,false);
@@ -900,6 +899,11 @@ void displayRDX::set(int btnIndex,int v) {
                     }
     case BUTTON_AUTO:
                     {
+                    if (v==-1) {
+                       setBtn(btnIndex,(char*)"Setup",true,true);
+                       autosend=false;  
+                       break;                  
+                    }
                     if (v==0) {
                        setBtn(btnIndex,(char*)"Manual",true,true);
                        autosend=false;
@@ -1159,6 +1163,7 @@ class textRDX {        // The class
     int checkPoint(int x, int y);
     void printline(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
     void printline(char *s);
+    void reset();
 
 
     void scroll();
@@ -1183,6 +1188,11 @@ textRDX::textRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t
   tx = _tx;
 
   tft = _tft;
+  reset();
+
+
+}
+void textRDX::reset() {
 
   for (int i = 0; i < TEXTLINES; i++) {
     strcpy(t[i].msg, "");
@@ -1196,7 +1206,7 @@ textRDX::textRDX(TFT_eSPI* _tft, uint16_t _x, uint16_t _y, uint16_t _w, uint16_t
   tft->setTextFont(2);
   tft->setTextSize(1);
   fh = tft->fontHeight();
-
+  show();  
 }
 void textRDX::show() {
   if (!enabled) return;
@@ -1451,11 +1461,15 @@ void spectrumRDX::reset() {
 
 void spectrumRDX::write(char *msg) {
 
-  tft->fillRect(b.xStart+100, b.yStart + 50, 200, 80, TFT_RED);
-  tft->drawFastHLine (b.xStart+102, b.yStart + 52  , 196, TFT_WHITE);
-  tft->drawFastHLine (b.xStart+102, b.yStart + 50+78  , 196, TFT_WHITE);
+  int xStart=276+5;
+  int yStart=50+5;
+  int w=195;
+  int h=90;
+  tft->fillRect(xStart, yStart, w, h, TFT_RED);
+  tft->drawFastHLine (xStart+2, yStart + 2  , w-5, TFT_WHITE);
+  tft->drawFastHLine (xStart+2, yStart + 2  , w-5, TFT_WHITE);
   tft->setTextColor(TFT_WHITE, TFT_RED);
-  tft->drawString(msg, b.xStart + 106, b.yStart + 60, 1); // Print the line
+  tft->drawString(msg, xStart+5, yStart + 5, 1); // Print the line
  
 }
 /*-----------------
@@ -1734,7 +1748,7 @@ void tft_begin() {
   d.addBtn(BUTTON_AUTO, &btnAUTO);
   d.addBtn(BUTTON_BAND, &btnBAND);
 
-  d.set(BUTTON_AUTO,0);
+  d.set(BUTTON_AUTO,-1);
   d.set(BUTTON_TX,0);
   d.set(BUTTON_BAND,Band_slot-1);
   d.set(BUTTON_CQ,0);
@@ -1831,6 +1845,7 @@ void tft_checktouch() {
        d.redraw=false;
        s.reset();
        s.init();
+       text.reset();
        
        updateEEPROM();
     }
@@ -2035,6 +2050,7 @@ void tft_updateBand() {
        d.redraw=false;
        s.reset();
        s.init();
+       text.reset();
    }    
 }
 
@@ -2110,6 +2126,7 @@ void tft_syncNTP() {
   icon[WIFIICON].state=false;
   icon[WIFIICON].show();
   s.reset();
+  text.reset();
   
 }
 
@@ -2124,6 +2141,7 @@ void tft_quad() {
   tft_endQSO();
   delay(500);
   s.reset();
+  text.reset();
   icon[QUADICON].state=true;
   icon[QUADICON].show();
  
@@ -2143,6 +2161,7 @@ void tft_cli() {
  * never to be reached
  */
   s.reset();
+  text.reset();
   icon[CATICON].state=true;
   icon[CATICON].show();
  
@@ -2206,6 +2225,7 @@ void tft_Web() {
   icon[WSJTICON].active=true;
   icon[WSJTICON].show();
   s.reset();
+  text.reset();
 }
 /*---------------------------------------------------------------------
  * handler for File System Browser activation
@@ -2239,4 +2259,5 @@ void tft_FSBrowser() {
   icon[TERMICON].active=true;
   icon[TERMICON].show();
   s.reset();
+  text.reset();
 }

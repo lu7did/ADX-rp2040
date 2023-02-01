@@ -588,11 +588,10 @@ This is the informal roadmap followed to prioritize and implement the future fea
 ## Pending
 
 * Develop or adopt a PCB layout design.
-* Support for Si4732 chipset
-* Support for Si4732 chipset
+* Support for Si4735 chipset based receiver
+* Migrate signal processing to core1
 * Hardware interface to SD-Card/Export
 * File system (SD card based)
-* Support Si4732 based receiver (HW support being developed)
 * Organize and add functionality for icons (partial)
 
 ## low priority roadmap
