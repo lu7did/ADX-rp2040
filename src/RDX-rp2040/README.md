@@ -143,6 +143,12 @@ transceiver during the FT8 QSO cycle.
 
 ## Configuration Web server
 
+Configuration parameters can also be changed using this facility, once activated it can be accessed using **http://rdx.local:8000"** or **"http://{ip_address}:8000.
+![Alt Text](../../docs/rdx_web.png "Web based configuration server")
+Parameters can be modified and the update is made by pressing the button **update**, however the changes won't be made permanent until the **save** button is 
+pressed and the changes made effective by writting them in EEPROM.
+A facility to activate the transmitter can be used by pressing the **Tx+** button while pressing **Tx-** will turn the transmitter off.
+
 
 ## Configuration terminal
 Most options which needs to be configured on a particular station can be modified at build time by correcting (or enabling, or disabling) the appropriate parameter
@@ -359,6 +365,7 @@ To recover, edit or erase the file you can use the Web Browser File System facil
 be activated for that).
 
 ** Web File System Browser 
+
 A facility called File System Browser can be activated at compile time thru the **#define FSBROWSER 1** in the RDX-rp2040.h file.
 When activated the browser can be activated by simultaneously pressing **UP** and **DOWN** during the initizalization of the board, when activated a red spash screen
 will notice that.
@@ -367,6 +374,10 @@ The web based file browser can be activated either by
 http://{board IP address}/edit
 http://rdx.local/edit
 ```
+When accessed the GUI shown in the Web browser is as indicated by the following picture
+![Alt Text](../../docs/fsb.png "File System Browser")
+Files can be edited, deleted, downloaded or moved using this facility.
+
 Using this facility the files, can be more than one, could be edited, deleted or downloaded.
 
 In order to de-activate the web based file browser the board needs to be re-initialized by cycling the power of it.
