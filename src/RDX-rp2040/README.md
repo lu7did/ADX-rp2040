@@ -364,7 +364,7 @@ a 64K flash memory based storage area managed using a simple file system. The ca
 To recover, edit or erase the file you can use the Web Browser File System facility (FSBROWSER needs to be activated for that) or a USB Export (DATALOGGERUSB needs to 
 be activated for that).
 
-** Web File System Browser 
+## Web File System Browser 
 
 A facility called File System Browser can be activated at compile time thru the **#define FSBROWSER 1** in the RDX-rp2040.h file.
 When activated the browser can be activated by simultaneously pressing **UP** and **DOWN** during the initizalization of the board, when activated a red spash screen
@@ -375,7 +375,8 @@ http://{board IP address}/edit
 http://rdx.local/edit
 ```
 When accessed the GUI shown in the Web browser is as indicated by the following picture
-![Alt Text](../../docs/fsb.png "File System Browser")
+
+![Alt Text](../../docs/rdx_fsb.png "File System Browser")
 Files can be edited, deleted, downloaded or moved using this facility.
 
 Using this facility the files, can be more than one, could be edited, deleted or downloaded.
