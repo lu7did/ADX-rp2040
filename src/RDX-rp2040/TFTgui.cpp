@@ -1963,10 +1963,10 @@ void tft_process() {
   for (int i=0;i<MAXICON;i++) {
      if (icon[i].click) {
         icon[TUNEICON].state=false;
-        icon[TUNEICON].show
-     }
-     icon[i].click=false;
-     icon[i].onclick();
+        icon[TUNEICON].show();
+        
+        icon[i].click=false;
+        icon[i].onclick();
      }
   }
   
@@ -2189,7 +2189,7 @@ void tft_Web() {
   icon[WSJTICON].active=false;
   icon[WSJTICON].show();
   
-  _INFOLIST("%s starting Web Browser\n",__func__);
+  _INFOLIST("%s starting Configuration Web Browser\n",__func__);
   s.write((char*)"Web configuration tool active");
   checkAP(wifi_ssid,wifi_psk);
   _INFOLIST("%s WiFi connectivity established\n",__func__);

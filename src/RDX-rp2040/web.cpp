@@ -211,6 +211,7 @@ void Web_handlePlain() {
 void Web_handleForm() {
   char message[1024];
   char strVal[64];
+  
   strcpy(message,"");
   if (Web_server.method() != HTTP_POST) {
     Web_server.send(405, "text/plain", "Method Not Allowed");
@@ -225,6 +226,9 @@ void Web_handleForm() {
          }
       }
       sprintf(message+strlen(message)," idx(%d) %s:%s prev(%s)\n",(char*)idx,Web_server.argName(i).c_str(),(char*)Web_server.arg(i).c_str(),strVal);
+      if (strcmp(strVal,(char*)Web_server.arg(i).c_str())!=0) {
+         sprintf(message+strlen(message)," *CHANGE*");
+      }
       //message += " " + Web_server.argName(i) + ": " + Web_server.arg(i) + "\n";
     }
     Web_server.send(200, "text/plain", message);
