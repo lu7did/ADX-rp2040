@@ -244,7 +244,6 @@ void handleFileList() {
 */
 bool handleFileRead(String path) {
   
-  _INFOLIST("%s %s\n",__func__,path.c_str());
   if (!fsOK) {
     replyServerError(FPSTR(FS_INIT_ERROR));
     return true;
@@ -268,8 +267,6 @@ bool handleFileRead(String path) {
   if (fileSystem->exists(path)) {
     File file = fileSystem->open(path, "r");
     if (server.streamFile(file, contentType) != file.size()) {
-      
-      _INFOLIST("%s Sent less data than expected! %d bytes",__func__,file.size());
 
     }
     file.close();
@@ -292,7 +289,6 @@ String lastExistingParent(String path) {
       path = String();  // No slash => the top folder does not exist
     }
   }
-  _INFOLIST("%s Last existing parent:%s\n",__func__,path.c_str());
   return path;
 }
 
@@ -333,7 +329,6 @@ void handleFileCreate() {
   String src = server.arg("src");
   if (src == "") {
     // No source specified: creation
-    _INFOLIST("%s %s\n",__func__,path.c_str());
 
     if (path.endsWith("/")) {
       // Create a folder
@@ -363,8 +358,6 @@ void handleFileCreate() {
     if (!fileSystem->exists(src)) {
       return replyBadRequest(F("SRC FILE NOT FOUND"));
     }
-
-    _INFOLIST("%s %s from %s\n",__func__,path.c_str(),src.c_str());
 
     if (path.endsWith("/")) {
       path.remove(path.length() - 1);
@@ -429,7 +422,6 @@ void handleFileDelete() {
     return replyBadRequest("BAD PATH");
   }
 
-  _INFOLIST("%s %s\n",__func__,path.c_str());
 
   if (!fileSystem->exists(path)) {
     return replyNotFound(FPSTR(FILE_NOT_FOUND));
@@ -456,13 +448,11 @@ void handleFileUpload() {
     if (!filename.startsWith("/")) {
       filename = "/" + filename;
     }
-    _INFOLIST("%s %s\n",__func__,filename.c_str());
 
     uploadFile = fileSystem->open(filename, "w");
     if (!uploadFile) {
       return replyServerError(F("CREATE FAILED"));
     }
-    _INFOLIST("%s %s\n",__func__,filename.c_str());
 
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     if (uploadFile) {
@@ -471,13 +461,11 @@ void handleFileUpload() {
         return replyServerError(F("WRITE FAILED"));
       }
     }
-    _INFOLIST("%s Upload: WRITE %d bytes\n",__func__,upload.currentSize);
 
   } else if (upload.status == UPLOAD_FILE_END) {
     if (uploadFile) {
       uploadFile.close();
     }
-    _INFOLIST("%s Upload: END %d\n",__func__,upload.totalSize);
 
   }
 }
@@ -519,7 +507,6 @@ void handleNotFound() {
   message += "path=";
   message += server.arg("path");
   message += '\n';
-  _SERIAL.print(message);
 
   return replyNotFound(message);
 }
@@ -556,19 +543,14 @@ void setup_FSBrowser() {
 #ifdef USE_SPIFFS
   // Debug: dump on console contents of filesystem with no filter and check filenames validity
   Dir dir = fileSystem->openDir("");
-  _INFOLIST("%s %s\n",__func__,F("List of files at root of filesystem:"));
 
   while (dir.next()) {
     String error = checkForUnsupportedPath(dir.fileName());
     String fileInfo = dir.fileName() + (dir.isDirectory() ? " [DIR]" : String(" (") + dir.fileSize() + "b)");
-    
-    _INFOLIST("%s %s %s\n",__func__,error.c_str(),fileInfo.c_str());
-
     if (error.length() > 0) {
       unsupportedFiles += error + fileInfo + '\n';
     }
   }
-  _SERIAL.println();
 
   // Keep the "unsupportedFiles" variable to show it, but clean it up
   unsupportedFiles.replace("\n", "<br/>");
@@ -578,7 +560,6 @@ void setup_FSBrowser() {
   // MDNS INIT
   if (MDNS.begin(hostname)) {
     MDNS.addService("http", "tcp", http_port);   
-    _INFOLIST("%s open http://%s.local/edit to open the FileSystem Browser\n",__func__,hostname);
   }
 
   ////////////////////////////////
@@ -610,7 +591,6 @@ void setup_FSBrowser() {
 
   // Start server
   server.begin();
-  _INFOLIST("%s HTTP server started\n",__func__);
 }
 
 

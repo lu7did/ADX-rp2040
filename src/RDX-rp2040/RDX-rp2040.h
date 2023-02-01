@@ -380,6 +380,8 @@ extern bool getEEPROM(int *i,char *buffer);
 extern bool isNumeric(char *s);
 extern void setup_Web();
 extern void process_Web();
+extern bool cli_commandProcessor(char *cmd,char *arg, char *response);
+
 
 
 /*-------------------------------------------------------

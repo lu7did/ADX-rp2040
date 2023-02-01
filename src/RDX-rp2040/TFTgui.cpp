@@ -2184,6 +2184,7 @@ void tft_DataLoggerUSB() {
      icon[CNTICON].click=false;
      icon[CNTICON].state=true;
      icon[CNTICON].show();
+     s.write((char*)"USB export available");
      data_setup();
      _INFOLIST("%s USB export started\n",__func__);
      return;
@@ -2193,6 +2194,8 @@ void tft_DataLoggerUSB() {
   icon[CNTICON].state=false;
   icon[CNTICON].show();
   data_stop();
+  s.reset();
+  text.reset();
   _INFOLIST("%s USB export stopped\n",__func__);
   return;
   
@@ -2211,10 +2214,8 @@ void tft_Web() {
   _INFOLIST("%s starting Configuration Web Browser\n",__func__);
   s.write((char*)"Web configuration tool active");
   checkAP(wifi_ssid,wifi_psk);
-  _INFOLIST("%s WiFi connectivity established\n",__func__);
   
   setup_Web();
-  _INFOLIST("%s setup Web configuration tool completed\n",__func__);
   while (true) {
     process_Web();
     tft_checktouch();

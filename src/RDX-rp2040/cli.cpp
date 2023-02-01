@@ -170,109 +170,19 @@ cmdSet langSet[MAXTOKEN] =
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                Parameter specific handlers                                  */
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-bool tcpportCmd(int idx, char *_cmd,char *_arg,char *_out) {
-#ifdef RP2040_W  
-     bool rc=handleNum(idx,&tcp_port,_arg,_out);
-     return rc;
-#else
-     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
-     return false;
-#endif     
-}
-bool httpportCmd(int idx, char *_cmd,char *_arg,char *_out) {
-#ifdef RP2040_W  
-     bool rc=handleNum(idx,&http_port,_arg,_out);
-     return rc;
-#else
-     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
-     return false;
-#endif     
-     
-}
-bool ft8tryCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool rc=handleByte(idx,&maxTry,_arg,_out);
-     return rc;
-}
-bool ft8txCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool rc=handleByte(idx,&maxTx,_arg,_out);
-     return rc;
-}
-bool tzCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool rc=handleNum(idx,&timezone,_arg,_out);
-     _INFOLIST("%s timezone is %d\n",__func__,timezone);
-     return rc;
-}
-
-bool writelogCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool rc=handleBool(idx,&logADIF,_arg,_out);
-     return rc;
-}
-bool autosendCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool rc=handleBool(idx,&autosend,_arg,_out);
-     return rc;
-}
 bool txCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     bool tx=false;
-     bool rc=handleBool(idx,&tx,_arg,_out);
-     if (tx) {
+
+     char txstr[8];
+     strcpy(txstr,"");
+     parse(_arg,txstr);
+     if (strcmp(txstr,"1")==0) {
         startTX();
         sprintf(_out+strlen(_out),"TX+\n");
      } else {
         stopTX();
         sprintf(_out+strlen(_out),"TX-\n");
      }
-     return rc;
-}
-
-bool callCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-     bool rc=handleStr(idx,my_callsign,_arg,_out);
-     return rc;
-}
-bool gridCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-     return handleStr(idx,my_grid,_arg,_out);
-}
-bool adifCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-     return handleStr(idx,adiffile,_arg,_out);
-}
-bool ssidCmd(int idx, char *_cmd,char *_arg,char *_out) {
-#ifdef RP2040_W  
-     char v[32];
-     return handleStr(idx,wifi_ssid,_arg,_out);
-#else
-     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
      return false;
-#endif     
-     
-}
-bool pskCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-#ifdef RP2040_W
-     return handleStr(idx,wifi_psk,_arg,_out);
-#else
-     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
-     return false;
-#endif         
-}
-bool logCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-     return handleStr(idx,logbook,_arg,_out);
-}
-bool msgCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-     return handleStr(idx,qso_message,_arg,_out);
-}
-bool hostCmd(int idx, char *_cmd,char *_arg,char *_out) {
-     char v[32];
-#ifdef RP2040_W     
-     return handleStr(idx,hostname,_arg,_out);
-#else
-     sprintf(_out+strlen(_out),"Not supported on non-wireless Raspberry Pico version\n");     
-     return false;
-#endif     
-     
 }
 
 bool listCmd(int idx, char *_cmd,char *_arg,char *_out) {
@@ -329,6 +239,9 @@ bool shortCmd(int idx, char *_cmd,char *_arg,char *_out) {
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                Command processor                                            */
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+/*---------------------------------------------------
+ * find the entry for a given command
+ */
 int cliFind(char *cmd) {
   for (int i=0;i<MAXTOKEN;i++) {
     if (strcmp(cmd,langSet[i].token)==0) {
@@ -336,6 +249,46 @@ int cliFind(char *cmd) {
     }
   }
   return -1;
+}
+
+/*----------------------------------------------------
+ * Either process the command, display a value or 
+ * modifies it
+ */
+bool cli_commandProcessor(char *cmd,char *arg, char *response) {
+   
+   int idx=cliFind(cmd);
+   if (idx == -1) {
+      sprintf(response,"invalid command\n");
+      return false;
+   }
+
+   if (langSet[idx].typearg == 0x00) {
+       return langSet[idx].handlerCmd(idx,cmd,arg,response);
+   }
+
+   if (langSet[idx].typearg=='a') {
+      handleStr(idx,static_cast<char*>(langSet[idx].var),arg,response);
+      return false;
+    }
+
+   if (langSet[idx].typearg=='i') {
+      handleNum(idx,(int *)langSet[idx].var,arg,response);
+      return false;
+    }
+
+   if (langSet[idx].typearg=='n') {
+      handleByte(idx,(uint8_t *)langSet[idx].var,arg,response);
+      return false;
+    }
+
+   if (langSet[idx].typearg=='b') {
+      handleBool(idx,(bool *)langSet[idx].var,arg,response);
+      return false;
+    }
+
+    sprintf(response,"invalid command\n");
+    return false;
 }
 /*----------------------------------
  * Main command dispatcher
@@ -353,13 +306,17 @@ bool exitcode=false;
      parse(buffer,cmd);
      strcpy(argv,buffer);
      tolowerStr(cmd);
-     
+     cli_commandProcessor(cmd,argv,outbuffer);
+
+     /*
      for (int i=0;i<MAXTOKEN;i++) {
          if (strcmp(cmd,langSet[i].token)==0) {
             exitcode=langSet[i].handlerCmd(i,cmd,argv,outbuffer);         
             break;
          }
      }
+     */
+     
      cli_prompt(outbuffer);
      return exitcode;
 }
@@ -392,27 +349,9 @@ void cli_setHandlers() {
   langSet[3].handlerCmd=saveCmd;
   langSet[4].handlerCmd=resetCmd;
   langSet[5].handlerCmd=shortCmd;
-  langSet[6].handlerCmd=callCmd;
-  langSet[7].handlerCmd=gridCmd;
-  langSet[8].handlerCmd=adifCmd;
-  langSet[9].handlerCmd=ssidCmd;
-  langSet[10].handlerCmd=pskCmd;
-  langSet[11].handlerCmd=logCmd;
-  langSet[12].handlerCmd=msgCmd;
-  langSet[13].handlerCmd=hostCmd; 
-
-  langSet[14].handlerCmd=writelogCmd; 
-  langSet[15].handlerCmd=autosendCmd; 
+  langSet[22].handlerCmd=quitCmd;
   langSet[16].handlerCmd=txCmd; 
 
-  langSet[17].handlerCmd=tcpportCmd;
-  langSet[18].handlerCmd=httpportCmd;
-  langSet[19].handlerCmd=ft8tryCmd;
-  langSet[20].handlerCmd=ft8txCmd;
-  langSet[21].handlerCmd=tzCmd; 
-  
-  langSet[22].handlerCmd=quitCmd;
-  
 }
 /*--------------------------
  * sub-system initialization

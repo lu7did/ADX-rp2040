@@ -43,13 +43,16 @@ void setBody(char *out) {
   char CPU[32];
 
 /*------------------------------------------------------------  
- * 
+ * Set CPU model
  */
   strcpy(CPU,"Raspberry Pico rp2040");
   #ifdef RP2040_W
   strcpy(CPU,"Raspberry Pico rp2040 W");
   #endif   
 
+/*-------------------------------------------------------------
+ * create body structure
+ */
   sprintf(out+strlen(out),"<h1 style=\"text-align: center;\"><strong>RDX Digital Transceiver</strong></h1>");
   sprintf(out+strlen(out),"<h2 style=\"text-align: center;\">Web based configuration tool</h2>");
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: left; padding-left: 8px; float: left;\">%s</div>",CPU);
@@ -133,12 +136,9 @@ void setFooter(char *out) {
   }
   sprintf(out+strlen(out),"<td><input type=\"submit\" value=\"%s\"></td>",txstr);
   sprintf(out+strlen(out),"</form>");
-  
   sprintf(out+strlen(out),"</tr>");
   sprintf(out+strlen(out),"</table>");
-   
   sprintf(out+strlen(out),"<hr />");
-  
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: left; padding-left: 8px; float: left;\">IP address: %s</div>",ip);
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: right; padding-right: 8px;\">For support see: <a href=\"https://github.com/lu7did/ADX-rp2040/tree/master/src/RDX-rp2040\">Github page</a></div>");
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: left; padding-left: 8px; float: left;\">CPU Temp %2.1f C</div>",tCPU);
@@ -149,7 +149,6 @@ void setFooter(char *out) {
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: right; padding-right: 8px;\">Base AF: %d Hz</div>",af_frequency);
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: left; padding-left: 8px; float: left;\">NTP %s/%s</div>",ntp_server1,ntp_server2);
   sprintf(out+strlen(out),"<div style=\"font-size: 8px; text-align: right; padding-right: 8px;\">Magic trio: (%d/%d/%d)</div>",k1,k2,k3);
-
   sprintf(out+strlen(out),"<p>&nbsp;</p></body></html>");
   
 }
@@ -168,9 +167,7 @@ void Web_handleRoot() {
   setBody(response);
 
   for (int i=0;i<MAXTOKEN;i++) {
-
     void* p=langSet[i].var;
-
     if(langSet[i].typearg == 'a' && p != NULL) {
       createHTML((char*)langSet[i].token,static_cast<char*>(langSet[i].var),(char*)langSet[i].help,response);
     }
@@ -215,6 +212,7 @@ void Web_handlePlain() {
  * this change
  */
 void Web_handleForm() {
+  
   char message[1024];
   char strVal[64];
   char strWarn[12];
@@ -229,51 +227,9 @@ void Web_handleForm() {
     for (uint8_t i = 0; i < Web_server.args(); i++) {
       strcpy(strWarn,"");
       strcpy(strVal,"<nil>");
-      int idx=cliFind((char*)Web_server.argName(i).c_str());
-      if (idx>=0) {
-         if (langSet[idx].typearg=='a') {
-            sprintf(strVal,"%s",static_cast<char*>(langSet[idx].var));
-            if (strcmp(strVal,(char*)Web_server.arg(i).c_str())!=0) {
-               sprintf(strWarn,"*CHANGE*");
-               strcpy(static_cast<char*>(langSet[idx].var),(char*)Web_server.arg(i).c_str());
-            }
-         }
-         
-         if (langSet[idx].typearg=='i') {
-            int v=*(int *)langSet[idx].var;
-            sprintf(strVal,"%d",v);
-            int x=atoi((char*)Web_server.arg(i).c_str());
-            if (v!=x) {
-               sprintf(strWarn,"*CHANGE*");
-               *(int *)langSet[idx].var=x;
-            }
-         }
-         
-         if (langSet[idx].typearg=='n') {
-            uint8_t v=*(uint8_t *)langSet[idx].var;
-            sprintf(strVal,"%d",v);
-            uint8_t x=(uint8_t)atoi((char*)Web_server.arg(i).c_str());
-            if (v!=x) {
-               sprintf(strWarn,"*CHANGE*");
-               *(uint8_t *)langSet[idx].var=x;
-            }
-         }
-         
-         if (langSet[idx].typearg=='b') {
-            bool v=*(bool *)langSet[idx].var;
-            sprintf(strVal,"%d",v);
-            bool x=(bool)atoi((char*)Web_server.arg(i).c_str());
-            if (v!=x) {
-               sprintf(strWarn,"*CHANGE*");
-               *(bool *)langSet[idx].var=x;
-            }
-         }
-         
-      }
-      //sprintf(message+strlen(message)," idx(%d) %s:%s prev(%s)  %s\n",(char*)idx,Web_server.argName(i).c_str(),(char*)Web_server.arg(i).c_str(),strVal,strWarn);
-      //message += " " + Web_server.argName(i) + ": " + Web_server.arg(i) + "\n";
+      cli_commandProcessor((char*)Web_server.argName(i).c_str(),(char*)Web_server.arg(i).c_str(),message);
     }
-    //Web_server.send(200, "text/plain", message);
+    
     Web_handleRoot();
   }
 }
@@ -351,13 +307,10 @@ void Web_handleTx() {
 void setup_Web(void) {
 
   adc_set_temp_sensor_enabled(true);
-  _INFOLIST("%s Web Web_server started\n",__func__);
   
   LittleFS.begin();
   LittleFS.info(fs_info);
   LittleFS.end();
-  
-  _INFOLIST("%s File system metrics completed\n",__func__);
   _INFOLIST("%s Web Web_server listening at %s:%d\n",__func__,ip,web_port);
 
   if (MDNS.begin(hostname)) {
@@ -373,7 +326,6 @@ void setup_Web(void) {
   Web_server.onNotFound(Web_handleNotFound);
 
   Web_server.begin();
-  _INFOLIST("%s HTTP Web_server listening\n",__func__);
 }
 /*-------------------------------------------------------------------------------------------------------*
  *                     serve the web Web_server for the configuration tool incoming connections              *
