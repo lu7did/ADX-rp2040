@@ -1016,6 +1016,19 @@ void ft8_run() {
 void setup()
 {
 
+#ifdef OVERCLOCK
+//*-------------------------------------------------------------------------------------------*
+//*from AA1GD*
+//overclocking the processor
+//133MHz default, 250MHz is safe at 1.1V and for flash
+//if using clock > 290MHz, increase voltage and add flash divider
+//see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
+//*-------------------------------------------------------------------------------------------*
+//vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+set_sys_clock_khz(250000,true);
+//*-------------------------------------------------------------------------------------------*
+#endif //OVERCLOCK
+
 #ifdef DEBUG
   _SERIAL.begin(115200);
   while (!_SERIAL);

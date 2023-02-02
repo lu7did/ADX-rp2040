@@ -606,19 +606,21 @@ This is the informal roadmap followed to prioritize and implement the future fea
 
 * Develop or adopt a PCB layout design.
 * Support for Si4735 chipset based receiver
-* Migrate signal processing to core1
 * Hardware interface to SD-Card/Export
 * File system (SD card based)
 * Organize and add functionality for icons (partial)
+* Performance issues (DMA error 0x04) with slower TFT boards
+* Migrate signal processing to core1 (strategy to the DMA error).
+* Explore overclock options (strategy to the DMA error).
 
 ## low priority roadmap
 
+* Support for smaller display 
 * CAT support (TS480).
 * WSPR beacon.
 * Support for QUAD multifilter board
 * CW operation (basic, emergency)
 * GPS support (time alignment & grid definition)
-* Support for smaller display 
 * Support for ATU reset
 * SWR indicator & control (as HW support is introduced)
 * Filter support (as HW support is introduced)
@@ -626,11 +628,11 @@ This is the informal roadmap followed to prioritize and implement the future fea
 ## rp2040-w specific
 
 * OTA firmware update
+
+
+## Done (as per V2.0 build 65)
+
 * Web based configuration tool
-
-
-## Done (as per V2.0 build 60)
-
 * Organize and add functionality for icons (partial)
 * Export/Import file feature
 * Configuration terminal

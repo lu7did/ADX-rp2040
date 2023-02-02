@@ -59,7 +59,7 @@ typedef void (*CALLBACK)();
 typedef void (*CALLQSO)(int i);
 typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
 
-
+#define OVERCLOCK       1       //Overclock the processor up to x2
 #define BAUD            115200  //Standard Serial port
 
 /*----
