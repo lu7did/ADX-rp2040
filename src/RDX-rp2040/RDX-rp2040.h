@@ -45,7 +45,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "66"
+#define BUILD   "67"
 /*-------------------------------------------------
  * Macro expansions
  */
