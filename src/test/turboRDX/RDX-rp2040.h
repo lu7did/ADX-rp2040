@@ -38,6 +38,14 @@
 #include <stdbool.h>
 #include "RDX-rp2040_User_Setup.h"
 
+
+/*-------------------------------[FIX]----------------------------------*/
+#include <iostream>
+#include <queue>
+using namespace std;
+#include "pico/sem.h"
+
+
 /*------------------------------------------------
    IDENTIFICATION DIVISION.
    (just a programmer joke)
@@ -58,6 +66,8 @@
 typedef void (*CALLBACK)();
 typedef void (*CALLQSO)(int i);
 typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
+typedef int16_t sigBin[960];
+
 
 #define OVERCLOCK       1       //Overclock the processor up to x2
 #define BAUD            115200  //Standard Serial port
@@ -276,6 +286,31 @@ extern bool SingleFileDriveactive;
 
 extern int af_frequency;
 
+/*-----------------------[FIX]---------------------------*/
+
+#define QMAX  5
+extern sigBin fresh_signal;
+extern sigBin old_signal;
+extern sigBin queued_signal[QMAX];
+
+extern uint16_t queueR;
+extern uint16_t queueW;
+extern void pushSignal();
+extern void popSignal();
+extern bool availSignal();
+extern int sizeSignal();
+extern void process_adc();
+extern bool syncADC;
+
+
+//extern queue<void> queued_signal;
+//extern queue<sigBin> queued_signal;
+
+extern struct semaphore ipc;
+extern struct semaphore spc;
+
+extern int num_adc_blocks;
+
 /*---------------------------------------------------
  * Time related variables
  */
@@ -385,6 +420,8 @@ extern bool cli_commandProcessor(char *cmd,char *arg, char *response);
 extern void cli_init(char *out);
 extern void TCP_Process();
 bool cli_execute(char *buffer, char *outbuffer);
+extern void get_collect_power();
+
 
 
 
@@ -412,9 +449,28 @@ bool cli_execute(char *buffer, char *outbuffer);
     _SERIAL.write(hi); \
     _SERIAL.flush(); \
   } while (false)
+#define _print(...) \
+  do { \
+    while(!sem_try_acquire(&spc)); \
+    rp2040.idleOtherCore(); \
+    _SERIAL.print(__VA_ARGS__); \
+    _SERIAL.flush(); \
+    sem_release(&spc); \
+    rp2040.resumeOtherCore(); \
+  } while (false)
+#define _println(...) \
+  do { \
+    while(!sem_try_acquire(&spc)); \
+    rp2040.idleOtherCore(); \
+    _SERIAL.println(__VA_ARGS__); \
+    _SERIAL.flush(); \
+    sem_release(&spc); \
+    rp2040.resumeOtherCore(); \
+  } while (false)
 
 #define _INFO(...) \
   do { \
+    while(!sem_try_acquire(&spc)); \
     now = time(0) - t_ofs;  \
     gmtime_r(&now, &timeinfo);  \
     sprintf(timestr,"[%02d:%02d:%02d] ",timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec);   \
@@ -424,6 +480,7 @@ bool cli_execute(char *buffer, char *outbuffer);
     sprintf(hi+strlen(hi),__VA_ARGS__); \
     _SERIAL.write(hi); \
     _SERIAL.flush(); \
+    sem_release(&spc); \
   } while (false)
   
 #else //!DEBUG

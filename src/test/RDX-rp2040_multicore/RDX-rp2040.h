@@ -52,15 +52,24 @@
 #define digitalWrite(x,y) gpio_put(x,y)
 #define digitalRead(x)  gpio_get(x)
 
+
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
+
+#define OVERCLOCK       1       //Overclock the processor up to x2
+#define MULTICORE       1       //Split workload between Core0 and Core1 (pseudo RTOS)
+#define BAUD            115200  //Standard Serial port
+
+
 typedef void (*CALLBACK)();
 typedef void (*CALLQSO)(int i);
 typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
 
-#define OVERCLOCK       1       //Overclock the processor up to x2
-#define BAUD            115200  //Standard Serial port
+#ifdef MULTICORE
+typedef int16_t sigBin[960];
+#endif //MULTICORE
+
 
 /*----
    Output control lines
@@ -387,7 +396,33 @@ extern void TCP_Process();
 bool cli_execute(char *buffer, char *outbuffer);
 
 
+#ifdef MULTICORE
 
+#define QMAX  3
+
+extern sigBin fresh_signal;
+extern sigBin old_signal;
+
+extern sigBin queued_signal[QMAX];
+extern uint16_t queueR;
+extern uint16_t queueW;
+
+extern struct semaphore ipc;
+extern struct semaphore apc;
+extern struct semaphore spc;
+extern bool start_adc;
+extern queue_t qdata;
+extern queue_t sdata;
+
+extern void pushSignal();
+extern void popSignal();
+extern bool availSignal();
+extern int sizeSignal();
+extern void process_adc();
+
+extern int num_adc_blocks;
+
+#endif //MULTICORE
 
 /*-------------------------------------------------------
  * Debug and development aid tracing
@@ -415,6 +450,7 @@ bool cli_execute(char *buffer, char *outbuffer);
 
 #define _INFO(...) \
   do { \
+    while(!sem_try_acquire(&spc)); \
     now = time(0) - t_ofs;  \
     gmtime_r(&now, &timeinfo);  \
     sprintf(timestr,"[%02d:%02d:%02d] ",timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec);   \
@@ -424,7 +460,34 @@ bool cli_execute(char *buffer, char *outbuffer);
     sprintf(hi+strlen(hi),__VA_ARGS__); \
     _SERIAL.write(hi); \
     _SERIAL.flush(); \
+    sem_release(&spc); \
   } while (false)
+
+/*-----------------------------------------------
+ * IPC protected serial write to be used when 
+ * debugging MULTICORE
+ */
+
+#ifdef MULTICORE  
+#define _print(...) \
+  do { \
+    while(!sem_try_acquire(&spc)); \
+    rp2040.idleOtherCore(); \
+    _SERIAL.print(__VA_ARGS__); \
+    _SERIAL.flush(); \
+    sem_release(&spc); \
+    rp2040.resumeOtherCore(); \
+  } while (false)
+#define _println(...) \
+  do { \
+    while(!sem_try_acquire(&spc)); \
+    rp2040.idleOtherCore(); \
+    _SERIAL.println(__VA_ARGS__); \
+    _SERIAL.flush(); \
+    sem_release(&spc); \
+    rp2040.resumeOtherCore(); \
+  } while (false)
+#endif //MULTICORE
   
 #else //!DEBUG
 #define _INFOLIST(...)

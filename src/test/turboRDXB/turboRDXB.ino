@@ -151,7 +151,7 @@ char qso_message[16];
 char programname[12];
 char version[6];
 char build[6];
-
+uint16_t call_af_frequency=1500;
 /*-----------------------
  * Wifi support
  */
@@ -223,7 +223,8 @@ uint64_t config_us;
 uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
-
+bool waitCore=true;
+bool syncADC=false;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -402,19 +403,11 @@ bool timeWait() {
  */
 void fftCallBack() {
  
-    tft_updatewaterfall(magint);
-    tft_checktouch();
-    checkButton();
-    tft_run();
-
 }
 /*---------------------------------------------------------------------------------------------
  * This is a callback handler which is called at the end of each decoding cycle
  */
 void endCallBack() {
-   tft_endoftime();
-   checkButton();
-   tft_run();
 }
 /*----------------------------------------------------------------------------------------------
  * This is the callback handler called while sending FT8 tones
@@ -423,9 +416,6 @@ void endCallBack() {
  * being called
  */
 void idleCallBack() {
-   tft_checktouch();
-   checkButton();
-   tft_run();
 }
 /*--------------------------------------------------------------------------------------------
  * This is a callback handler which is called when the ft8 decoding process has identified
@@ -433,7 +423,6 @@ void idleCallBack() {
  * newly received message is.
  */
 void qsoCallBack(int i) {
-  tft_run();
 }
 /*---------------------------------------------------------------------------------------------
  * Check size of heap memory to validate for memory leaks
@@ -465,11 +454,7 @@ void setup_ft8() {
   //*@@@ set_sys_clock_khz(250000,true);
   /*-------------------------------------------------------------------*/
 
-  /*------
-     setup the ADC processing
-  */
   setup_adc();
-
   /*------
      make the Hanning window for fft work
   */
@@ -481,11 +466,12 @@ void setup_ft8() {
   */
 
 
+/*  
   fftReady=fftCallBack;
   fftEnd=endCallBack;
   qsoReady=qsoCallBack;
   txIdle=idleCallBack;
-  
+*/  
   /*-------
    * Wait to settle
    */
@@ -558,18 +544,17 @@ bool ft8bot(message_info *CurrentStation, UserSendSelection *sendChoices, messag
  * flag set
  */
   if (ft8_state == 0 && !justSent && triggerCALL) {
-       _INFOLIST("%s activating a response from triggerCALL station(%s) grid(%s) SNR(%d) af(%d)\n",__func__,call_station_callsign,call_grid_square,call_self_rx_snr,call_af_frequency);
        ft8_state=5;                               //Synchro with FSM as if the CQ was answered automatically
        triggerCALL=false;
        sendChoices->send_grid = true;
        /*-----------
         * recover data from pointed QSO line
         */
-       strcpy(CurrentStation->station_callsign, call_station_callsign);
-       strcpy(CurrentStation->grid_square, call_grid_square);
-       CurrentStation->self_rx_snr=call_self_rx_snr;
-       CurrentStation->af_frequency=call_af_frequency;
-       CurrentStation->qsowindow=call_qsowindow;
+       strcpy(CurrentStation->station_callsign, "LU1ZZZ");
+       strcpy(CurrentStation->grid_square, "GF06");
+       CurrentStation->self_rx_snr=0;
+       CurrentStation->af_frequency=1500;
+       CurrentStation->qsowindow=0;
        /*-----------
         * 
         */
@@ -909,8 +894,6 @@ void ft8_run() {
    ****************************************/
 
   while (!timeWait()) {
-     tft_checktouch();
-     checkButton();
   }
   if (send && isChoices(&sendChoices) && CurrentStation.qsowindow != getQSOwindow())
   {
@@ -938,37 +921,10 @@ void ft8_run() {
       strcpy(txt,"");
       uint16_t qsot=2;
       int qsowindow=getQSOwindow();
-      tft_storeQSO(qsowindow,qsot,msg,CurrentStation.af_frequency,0,txt,txt);
-
-    /*---------------------------------------------------------------*
-     * If signaled just reset the state in order for this message to *
-     * be the last sent.                                             *
-     *---------------------------------------------------------------*/
-
-      if (logADIF && endQSO) {
-         char tstr[16];
-         char hstr[16];
-         char bstr[8];
-         char fstr[8];
-         strcpy(bstr,"");
-         
-         now = time(0) - t_ofs;  \
-         gmtime_r(&now, &timeinfo);  \
-         sprintf(tstr,"%04d%02d%02d",timeinfo.tm_year+1900,timeinfo.tm_mon+1,timeinfo.tm_mday); 
-         sprintf(hstr,"%02d%02d%02d",timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec); 
-         Band2Str(bstr);
-         sprintf(fstr,"%lu",(freq/1000));
-         _INFOLIST("%s generating ADIF grid(%s) SNR(%s) date(%s) time(%s) band(%s) freq(%s)\n",__func__,CurrentStation.grid_square,CurrentStation.snr_report,tstr,hstr,bstr,fstr); 
-         #ifdef ADIF
-         writeQSO(adiffile,CurrentStation.station_callsign,CurrentStation.grid_square,(char*)"ft8",CurrentStation.snr_report,(char*)"-20",tstr,hstr,bstr,fstr,my_callsign,my_grid,qso_message);
-         #endif //ADIF
-         endQSO=false;
-      }
       
       if (nTry >= 12) {
         ft8_state = 0;
         endQSO=false;
-        tft_endQSO();
       }
     }
     /*---------------------------------------------------------------*
@@ -988,7 +944,6 @@ void ft8_run() {
       ---------------------------------------------------------------*/
     send = false;
     justSent = true;
-    tft_resetBar();
 
   } else {
 
@@ -1035,14 +990,12 @@ void ft8_run() {
             qsotype=1;
          }
       }
-      tft_storeQSO(message_list[i].qsowindow,qsotype,msg,message_list[i].af_frequency,message_list[i].self_rx_snr,message_list[i].station_callsign,message_list[i].grid_square);
 
     }
     /*------------------------------------------------------*
      * Mark the receiving cycle as completed                *
      */
     justSent = false;
-    tft_resetBar();
   }
 
   /*******************************************************
@@ -1053,7 +1006,6 @@ void ft8_run() {
    */  
   if ((ft8_state != 0 && !justSent) || (autosend && !justSent) || (triggerCQ && !justSent) || (triggerCALL && !justSent)) {   //*Fix BUILD 41
     send = ft8bot(&CurrentStation, &sendChoices, message_list);
-    if (!send) tft_endQSO();
   } else {
     send = false;
   }
@@ -1064,7 +1016,21 @@ void ft8_run() {
   memset(message_list, 0, sizeof(message_list));
   return;
 }
+/*-----------------------------------------------------------------------------------------*
+ * Multicore paralell execution of signal processing
+ * It requires a very specialized and large stack in order not to crash
+ */
+#define STACK_SIZE 12000
+uint32_t core1_stack[STACK_SIZE];
+void core1_entry() {
 
+   while(waitCore);
+   setup_adc();
+   while(true) {
+     process_adc();
+   }  
+
+}
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             setup() (core0)                                              *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -1080,7 +1046,7 @@ void setup()
 //see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
 //*-------------------------------------------------------------------------------------------*
 //vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
-set_sys_clock_khz(250000,true);
+//set_sys_clock_khz(250000,true);
 //*-------------------------------------------------------------------------------------------*
 #endif //OVERCLOCK
 
@@ -1091,6 +1057,7 @@ set_sys_clock_khz(250000,true);
   _SERIAL.flush();
   sprintf(hi,"%s Raspberry Pico Digital Transceiver\nVersion(%s) Build(%s) (c)%s\n",PROGNAME,VERSION,BUILD,AUTHOR); 
   _SERIAL.print(hi);
+  sem_init(&spc, 1, 1);
 #endif //DEBUG
 
   /*-----------
@@ -1101,12 +1068,6 @@ set_sys_clock_khz(250000,true);
   strcpy(programname,PROGNAME);
   strcpy(version,VERSION);
   strcpy(build,BUILD);
-  strcpy(ip," Disconnected ");
-  strcpy(adiffile,(char*)ADIFFILE);
-  strcpy(logbook,(char*)LOGBOOK);
-  strcpy(hostname,(char*)HOSTNAME);    
-  strcpy(qso_message,(char*)QSO_MESSAGE);
-  strcpy(logbook,LOGBOOK);
 
   web_port=WEB_PORT;
   http_port=HTTP_PORT;
@@ -1119,22 +1080,12 @@ set_sys_clock_khz(250000,true);
   */
   INIT();
   initSi5351();
-  tft_setup();
 
   bool upKey=digitalRead(UP);
   bool downKey=digitalRead(DOWN);
   bool txKey=digitalRead(TXSW);
   _INFOLIST("%s initial key configuration up(%s) down(%s) tx(%s)\n",__func__,BOOL2CHAR(upKey),BOOL2CHAR(downKey),BOOL2CHAR(txKey));
 
-#if defined(RP2040_W) && defined(FSBROWSER)
-  /*--------
-     If DOWN && UP is found pressed on startup then activates the FS browser
-  */
-  if ( downKey == LOW && upKey == LOW && txKey == HIGH ) {
-    _INFOLIST("%s FS Browser activated\n", __func__);
-    tft_iconState(TERMICON,true);
-  }
-#endif //RP2040_W && FSBrowser  
 
 
   if ( upKey == LOW && downKey == HIGH && txKey == HIGH) {
@@ -1142,47 +1093,11 @@ set_sys_clock_khz(250000,true);
     timeSync();
   }
 
-#if defined(ADIF)
-  _INFOLIST("%s initializing ADIF logbook sub-system Log(%s)\n",__func__,BOOL2CHAR(logADIF));
-  setup_adif();
-#endif 
-
-#ifdef RP2040_W
-   tft_iconState(WIFIICON,true);
-   tft_iconActive(WIFIICON,false);
-#endif 
-
-
-  /*--------
-     If DOWN is found pressed on startup then enters calibration mode
-  */
-
-  if ( downKey == LOW && upKey == HIGH && txKey == HIGH ) {
-    _INFOLIST("%s Auto calibration mode started\n", __func__);
-    tft_autocal();
-    AutoCalibration();
-  }
-
-  /*--------
-     If DOWN and TX are found pressed on startup then enters configuration terminal mode
-  */
-
-  if ( downKey == LOW && upKey == HIGH && txKey == LOW ) {
-
-    _INFOLIST("%s Configuration command processor started\n", __func__);
-    digitalWrite(FT8,HIGH);
-    digitalWrite(WSPR,HIGH);
-    tft_iconState(CATICON,true);
-    while(true);
-  }
-
-
 
   /*--------------------
      Place the receiver in reception mode
   */
   digitalWrite(RX, LOW);  
-  tft_updateBand();
   delay(Bdly);
 
 
@@ -1193,7 +1108,20 @@ set_sys_clock_khz(250000,true);
   setup_ft8();
   delay(2*Bdly);
 
-  tft_set(BUTTON_AUTO,autosend);
+  /*-------------
+   Înit the semaphore, allow one first entry
+  */
+  sem_init(&ipc, 1, 1);
+  start_adc=false;    
+  syncADC=false;
+  waitCore=false;
+  queue_init(&qdata,4,20);
+  queue_init(&sdata,4,20);
+
+  //multicore_launch_core1_with_stack ( void(*entry)(void), uint32_t *stack_bottom, size_t stack_size_bytes )
+
+  //multicore_launch_core1(core1_entry);
+  multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
@@ -1203,22 +1131,6 @@ set_sys_clock_khz(250000,true);
 
 void loop()
 {
-
-  tft_process();
-
-  /*-----------------------------------------------------------------------------*
-                            Periodic dispatcher section
-     Housekeeping functions that needs to be run periodically (for not too long)
-    -----------------------------------------------------------------------------*/
-
-  /*------------------------------------------------
-     Explore and handle interactions with the user
-     thru the UP/DOWN or TX buttons
-  */
-  checkButton();
-  tft_checktouch();
-  tft_run();
-
 
   /*------------------------------------------------
      Main FT8 handling cycle
@@ -1348,7 +1260,6 @@ void startTX() {
   si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
   si5351.output_enable(SI5351_CLK0, 1);   //TX on
   TX_State = 1;
-  tft_set(BUTTON_TX,1);
 
   _INFOLIST("%s TX+ f=%lu freqx=%lu \n", __func__, freq, freq1);
 
@@ -1371,7 +1282,6 @@ void stopTX() {
 
   TX_State = 0;
   _INFOLIST("%s TX-\n", __func__);
-  tft_set(BUTTON_TX,0);
   
 }
 /*-------------------------------------
@@ -1496,7 +1406,6 @@ while (true) {
   updateEEPROM();
   Band_assign();
   freq=Slot2Freq(Band_slot);
-  tft_updateBand();
 
   _INFOLIST("%s completed Band assignment Band_slot=%d freq=%lu\n", __func__, Band_slot,freq);
 
@@ -1524,7 +1433,7 @@ void updateEEPROM() {
     EEPROM.put(EEPROM_ADDR_MYCALL,my_callsign);
     EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);  
     EEPROM.put(EEPROM_ADDR_ADIF,adiffile);
-    EEPROM.put(EEPROM_ADDR_LOG,logbook);
+    //EEPROM.put(EEPROM_ADDR_LOG,logbook);
     EEPROM.put(EEPROM_ADDR_MSG,qso_message);
     EEPROM.put(EEPROM_ADDR_AUTO,autosend);
     EEPROM.put(EEPROM_ADDR_WRITE,logADIF);
@@ -1533,12 +1442,12 @@ void updateEEPROM() {
     EEPROM.put(EEPROM_ADDR_MAXTX,maxTx);
     
 #ifdef RP2040_W   
-    EEPROM.put(EEPROM_ADDR_SSID,wifi_ssid);
-    EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
-    EEPROM.put(EEPROM_ADDR_HOST,hostname);
-    EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
-    EEPROM.put(EEPROM_ADDR_WEB,web_port);
-    EEPROM.put(EEPROM_ADDR_HTTP,http_port);
+    //EEPROM.put(EEPROM_ADDR_SSID,wifi_ssid);
+    //EEPROM.put(EEPROM_ADDR_PSK,wifi_psk);
+    //EEPROM.put(EEPROM_ADDR_HOST,hostname);
+    //EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
+    //EEPROM.put(EEPROM_ADDR_WEB,web_port);
+    //EEPROM.put(EEPROM_ADDR_HTTP,http_port);
     
 #endif //RP2040_W 
     
@@ -1833,7 +1742,6 @@ void INIT() {
 
   }
   freq=Slot2Freq(Band_slot);
-  tft_updateBand();
 
 }
 /*------------------------------
@@ -1899,10 +1807,10 @@ void readEEPROM() {
     EEPROM.get(EEPROM_ADDR_TZ,timezone);
 
     EEPROM.get(EEPROM_ADDR_ADIF,adiffile);
-    EEPROM.get(EEPROM_ADDR_LOG,logbook);
+    //EEPROM.get(EEPROM_ADDR_LOG,logbook);
     EEPROM.get(EEPROM_ADDR_MSG,qso_message);
     
-#ifdef RP2040_W    
+#ifdef RP2040_W1    
     EEPROM.get(EEPROM_ADDR_SSID,wifi_ssid);
     EEPROM.get(EEPROM_ADDR_PSK,wifi_psk);
     EEPROM.get(EEPROM_ADDR_HOST,hostname);
@@ -1927,8 +1835,8 @@ void resetEEPROM() {
     strcpy(my_grid,MY_GRID);   
     strcpy(build,BUILD);
 
-    strcpy(adiffile,ADIFFILE);
-    strcpy(logbook,LOGBOOK);
+    //strcpy(adiffile,ADIFFILE);
+    //strcpy(logbook,LOGBOOK);
     strcpy(qso_message,QSO_MESSAGE);
     
     
@@ -1939,7 +1847,7 @@ void resetEEPROM() {
     maxTx=MAXTX;
 
     
-#ifdef RP2040_W
+#ifdef RP2040_W1
 
     strcpy(wifi_ssid,WIFI_SSID);
     strcpy(wifi_psk,WIFI_PSK);
@@ -2016,14 +1924,9 @@ bool b = false;
      Serial.flush();
   }
   sprintf(hi,"Autocalibration procedure started\n");
-  Serial.print(hi);
-  tft_print(hi);
-
-  //tft_print(50,70,hi);
 
   sprintf(hi,"cal_factor=%d\n",cal_factor);
   Serial.print(hi);
-  tft_print(hi);
   
 
   addr = 10;
@@ -2031,7 +1934,6 @@ bool b = false;
 
   sprintf(hi,"cal_factor reset\n");
   Serial.print(hi);
-  tft_print(hi);
  
   cal_factor=0;
   EEPROM.put(addr, cal_factor);
@@ -2064,7 +1966,6 @@ bool b = false;
 
   sprintf(hi,"Si5351 f=%lu MHz\n",(unsigned long)Cal_freq);
   Serial.print(hi);
-  tft_print(hi);
   
   /*--------------------------------------------*
      PWM counter used for automatic calibration
@@ -2110,10 +2011,7 @@ bool b = false;
     error = fclk - Cal_freq;
     sprintf(hi,"n(%01d) cal(%lu) Hz dds(%lu) Hz err (%lu) Hz factor(%lu)\n",n, (unsigned long)Cal_freq, (unsigned long)fclk, (unsigned long)error, (unsigned long)cal_factor);
     Serial.print(hi);
-    sprintf(hi,"cal(%lu) e(%lu) Hz cf(%lu)\n",(unsigned long)Cal_freq,(unsigned long)error,(unsigned long)cal_factor);
-    tft_print(hi);
     setCalibrationLED((uint16_t)error);
-    tft_error((uint16_t)error);
 
     if (labs(error) > int32_t(CAL_ERROR)) {
         b = !b;
@@ -2143,11 +2041,9 @@ bool b = false;
   
   sprintf(hi,"Completed cal_factor=%d\n",cal_factor);
   Serial.print(hi);
-  tft_print(hi);
 
   sprintf(hi,"Power-off and re-start\n");
   Serial.print(hi);
-  tft_print(hi);
   
   while (true) {
     

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "RDX-rp2040.h"
+#ifdef CLITOOL
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * cli.cpp                                                                                     *
  * Simple command line based configuration tool                                                *
@@ -458,3 +459,4 @@ void cli_command() {
   while (!Serial_processor());
     
 }
+#endif //CLITOOL

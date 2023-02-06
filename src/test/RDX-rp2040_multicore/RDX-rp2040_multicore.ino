@@ -224,6 +224,9 @@ uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
 
+#ifdef MULTICORE
+bool waitCore=true;
+#endif //MULTICORE
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -1065,6 +1068,36 @@ void ft8_run() {
   return;
 }
 
+#ifdef MULTICORE
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                            Core1 Execution entry point                                   *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*-----------------------------------------------------------------------------------------*
+ * Multicore paralell execution of signal processing
+ * It requires a very specialized and large stack in order not to crash, therefore the
+ * standard execution conditions provided by the setup1()/loop1() pair isn't enough
+ */
+#define STACK_SIZE 11000
+uint32_t core1_stack[STACK_SIZE];
+
+void core1_entry() {
+
+   /*-------------------------------------------------
+    * core1 handles the sampling
+    * setup the ADC0 reading
+    */
+   setup_adc();
+   /*-------------------------------------------------
+    * Now keep taking samples, additional sync is
+    * performed by the involved procedures by mean
+    * of IPC queues
+    */
+   while(true) {
+     process_adc();
+   }  
+
+}
+#endif //MULTICORE
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             setup() (core0)                                              *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -1091,6 +1124,15 @@ set_sys_clock_khz(250000,true);
   _SERIAL.flush();
   sprintf(hi,"%s Raspberry Pico Digital Transceiver\nVersion(%s) Build(%s) (c)%s\n",PROGNAME,VERSION,BUILD,AUTHOR); 
   _SERIAL.print(hi);
+
+  #ifdef MULTICORE
+  /*-----------------------------------------
+   * define special semaphore to control 
+   * access to the serial port while 
+   * debugging
+   */
+  sem_init(&spc, 1, 1);
+  #endif //MULTICORE
 #endif //DEBUG
 
   /*-----------
@@ -1194,6 +1236,24 @@ set_sys_clock_khz(250000,true);
   delay(2*Bdly);
 
   tft_set(BUTTON_AUTO,autosend);
+
+#ifdef MULTICORE
+  /*----------------------------------------
+   Înit the semaphore used to manage the 
+   access to the signal data between the 
+   two cores.
+   Also the queues used to sync the starting
+   of operations on both cores.
+  */
+  sem_init(&ipc, 1, 1);
+  queue_init(&qdata,4,20);
+  queue_init(&sdata,4,20);
+  /*-----------------------------------------
+   * Finally launch the 2nd core (core1)
+   */
+  multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
+#endif //MULTICORE
+  
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
