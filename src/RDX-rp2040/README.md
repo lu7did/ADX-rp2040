@@ -146,8 +146,10 @@ transceiver during the FT8 QSO cycle.
 
 In order to increase the performance of the transceiver the different sub-systems can be split between the two available CPU
 cores provided by the rp2040 architecture (available on build 70 and up).
-The sub-system high level logic can be seen in the following UML diagram
+The sub-system high level logic can be seen in the following UML diagram:
+
 ![Alt Text](../../docs/RDX-multicore.png "rp2040 Multicore high level logic")
+
 Even if enabled by default being an experimental feature it can be switched off returning to the previous, single core,
 operationg by commenting out the configuration line **#define MULTICORE 1**.
 
