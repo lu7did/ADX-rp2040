@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "RDX-rp2040.h"
+#ifdef WEBTOOLS
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * web.cpp                                                                                     *
  * Simple web Web_server based configuration tool                                                *
@@ -333,3 +334,4 @@ void setup_Web(void) {
 void process_Web(void) {
   Web_server.handleClient();
 }
+#endif //WEBTOOLS

@@ -40,6 +40,7 @@ features on this project called **RDX**, standing for **Raspberry Pico Digital T
 * ADIF logbook generation.
 * USB ADIF logbook export.
 * Serial configuration terminal.
+* Multicore operation (core0 and core1)
 ```
 
 # Hardware
@@ -140,6 +141,15 @@ The following UML graphic shows at high level the FT8 finite state machine contr
 transceiver during the FT8 QSO cycle.
 
 ![Alt Text](../../docs/RDX-rp2040-FSM.png "FT8 protocol finite state machine")
+
+## Multicore operation
+
+In order to increase the performance of the transceiver the different sub-systems can be split between the two available CPU
+cores provided by the rp2040 architecture (available on build 70 and up).
+The sub-system high level logic can be seen in the following UML diagram
+![Alt Text](../../docs/RDX-multicore.png "rp2040 Multicore high level logic")
+Even if enabled by default being an experimental feature it can be switched off returning to the previous, single core,
+operationg by commenting out the configuration line **#define MULTICORE 1**.
 
 ## Configuration Web server
 

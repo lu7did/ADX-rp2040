@@ -82,8 +82,8 @@ static float max2(float a, float b)
 {
   return (a >= b) ? a : b;
 }
-
-// Compute FFT magnitudes (log power) for each timeslot in the signal
+ 
+/* Compute FFT magnitudes (log power) for each timeslot in the signal
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
    this procedure is where the energy is extracted
    it has been refactored completely to implement the quicksilver algorithm where the processsing
@@ -197,6 +197,14 @@ void inc_collect_power() {
   offset = 0;
   return;
 }
+#endif // (not MULTICORE)
+#ifdef MULTICORE
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ *      This is the dual core implementation of both inc_extract_power and inc_collect_power()
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+
+
+#endif //MULTICORE
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
    Process candidates by Costas sync score and localize them in time and frequency
  *                                                                                                *

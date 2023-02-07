@@ -1,15 +1,21 @@
-/*------ User setup
- * 
- */
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+//*                         User defined setup parameters                                     *
+//* The following parameters can be modified by the user in order to configure the transceiver*
+//* to a particular context and operational needs.                                            *
+//* Defined sub-systems might be disabled later because of conflicts with resources or other  *
+//* operating conditions                                                                      *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 
  /*--------------------------------------------------
  * Program configuration parameters
  */
 #define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
-#define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
 
+#define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
 #if defined(RP2040_W)
 #define FSBROWSER            1  //Comment out if a File System browser is not needed
+#define CLITOOLS             1  //Terminal
+#define WEBTOOLS             1  //Web parameters
 #endif //RP2040_W
 
 #define ADIF                 1  //Comment out if an ADIF logging is not needed
@@ -18,6 +24,7 @@
 
 /*----------------------------------------------------
  * ft8 definitions
+ * Station parameters
  */
 
 #define MY_CALLSIGN "LU2EIC"
@@ -34,6 +41,8 @@
 //#define WIFI_SSID                  "Your WiFi SSID"
 //#define WIFI_PSK                   "0123456789"
 //You might replace that include with a couple of #define for WIFI_SSID and WIFI_PSK for your Wifi AP
+//Credentials can also be placed on a file called ap.h in the same directory than the rest of the source
+//code
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 #if __has_include("ap.h")

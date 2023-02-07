@@ -44,9 +44,6 @@ enum {nfft = block_size * kFreq_osr};
 enum {num_blocks = (int) (decoding_time * kFSK_dev)};
 enum {num_samples_processed = nfft * (1 + kTime_osr) / 2};
 
-#ifdef MULTICORE
-extern int num_adc_blocks;
-#endif //MULTICORE
 
 //extern uint8_t mag_power[num_blocks * kFreq_osr * kTime_osr * num_bins];
 extern waterfall_t power;

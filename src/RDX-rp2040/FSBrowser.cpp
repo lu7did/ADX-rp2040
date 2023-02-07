@@ -55,9 +55,9 @@ WiFiClient TCPclient;
 
 bool TCPconnected=false;
 char TCPoutBuffer[1024];
-char TCPinBuffer[1024];
+char TCPinBuffer[64];
 int  TCPptrBuffer=0;
-char TCPout[256];
+char TCPout[128];
 char TCPChar;
 
 

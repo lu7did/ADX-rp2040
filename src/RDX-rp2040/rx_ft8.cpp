@@ -22,11 +22,75 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 const int CAPTURE_DEPTH = block_size;
+
+#ifndef MULTICORE
 int16_t fresh_signal[block_size] = {0};
 int16_t old_signal[block_size] = {0};
+#endif //MULTICORE
+
+#ifdef MULTICORE
+uint16_t queueR=0;
+uint16_t queueW=0;
+
+sigBin queued_signal[QMAX];
+sigBin fresh_signal = {0};
+sigBin old_signal = {0};
+
+struct semaphore ipc;
+
+queue_t qdata;
+queue_t sdata;
+#endif //MULTICORE
+
+
 uint dma_chan;
 dma_channel_config cfg;
 
+#ifdef MULTICORE
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*  Methods to handle the signal blocks as a queue                                          *
+//*  Generic constructs are avoided in order to save memory usage and stack allocation space *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=**
+/*-----------------------------------------------------
+ * Move fresh_signal[] to next slot in the queue
+ */
+void pushSignal() {
+   for (int i=0;i<960;i++) {
+       queued_signal[queueW][i]=fresh_signal[i];
+   }
+   queueW++;    
+   if (queueW>(QMAX-1)) queueW=0;
+}
+/*------------------------------------------------------
+ * Get old_signal[] from the front of the queue
+ */
+void popSignal() {
+  for (int i=0;i<960;i++) {
+     old_signal[i]=queued_signal[queueR][i];
+  }   
+  queueR++;
+  if (queueR>(QMAX-1)) queueR=0;
+}
+/*-------------------------------------------------------
+ * See if signal slots are available (actually not used)
+ */
+bool availSignal() {
+  if (queueR!=queueW) {
+      return true;
+  }
+  return false;
+}
+/*-------------------------------------------------------
+ * Occupied size of the queued. Used to control the
+ * watermark
+ */
+int sizeSignal() {
+  if (queueW>=queueR) {
+     return queueW-queueR;
+  }
+  return QMAX-queueR+queueW;
+}
+#endif //MULTICORE
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*  Setup and operate ADC                                                                   *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -104,3 +168,45 @@ void collect_adc() {
   adc_irq_set_enabled(true);
   adc_run(true);
 }
+#ifdef MULTICORE
+/*-----------------------------------------------------------------
+ * this is the collection procedure executed from core 1
+ */
+void process_adc() {
+
+   /*-------------------------------------------------
+    * Synchronize collection with core0
+    */
+   uint32_t q=0;
+   queue_remove_blocking(&qdata,&q);
+
+   /*-------------------------------------------------
+    * Start the FT8 protocol window collection
+    */
+   for (uint idx_block = 0; idx_block < num_adc_blocks; idx_block++) {
+       /*----------------------------------------------
+        * Trigger the sampling of the data, it is 
+        * actually to be performed using DMA access
+        * over fresh_data[] and signal when the
+        * defined number of samples has been taken
+        */
+       collect_adc();
+       dma_channel_wait_for_finish_blocking(dma_chan);
+
+       /*----------------------------------------------
+        * Transfer the acquired data to the data queue
+        * for processing, as it's a shared resource
+        * with core0 protect the update with an IPC
+        * mechanism
+        */
+       while(!sem_try_acquire(&ipc));
+       pushSignal();
+       sem_release(&ipc);
+
+       /*----------------------------------------------
+        * Unblock the signal analysis to see the data
+        */
+       queue_add_blocking(&sdata,(uint32_t)0);
+   }
+}
+#endif //MULTICORE

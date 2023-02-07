@@ -223,8 +223,8 @@ uint64_t config_us;
 uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
+
 bool waitCore=true;
-bool syncADC=false;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=

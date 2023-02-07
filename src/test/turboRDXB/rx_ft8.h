@@ -30,8 +30,9 @@
 
 /*---------------* FIX TURBO*-----------------------*/
 //extern int16_t fresh_signal[block_size];
-extern sigBin fresh_signal;
 //extern int16_t old_signal[block_size];
+
+extern sigBin fresh_signal;
 extern sigBin old_signal;
 /*---------------* FIX TURBO*-----------------------*/
 

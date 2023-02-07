@@ -28,9 +28,16 @@
 #define FSAMP (ADC_CLOCK / CLOCK_DIV)
 //#define NSAMP 960
 
-
+#ifndef MULTICORE
 extern int16_t fresh_signal[block_size];
 extern int16_t old_signal[block_size];
+#endif //not MULTICORE
+
+#ifdef MULTICORE
+extern sigBin fresh_signal;
+extern sigBin old_signal;
+#endif //MULTICORE
+
 extern uint dma_chan;
 extern dma_channel_config cfg;
 

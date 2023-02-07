@@ -34,6 +34,10 @@ CALLBACK fftReady=NULL;
 CALLBACK fftEnd=NULL;
 CALLQSO  qsoReady=NULL;
 
+#ifdef MULTICORE
+int num_adc_blocks=(int) (decoding_time * kFSK_dev);
+#endif //MULTICORE
+
 //AA1GD-added array of structures to store info in decoded messages 8/22/2021
 //LU7DZ-do not understant why, but until I do I left there         11/25/2022
 
@@ -79,6 +83,11 @@ static float max2(float a, float b)
 {
   return (a >= b) ? a : b;
 }
+
+#ifndef MULTICORE
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ *      This is the single core implementation of both inc_extract_power and inc_collect_power()
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 
 // Compute FFT magnitudes (log power) for each timeslot in the signal
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -257,6 +266,156 @@ void inc_collect_power() {
   offset = 0;
   return;
 }
+#endif //not MULTICORE
+#ifdef MULTICORE
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+ *      This is the dual core implementation of both inc_extract_power and inc_collect_power()
+ *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+ /* Compute FFT magnitudes (log power) for each timeslot in the signal
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+   this procedure is where the energy is extracted
+   it has been refactored completely to implement the quicksilver algorithm where the processsing
+   of the fft and other errands for each sample batch (block_size samples) is performed while the
+   next ADC sample is taken.
+   The FFT magnitudes are computed (log power) for each processing tick in the signal (960 samples)
+  =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+uint8_t inc_extract_power(uint dmachan, int16_t signal[], bool lastFrame)
+{
+  /*------------------------------------*
+     loop over two possible time offsets
+     [0,block_size/2]
+     keep watching the ADC sampling and
+     interrupt if the time was exceeded
+    ------------------------------------*/
+  for (int time_sub = 0; time_sub < power.time_osr; ++time_sub)
+  {
+    kiss_fft_scalar timedata[nfft];
+    kiss_fft_cpx freqdata[nfft / 2 + 1];
+    float mag_db[nfft / 2 + 1];
+    /*------------------------------------*
+       extract windowed signal block
+      ------------------------------------*/
+    for (int pos = 0; pos < nfft; ++pos)
+    {
+      timedata[pos] = signal[(time_sub * subblock_size) + pos] / 2048.0f;
+    }
+    kiss_fftr(fft_cfg, timedata, freqdata);
+    /*------------------------------------*
+       Compute log magnitude (dB)
+      ------------------------------------*/
+    for (int idx_bin = 0; idx_bin < nfft / 2 + 1; ++idx_bin)
+    {
+      float mag2 = (freqdata[idx_bin].i * freqdata[idx_bin].i) + (freqdata[idx_bin].r * freqdata[idx_bin].r);
+      mag_db[idx_bin] = 10.0f * log10f(1E-12f + mag2 * fft_norm * fft_norm);
+      int sig_db=(int)(2 * mag_db[idx_bin] + 240);
+      magint[idx_bin]=magint[idx_bin]+(sig_db < 0) ? 0 : ((sig_db > 255) ? 255 : sig_db);
+    }
+/*-------------- CALLBACK   ---------------*/    
+    if (fftReady != NULL) fftReady();
+    
+    /*--------------------------------------*
+       Loop over two possible frequency bins
+       offset (for averaging)
+      --------------------------------------*/
+
+    // Loop over two possible frequency bin offsets (for averaging)
+    for (int freq_sub = 0; freq_sub < power.freq_osr; ++freq_sub)
+    {
+      for (int pos = 0; pos < power.num_bins; ++pos)
+      {
+        float db = mag_db[pos * power.freq_osr + freq_sub];
+        /*------------------------------------*
+           scale dB to uint8_t range and clamp
+           the value (range 0-240) -120..0 dB
+           in 0.5 dB steps
+          ------------------------------------*/
+        int scaled = (int)(2 * db + 240);
+       
+        power.mag[offset] = (scaled < 0) ? 0 : ((scaled > 255) ? 255 : scaled);
+        power.mag[offset] = scaled;
+        offset++;
+      }
+    }
+  }
+  return 0x00;
+}
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+   this procedure is where the energy is collected
+   it has been refactored completely to implement a dual core processing where the ADC are sampled
+   in core1 whilst the signal processing is made in core 0.
+  =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+void inc_collect_power() {
+
+  size_t fft_work_size;
+  kiss_fftr_alloc(nfft, 0, 0, &fft_work_size);
+  void *fft_work = malloc(fft_work_size);
+  fft_cfg = kiss_fftr_alloc(nfft, 0, fft_work, &fft_work_size);
+  memset(magint, 0, sizeof(magint));
+  /*------------------------------------------------- 
+   * Signal thru the queue to the adc sampling task 
+   * to start running at core1, so both the sampling
+   * and the signal processing are synchronized
+   */
+  queue_add_blocking(&qdata,(uint32_t)0);
+
+  /*-------------------------------------------------
+   * Start processing signals sampled
+   */
+  for (uint idx_block = 0; idx_block < num_blocks; idx_block++) {
+
+    /*------------------------------------------------
+     * wait till core1 sampling activity signals 
+     * data is available
+     */
+    uint32_t fifoADC = 0;
+    queue_remove_blocking(&sdata,&fifoADC);
+
+    /*------------------------------------------------
+     * This is a sensor to detect overrun at the queue
+     * used to share data
+     */
+    if (sizeSignal()>1) {
+       _INFO("Warning signal queue size(%d)\n",sizeSignal());
+    }    
+
+    /*-------------------------------------------------
+     * Data is shared between core0 and core1 thru a
+     * standard memory location so an IPC protection
+     * mechanism is used to lock read and writes
+     */
+    while(!sem_try_acquire(&ipc));
+    popSignal();
+    sem_release(&ipc);
+
+    /*-------------------------------------------------
+     * Signal has been transferred to the old_signal
+     * buffer which can be considered owned by this
+     * procedure, proceed with the analysis
+     */
+    for (int i = 0; i < nfft; i++) {
+        old_signal[i] -= DC_BIAS;
+    }
+    adc_error = inc_extract_power(dma_chan, old_signal,false);
+    if (adc_error != 0x00) {
+       _INFO("Warning signal processing error(%x)\n",adc_error);
+    }
+  }
+  /*--------------------------------------------------
+   * The processing of the signals collected during
+   * the FT8 frame has been completed, just continue
+   * with the analysis and decoding.
+   * Process the end of frame callback
+   */
+  if (fftEnd!=NULL) fftEnd();
+
+  /*---------------------------------------------------
+   * Clean the working areas
+   */
+  free(fft_work);
+  offset = 0;
+  return;
+}
+#endif //MULTICORE
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
    Process candidates by Costas sync score and localize them in time and frequency
  *                                                                                                *

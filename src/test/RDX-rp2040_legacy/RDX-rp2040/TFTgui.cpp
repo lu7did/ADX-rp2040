@@ -859,7 +859,8 @@ void displayRDX::set(int btnIndex,int v) {
     case BUTTON_BAND:
                     {                 
                     char bandstr[6];
-                    sprintf(bandstr,"%dm",Bands[v]);
+                    Band2Str(bandstr);
+                    //sprintf(bandstr,"%dm",Bands[v]);
                     setBtn(btnIndex,bandstr,false,false);
                     freq=Slot2Freq(v+1);
                     showFreq();
@@ -1724,19 +1725,15 @@ void tft_begin() {
   icon[QUADICON].hdl=tft_quad;
   icon[QUADICON].show();
 
-  #ifdef CLITOOLS
   icon[CATICON].enabled=true;
   icon[CATICON].state=true;
   icon[CATICON].hdl=tft_cli;
   icon[CATICON].show();
-  #endif //CLITOOLS
 
-  #ifdef WEBTOOLS
   icon[WSJTICON].enabled=true;
   icon[WSJTICON].state=true;
   icon[WSJTICON].hdl=tft_Web;
   icon[WSJTICON].show();
-  #endif //WEBTOOLS
 
   icon[TUNEICON].enabled=true;
   icon[TUNEICON].state=false;
@@ -2157,14 +2154,18 @@ void tft_cli() {
 
   icon[CATICON].state=false;
   icon[CATICON].show();
-  
-  #ifdef CLITOOLS
   s.write((char*)"Configuration terminal");
-  cli_command(); 
+  cli_command();
   watchdog_enable(1, 1);
-  #endif //CLITOOLS
-
   while(true);
+/*-----
+ * never to be reached
+ */
+  s.reset();
+  text.reset();
+  icon[CATICON].state=true;
+  icon[CATICON].show();
+ 
 }
 
 /*--------------------------------------------------------------------
@@ -2210,8 +2211,7 @@ void tft_Web() {
   icon[WSJTICON].state=true;
   icon[WSJTICON].active=false;
   icon[WSJTICON].show();
-
-  #ifdef WEBTOOLS
+  
   _INFOLIST("%s starting Configuration Web Browser\n",__func__);
   s.write((char*)"Web configuration tool active");
   checkAP(wifi_ssid,wifi_psk);
@@ -2223,8 +2223,6 @@ void tft_Web() {
   } 
   _INFOLIST("%s Web configuration tool terminated\n",__func__); 
   resetAP();
-  #endif //WEBTOOLS
-  
   icon[WSJTICON].state=false;
   icon[WSJTICON].active=true;
   icon[WSJTICON].show();

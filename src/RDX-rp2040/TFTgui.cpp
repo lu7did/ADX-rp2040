@@ -857,9 +857,10 @@ void displayRDX::setBtn(int btnIndex, char* btnLabel, bool inverse, bool fickle)
 void displayRDX::set(int btnIndex,int v) {
   switch (btnIndex) {
     case BUTTON_BAND:
-                    {                 
-                    char bandstr[6];
-                    sprintf(bandstr,"%dm",Bands[v]);
+                    {      
+                    char bandstr[6];          
+                    strcpy(bandstr,""); 
+                    Band2Str(bandstr);
                     setBtn(btnIndex,bandstr,false,false);
                     freq=Slot2Freq(v+1);
                     showFreq();
@@ -1724,15 +1725,19 @@ void tft_begin() {
   icon[QUADICON].hdl=tft_quad;
   icon[QUADICON].show();
 
+  #ifdef CLITOOLS
   icon[CATICON].enabled=true;
   icon[CATICON].state=true;
   icon[CATICON].hdl=tft_cli;
   icon[CATICON].show();
+  #endif //CLITOOLS
 
+  #ifdef WEBTOOLS
   icon[WSJTICON].enabled=true;
   icon[WSJTICON].state=true;
   icon[WSJTICON].hdl=tft_Web;
   icon[WSJTICON].show();
+  #endif //WEBTOOLS
 
   icon[TUNEICON].enabled=true;
   icon[TUNEICON].state=false;
@@ -1750,7 +1755,7 @@ void tft_begin() {
 
   d.set(BUTTON_AUTO,-1);
   d.set(BUTTON_TX,0);
-  d.set(BUTTON_BAND,Band_slot-1);
+  d.set(BUTTON_BAND,Band_slot);
   d.set(BUTTON_CQ,0);
   
   d.init();
@@ -2119,7 +2124,6 @@ void tft_syncNTP() {
   checkAP(wifi_ssid,wifi_psk);
   getClock((char*)ntp_server1,(char*)ntp_server2);
   resetAP();
-  _INFOLIST("%s completed time sync\n",__func__);
   
 #endif //RP2040_W
 
@@ -2153,18 +2157,14 @@ void tft_cli() {
 
   icon[CATICON].state=false;
   icon[CATICON].show();
+  
+  #ifdef CLITOOLS
   s.write((char*)"Configuration terminal");
-  cli_command();
+  cli_command(); 
   watchdog_enable(1, 1);
+  #endif //CLITOOLS
+
   while(true);
-/*-----
- * never to be reached
- */
-  s.reset();
-  text.reset();
-  icon[CATICON].state=true;
-  icon[CATICON].show();
- 
 }
 
 /*--------------------------------------------------------------------
@@ -2210,7 +2210,8 @@ void tft_Web() {
   icon[WSJTICON].state=true;
   icon[WSJTICON].active=false;
   icon[WSJTICON].show();
-  
+
+  #ifdef WEBTOOLS
   _INFOLIST("%s starting Configuration Web Browser\n",__func__);
   s.write((char*)"Web configuration tool active");
   checkAP(wifi_ssid,wifi_psk);
@@ -2222,6 +2223,8 @@ void tft_Web() {
   } 
   _INFOLIST("%s Web configuration tool terminated\n",__func__); 
   resetAP();
+  #endif //WEBTOOLS
+  
   icon[WSJTICON].state=false;
   icon[WSJTICON].active=true;
   icon[WSJTICON].show();

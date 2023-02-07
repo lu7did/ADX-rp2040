@@ -132,6 +132,8 @@
    Main variables
 */
 char hi[128];
+struct semaphore spc;
+
 /*----------------------
  * state variables
  */
@@ -193,7 +195,6 @@ uint8_t  maxTry = MAXTRY;
  * System state variables
  * 
  */
-bool     qwait=true;
 bool     triggerCQ=false;
 bool     triggerCALL=false;
 bool     send = false;
@@ -224,6 +225,9 @@ uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
 
+#ifdef MULTICORE
+bool waitCore=true;
+#endif //MULTICORE
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -245,7 +249,7 @@ const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},       
                                          {21074000UL,21000000UL,21450000UL},      //15m [6]
                                          {24915000UL,24890000UL,24990000UL},      //12m [7]
                                          {28074000UL,28000000UL,29700000UL}};     //10m [8]
-int Band_slot = 0;
+int Band_slot = 1;
 int Band = 0;
 
 int Band1 = Bands[0]; // Band 1 // These are default bands. Feel free to swap with yours
@@ -1065,6 +1069,36 @@ void ft8_run() {
   return;
 }
 
+#ifdef MULTICORE
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                            Core1 Execution entry point                                   *
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*-----------------------------------------------------------------------------------------*
+ * Multicore paralell execution of signal processing
+ * It requires a very specialized and large stack in order not to crash, therefore the
+ * standard execution conditions provided by the setup1()/loop1() pair isn't enough
+ */
+#define STACK_SIZE 11000
+uint32_t core1_stack[STACK_SIZE];
+
+void core1_entry() {
+
+   /*-------------------------------------------------
+    * core1 handles the sampling
+    * setup the ADC0 reading
+    */
+   setup_adc();
+   /*-------------------------------------------------
+    * Now keep taking samples, additional sync is
+    * performed by the involved procedures by mean
+    * of IPC queues
+    */
+   while(true) {
+     process_adc();
+   }  
+
+}
+#endif //MULTICORE
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             setup() (core0)                                              *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -1091,6 +1125,14 @@ set_sys_clock_khz(250000,true);
   _SERIAL.flush();
   sprintf(hi,"%s Raspberry Pico Digital Transceiver\nVersion(%s) Build(%s) (c)%s\n",PROGNAME,VERSION,BUILD,AUTHOR); 
   _SERIAL.print(hi);
+  /*-----------------------------------------
+   * define special semaphore to control 
+   * access to the serial port while 
+   * debugging avoiding recursion and 
+   * re-entrancy problems.
+   */
+  sem_init(&spc, 1, 1);
+
 #endif //DEBUG
 
   /*-----------
@@ -1194,6 +1236,24 @@ set_sys_clock_khz(250000,true);
   delay(2*Bdly);
 
   tft_set(BUTTON_AUTO,autosend);
+
+#ifdef MULTICORE
+  /*----------------------------------------
+   Înit the semaphore used to manage the 
+   access to the signal data between the 
+   two cores.
+   Also the queues used to sync the starting
+   of operations on both cores.
+  */
+  sem_init(&ipc, 1, 1);
+  queue_init(&qdata,4,20);
+  queue_init(&sdata,4,20);
+  /*-----------------------------------------
+   * Finally launch the 2nd core (core1)
+   */
+  multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
+#endif //MULTICORE
+  
   _INFOLIST("%s *** Transceiver ready ***\n", __func__);
 
 }
@@ -1415,8 +1475,7 @@ void Band_assign() {
 }
 //******************************[ BAND SELECT Function]********************************
 void Band2Str(char *str) {
-   sprintf(str+strlen(str),"%02dm",Bands[Band_slot-1]);
-   _INFOLIST("%s Band(%s)\n",__func__,str);
+   sprintf(str+strlen(str),"%02d m",Bands[Band_slot-1]);
 }
 
 void Band_Select() {
@@ -1833,7 +1892,9 @@ void INIT() {
 
   }
   freq=Slot2Freq(Band_slot);
-  tft_updateBand();
+  _INFO("Band_slot(%d) freq(%ul)\n",Band_slot,freq);
+  
+  //tft_updateBand();
 
 }
 /*------------------------------
@@ -1922,6 +1983,7 @@ void readEEPROM() {
 void resetEEPROM() {
   
     cal_factor = 100000;
+    Band_slot  = 1;
 
     strcpy(my_callsign,MY_CALLSIGN);
     strcpy(my_grid,MY_GRID);   
