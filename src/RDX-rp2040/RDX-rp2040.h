@@ -9,8 +9,8 @@
 // Version 2.0 is an enhanced version which extends the capabilities of the ADX-rp2040 firmware
 //*********************************************************************************************************
 /*---------------------------------------------------------------------------------------------------*
-   Includes and macro definitions for the ADX-rp2040 transceiver firmware
-  ---------------------------------------------------------------------------------------------------*/
+ * Includes and macro definitions for the ADX-rp2040 transceiver firmware                            *
+ *---------------------------------------------------------------------------------------------------*/
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 //*                       External libraries used                                               *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
@@ -44,29 +44,31 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "70"
+#define BUILD   "69"
 /*-------------------------------------------------
-   Macro expansions
-*/
+ * Macro expansions and type definitions
+ */
 #define digitalWrite(x,y) gpio_put(x,y)
 #define digitalRead(x)  gpio_get(x)
-
 
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
-
-#define OVERCLOCK       1       //Overclock the processor up to x2
-//#define MULTICORE       1       //Split workload between Core0 and Core1 (pseudo RTOS)
-#define BAUD            115200  //Standard Serial port
-
-/*-------------------------------------------------------------*
-   Type definition for callbacks and other special types used
-*/
 typedef void (*CALLBACK)();
 typedef void (*CALLQSO)(int i);
-typedef bool (*CMD)(int idx, char *_cmd, char *_arg, char *_out);
+typedef bool (*CMD)(int idx,char *_cmd,char *_arg,char *_out);
 typedef int16_t sigBin[960];
+
+
+/*-------------------------------------------------------------*
+   CPU Configuration parameters
+  -------------------------------------------------------------*/
+
+#define OVERCLOCK       1       //Overclock the processor up to x2
+#define MULTICORE       1       //Processing is split between core0 and core1
+#define BAUD            115200  //Standard Serial port
+#define CPU_CLOCK       250000  //CPU Clock (KHz)
+#define STACK_SIZE      11000   //Bytes
 
 /*-------------------------------------------------------------*
    User defined configuration parameters
@@ -85,6 +87,11 @@ typedef int16_t sigBin[960];
 #undef WEBTOOLS
 #endif //MULTICORE
 
+#ifdef FSBROWSER
+#define CLITOOLS  1
+#undef DATALOGGERUSB
+#undef WEBTOOLS 
+#endif //FSBROWSER
 
 /*----
    Output control lines
@@ -110,14 +117,14 @@ typedef int16_t sigBin[960];
 
 
 /*---
-
-*/
-
+ * 
+ */
+  
 #define BUTTON_TX       0
 #define BUTTON_CQ       1
 #define BUTTON_AUTO     2
 #define BUTTON_BAND     3
-
+  
 #define BUTTON_END      4
 
 
@@ -163,18 +170,18 @@ typedef int16_t sigBin[960];
 
 
 /*--------------------------------------------------------------
-   Magic numbers
-   Do not even think to touch them
-
-*/
+ * Magic numbers
+ * Do not even think to touch them
+ * 
+ */
 #define kMin_score            10 // Minimum sync score threshold for candidates
 #define kMax_candidates       KMAX_CANDIDATES       // Original was 120
 #define kLDPC_iterations      KLDPC_ITERATIONS      // Original was 20
 #define kMax_decoded_messages KMAX_DECODED_MESSAGES //was 50, change to 14 since there's 14 buttons on the 4x4 membrane keyboard
 
 /*------------------------------------------------------
-   EEPROM Address Map
-*/
+ * EEPROM Address Map
+ */
 #define EEPROM_ADDR_CAL     10       //CALB  int32_t
 #define EEPROM_ADDR_TEMP    30
 #define EEPROM_ADDR_MODE    40       //MODE  int
@@ -199,8 +206,8 @@ typedef int16_t sigBin[960];
 #define EEPROM_ADDR_END    330
 
 /*------------------------------------------------------------
-   GUI Icon enumeration
-*/
+ * GUI Icon enumeration
+ */
 #define MAXICON  10
 
 #define WIFIICON 0
@@ -237,12 +244,17 @@ typedef int16_t sigBin[960];
 //*                         External References                                              *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 /*-----------------------------------------------------
-   External references to freqPIO variables and methods
-*/
+ * External references to freqPIO variables and methods
+ */
 extern Si5351 si5351;
 
 extern char my_callsign[16];
 extern char my_grid[8];
+extern uint8_t nTry;
+extern uint8_t maxTry;
+extern uint8_t maxTx;
+extern int Band_slot;
+extern const uint16_t Bands[BANDS];
 extern char hostname[16];
 extern char qso_message[16];
 extern char logbook[32];
@@ -251,43 +263,41 @@ extern char adiffile[16];
 #ifdef RP2040_W
 extern char wifi_ssid[40];
 extern char wifi_psk[16];
+#endif //RP2040_W
+
 extern int  tcp_port;
 extern int  http_port;
 extern int  web_port;
-#endif //RP2040_W
 
-
-extern uint8_t nTry;
-extern uint8_t maxTry;
-extern uint8_t maxTx;
-extern int Band_slot;
-extern const uint16_t Bands[BANDS];
 
 /*------------------------------------------------------------------
-   System global state variables
-*/
+ * System global state variables
+ */
 extern bool autosend;
+extern bool stopCore1;
+extern bool qwait;
 extern bool triggerCQ;
 extern bool triggerCALL;
 extern bool enable_adc;
+extern bool DSP_flag;
 extern bool logADIF;
 extern bool endQSO;
+extern bool enableEEPROM;
 
 
 extern char hi[128];
+extern unsigned long freq;
 extern char timestr[12];
 extern int magint[960];
-
-extern unsigned long freq;
 extern int TX_State;
-extern uint8_t ft8_state;
-extern int timezone;
-
 extern char programname[12];
 extern char version[6];
 extern char build[6];
 extern char ip[16];
+extern uint8_t ft8_state;
+extern int timezone;
 extern unsigned long rssi;
+
 
 extern uint16_t call_af_frequency;
 extern int8_t call_self_rx_snr;
@@ -301,12 +311,13 @@ extern bool SingleFileDriveactive;
 extern int af_frequency;
 
 /*---------------------------------------------------
-   Time related variables
-*/
+ * Time related variables
+ */
 extern time_t t_ofs;
 extern time_t now;
 extern struct tm timeinfo;        //current time
 extern struct tm timeprev;        //epoch time
+
 
 extern char ntp_server1[32];    //Server defined to sync time (primary)
 extern char ntp_server2[32];    //Server defined to sync time (secondary)
@@ -320,6 +331,7 @@ extern CALLBACK quitCallBack;
 
 extern void setup_FSBrowser();
 extern void loop_FSBrowser();
+extern void TCP_Process();
 
 extern void tft_FSBrowser();
 extern void tft_autocal();
@@ -337,23 +349,24 @@ extern void tft_init();
 extern void tft_cli();
 extern void tft_setBar(int colour);
 extern void tft_setIP(char *ip_address);
-extern void tft_storeQSO(uint16_t qsowindow, uint16_t _qso, char *s, uint16_t af_frequency, int8_t self_rx_snr, char *station_callsign, char *grid_square);
+extern void tft_storeQSO(uint16_t qsowindow, uint16_t _qso,char *s,uint16_t af_frequency,int8_t self_rx_snr,char *station_callsign,char *grid_square);
 extern void tft_updateBand();
 extern void tft_setBarTx();
-extern void tft_set(int btnIndex, int v);
+extern void tft_set(int btnIndex,int v);
 extern void tft_ADIF();
 extern void tft_syncNTP();
 extern void tft_quad();
 extern void tft_ADIF();
 extern void tft_footupdate();
 extern void tft_DataLoggerUSB();
-extern void tft_iconState(int _icon, bool _state);
-extern void tft_iconSet(int _icon, bool _enabled);
-extern void tft_iconActive(int _icon, bool _active);
+extern void tft_iconState(int _icon,bool _state);
+extern void tft_iconSet(int _icon,bool _enabled);
+extern void tft_iconActive(int _icon,bool _active);
 extern void tft_Web();
 
-extern bool popBang(char *s, char *t, const char delimiter);
-extern bool parse(char *s, char *t);
+
+extern bool popBang(char *s,char *t,const char delimiter);
+extern bool parse(char *s,char *t);
 extern int heapLeft();
 extern int cliFind(char *cmd);
 extern void wipeChar(char *out);
@@ -368,51 +381,15 @@ extern void resetAP();
 extern int setup_wifi();
 extern bool getClock(char* n1, char* n2);
 
-extern int writeQSO(char *adifFile, char *call, char *grid, char *mode, char *rst_sent, char *rst_rcvd, char *qso_date, char *time_on, char *band, char *freq, char *mycall, char *mygrid, char *message);
+extern int writeQSO(char *adifFile,char *call,char *grid, char *mode, char *rst_sent,char *rst_rcvd,char *qso_date,char *time_on, char *band, char *freq, char *mycall, char *mygrid, char *message);
 extern void setup_adif();
 
 extern void data_stop();
 extern void data_setup();
-
 extern void cli_command();
 extern void cli_prompt(char *_out);
-extern bool cli_commandProcessor(char *cmd, char *arg, char *response);
-extern void cli_init(char *out);
-extern bool cli_execute(char *buffer, char *outbuffer);
 
-
-extern void initSi5351();
-
-extern void AutoCalibration();
-extern void timeSync();
-extern int getQSOwindow();
-
-extern void readEEPROM();
-extern void resetEEPROM();
-extern void updateEEPROM();
-extern void setCALL();
-extern void INIT();
-extern void Calibration();
-extern void Band_Select();
-extern void Band2Str(char *str);
-extern void ManualTX();
-extern void Band_assign();
-extern void Freq_assign();
-extern void Mode_assign();
-extern void checkButton();
-extern unsigned long Slot2Freq(int s);
-
-extern void startTX();
-extern void stopTX();
-extern void readEEPROM();
-extern void resetEEPROM();
-extern void updateEEPROM();
-extern bool getEEPROM(int *i, char *buffer);
-
-extern void setup_Web();
-extern void process_Web();
-
-extern void TCP_Process();
+extern struct semaphore spc;      //Semaphore to protect multithread access to the signal queue
 
 #ifdef MULTICORE
 
@@ -424,7 +401,6 @@ extern uint16_t queueR;           //Signal capture queue read pointer
 extern uint16_t queueW;           //Signal capture queue write pointer
 
 extern struct semaphore ipc;      //Semaphore to protect multithread access to the signal queue
-extern struct semaphore spc;      //Semaphore to protect multithread access to the serial buffer
 
 extern queue_t qdata;
 extern queue_t sdata;
@@ -443,10 +419,45 @@ extern int num_adc_blocks;
 
 #endif //MULTICORE
 
+
+extern void initSi5351();
+
+extern void AutoCalibration();
+extern void timeSync();
+extern int getQSOwindow();
+
+extern void readEEPROM();
+extern void resetEEPROM();
+extern void updateEEPROM();
+extern bool getEEPROM(int *i,char *buffer);
+
+extern void setCALL();
+extern void INIT();
+extern void Calibration();
+
+extern void Band_Select();
+extern void Band2Str(char *str);
+extern void ManualTX();
+extern void Band_assign();
+extern void Freq_assign();
+extern void Mode_assign();
+extern void checkButton();
+extern unsigned long Slot2Freq(int s);
+
+extern void startTX();
+extern void stopTX();
+
+extern void setup_Web();
+extern void process_Web();
+
+extern bool cli_commandProcessor(char *cmd,char *arg, char *response);
+extern void cli_init(char *out);
+bool cli_execute(char *buffer, char *outbuffer);
+
 /*-------------------------------------------------------
-   Debug and development aid tracing
-   only enabled if DEBUG is defined previously
-*/
+ * Debug and development aid tracing
+ * only enabled if DEBUG is defined previously
+ */
 #ifdef DEBUG
 
 #ifdef  UART    //Can test with the IDE, USB based, serial port or the UART based external serial port
@@ -513,9 +524,8 @@ extern int num_adc_blocks;
 #define _SERIAL Serial
 #endif
 
-
 /*----------------------------------------------------------
-   Extern functions across the different sub-systems
-*/
+ * Extern functions across the different sub-systems
+ */
 
 extern uint16_t ft8_crc(const uint8_t message[], int num_bits);

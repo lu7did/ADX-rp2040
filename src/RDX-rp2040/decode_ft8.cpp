@@ -267,6 +267,7 @@ void inc_collect_power() {
   return;
 }
 #endif //not MULTICORE
+//*******************************************************[DUAL CORE]********************************************************
 #ifdef MULTICORE
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  *      This is the dual core implementation of both inc_extract_power and inc_collect_power()
@@ -375,7 +376,7 @@ void inc_collect_power() {
      * used to share data
      */
     if (sizeSignal()>1) {
-       _INFO("Warning signal queue size(%d)\n",sizeSignal());
+       _INFO("Warning signal queue size(%d) DMA error (0x04)\n",sizeSignal());
     }    
 
     /*-------------------------------------------------

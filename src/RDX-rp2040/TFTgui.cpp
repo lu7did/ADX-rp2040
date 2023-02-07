@@ -1840,6 +1840,7 @@ void tft_checktouch() {
   }
 
 
+
   // Draw a white spot at the detected coordinates
   if (pressed) {
     bool hit = d.point(x, y);
@@ -1851,8 +1852,8 @@ void tft_checktouch() {
        s.reset();
        s.init();
        text.reset();
-       
-       updateEEPROM();
+
+       updateEEPROM(); 
     }
 
     bool f=false;

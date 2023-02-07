@@ -52,6 +52,7 @@
 //
 // The firmware has been developed with a Raspberry Pi Pico W version but it should work with a regular Raspberry Pi Pico
 // ----------------------------------------------------------------------------------------------------------------------
+
 //*****************************************************************************************************
 // Arduino "Wire.h" I2C library         (built-into arduino ide)
 // Arduino "EEPROM.h" EEPROM Library    (built-into arduino ide)
@@ -202,6 +203,7 @@ bool     justSent = false; //must recieve right after sending
 bool     logADIF=false;
 bool     autosend = false;
 bool     endQSO=false;
+bool     enableEEPROM=true;
 /*---------------------
  * Definitions related to the autocalibration function
  */
@@ -225,9 +227,9 @@ uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
 
-#ifdef MULTICORE
-bool waitCore=true;
-#endif //MULTICORE
+
+
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -407,8 +409,6 @@ bool timeWait() {
 void fftCallBack() {
  
     tft_updatewaterfall(magint);
-    tft_checktouch();
-    checkButton();
     tft_run();
 
 }
@@ -455,24 +455,13 @@ int heapLeft() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup_ft8() {
 
-  /*===================================================================*
-   * WARNING                                                           *
-   * the original firmware overclock the processor, the initial version* 
-   * of this firmware won't                                            *
-   *===================================================================*/
-  /*-------------------------------------------------------------------*/
-  //*overclocking the processor
-  //*133MHz default, 250MHz is safe at 1.1V and for flash
-  //*if using clock > 290MHz, increase voltage and add flash divider
-  //*see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
-  //*vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
-  //*@@@ set_sys_clock_khz(250000,true);
-  /*-------------------------------------------------------------------*/
-
+#ifndef MULTICORE
   /*------
-     setup the ADC processing
+     setup the sampling for the signal using a DMA transfer
   */
+
   setup_adc();
+#endif //MULTICORE
 
   /*------
      make the Hanning window for fft work
@@ -1078,7 +1067,6 @@ void ft8_run() {
  * It requires a very specialized and large stack in order not to crash, therefore the
  * standard execution conditions provided by the setup1()/loop1() pair isn't enough
  */
-#define STACK_SIZE 11000
 uint32_t core1_stack[STACK_SIZE];
 
 void core1_entry() {
@@ -1112,9 +1100,8 @@ void setup()
 //133MHz default, 250MHz is safe at 1.1V and for flash
 //if using clock > 290MHz, increase voltage and add flash divider
 //see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
-//*-------------------------------------------------------------------------------------------*
-//vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
-set_sys_clock_khz(250000,true);
+set_sys_clock_khz(CPU_CLOCK,true);
+
 //*-------------------------------------------------------------------------------------------*
 #endif //OVERCLOCK
 
@@ -1251,6 +1238,7 @@ set_sys_clock_khz(250000,true);
   /*-----------------------------------------
    * Finally launch the 2nd core (core1)
    */
+  enableEEPROM=false; 
   multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
 #endif //MULTICORE
   
@@ -1561,7 +1549,17 @@ while (true) {
 
 
 }
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+/*                                      EEPROM Management                                                */
+/* As the rp2040 doesn't have an EEPROM available the Arduino IDE code simulates it in flash memory with */
+/* the same standard calls usde by the Arduino IDE 
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void updateEEPROM() {
+
+    if(!enableEEPROM) {
+      _INFO("EEPROM update while running multicore is disabled\n");
+      return;
+    }
 
     _INFOLIST("%s EEPROM content being updated\n",__func__);
     addr = 50;
@@ -1598,17 +1596,11 @@ void updateEEPROM() {
     EEPROM.put(EEPROM_ADDR_PORT,tcp_port);
     EEPROM.put(EEPROM_ADDR_WEB,web_port);
     EEPROM.put(EEPROM_ADDR_HTTP,http_port);
-    
 #endif //RP2040_W 
     
     EEPROM.commit();
     _INFOLIST("%s EEPROM completed\n",__func__);
-
-
-
-  
-  EEPROM.commit();
-
+ 
 }
 
 //*********************************[ END OF BAND SELECT ]*****************************
@@ -1969,8 +1961,7 @@ void readEEPROM() {
     EEPROM.get(EEPROM_ADDR_HOST,hostname);
     EEPROM.get(EEPROM_ADDR_PORT,tcp_port);
     EEPROM.get(EEPROM_ADDR_HTTP,http_port);
-    EEPROM.get(EEPROM_ADDR_WEB,web_port);
-    
+    EEPROM.get(EEPROM_ADDR_WEB,web_port);  
 #endif //RP2040_W
     
     _INFOLIST("%s completed\n",__func__);
