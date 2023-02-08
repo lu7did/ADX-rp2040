@@ -163,6 +163,7 @@ A facility to activate the transmitter can be used by pressing the **Tx+** butto
 
 
 ## Configuration terminal
+
 Most options which needs to be configured on a particular station can be modified at build time by correcting (or enabling, or disabling) the appropriate parameter
 before compiling and flashing the firmware. Usually modifications needs to be done in the **RDX-rp2040.h** file.
 However there are ocassions where the possibility to perform modifications is limited, either because the firmware was flashed from a pre-compiled version (.uf2 file)
@@ -409,11 +410,19 @@ The mDNS resolution requires the client machine used for the access and the boar
 ```
 
 ## USB Export of logbook
+
 A facility called USB export can be activated at compile time thru the **#define DATALOGGERUSB 1** directive in the RDX-rp2040.h file.
 When available is can be activated by the USB export icon, when enabled a single file is exported thru the USB. The file can be browsed, edited, deleted or copied
 to other place. The share finishes when the USB export icon is tapped again.
 This facility is based on a feature of the Arduino pico core called **SingleFileDrive** where a single file is mapped, in this case the file mapped is the
 **rdx.txt** used to store the ADIF logbook, the export name (the name used to be displayed in the host PC) will be **rdx-logbook.txt**.
+
+### Windows 10
+
+When activated thru the GUI a File Explorer window will be opened showing the PICODISK drive (drive letter will be assigned depending on the current drive configuration of the
+machine); this USB drive will contain a single file named **rdx_toolbook.txt** containing the ADIF logbook. This file can be copied, moved, edited or erased like any file.
+
+![Alt Text](../../docs/RDX-USB.png "USB ADIF Logbook")
 
 
 ## GUI
