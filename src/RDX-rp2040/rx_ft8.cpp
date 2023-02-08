@@ -208,5 +208,15 @@ void process_adc() {
         */
        queue_add_blocking(&sdata,(uint32_t)0);
    }
+   
+#ifdef MULTICORE
+   if (sem_available(&epc)<2) {
+      while(!sem_try_acquire(&epc));
+      _INFO("DSP semaphore acquired, waiting for release\n");
+      while(sem_available(&epc)!=0);
+      _println("DSP processing released\n");
+   }
+#endif 
+
 }
 #endif //MULTICORE

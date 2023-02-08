@@ -227,8 +227,18 @@ uint64_t fine_offset_us = 0; //in us
 int16_t signal_for_processing[num_samples_processed] = {0};
 uint32_t handler_max_time = 0;
 
+#ifdef MULTICORE
+/*-----------------------------------------------
+ * This is an special IPC definition of resources
+ * to protect EEPROM commit while in multicore
+ */
 
+ struct semaphore epc;
+ queue_t edata;
 
+ bool stallEEPROM=false;
+
+#endif //MULTICORE
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                             Global Variables for ADX                                     *
@@ -1122,6 +1132,41 @@ set_sys_clock_khz(CPU_CLOCK,true);
 
 #endif //DEBUG
 
+/*------------------------------------------------------
+ * Configuration manifesto
+ */
+#ifdef OVERCLOCK 
+   _INFO("Overclock activated\n");
+#endif
+
+#ifdef MULTICORE 
+_INFO("Multicore activated\n"); 
+#endif
+
+#ifdef RP2040_W  
+_INFO("rp2040 W processor support activated\n"); 
+#endif
+
+#ifdef FSBROWSER 
+_INFO("File System Browser activated\n"); 
+#endif
+
+#ifdef CLITOOLS  
+_INFO("Command Line Interface (CLI) tools activated\n"); 
+#endif
+
+#ifdef WEBTOOLS  
+_INFO("Web Configuration Interface (WCI) tools actvated\n"); 
+#endif
+
+#ifdef ADIF      
+_INFO("ADIF loogbook support activated\n"); 
+#endif
+
+#ifdef DATALOGGERUSB 
+_INFO("USB ADIF export activated\n"); 
+#endif
+
   /*-----------
      Data area initialization
   */
@@ -1132,10 +1177,13 @@ set_sys_clock_khz(CPU_CLOCK,true);
   strcpy(build,BUILD);
   strcpy(ip," Disconnected ");
   strcpy(adiffile,(char*)ADIFFILE);
+
+#ifdef DATALOGGERUSB
   strcpy(logbook,(char*)LOGBOOK);
+#endif 
+  
   strcpy(hostname,(char*)HOSTNAME);    
   strcpy(qso_message,(char*)QSO_MESSAGE);
-  strcpy(logbook,LOGBOOK);
 
   web_port=WEB_PORT;
   http_port=HTTP_PORT;
@@ -1234,7 +1282,11 @@ set_sys_clock_khz(CPU_CLOCK,true);
   */
   sem_init(&ipc, 1, 1);
   queue_init(&qdata,4,20);
+  
   queue_init(&sdata,4,20);
+
+  queue_init(&edata,4,3);
+  sem_init(&epc,2,2);
   /*-----------------------------------------
    * Finally launch the 2nd core (core1)
    */
@@ -1556,7 +1608,8 @@ while (true) {
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 void updateEEPROM() {
 
-    if(!enableEEPROM) {
+
+    if(!enableEEPROM && !stallEEPROM) {
       _INFO("EEPROM update while running multicore is disabled\n");
       return;
     }
@@ -1581,7 +1634,11 @@ void updateEEPROM() {
     EEPROM.put(EEPROM_ADDR_MYCALL,my_callsign);
     EEPROM.put(EEPROM_ADDR_MYGRID,my_grid);  
     EEPROM.put(EEPROM_ADDR_ADIF,adiffile);
+    
+#ifdef DATALOGGERUSB
     EEPROM.put(EEPROM_ADDR_LOG,logbook);
+#endif //DATALOGGERUSB
+    
     EEPROM.put(EEPROM_ADDR_MSG,qso_message);
     EEPROM.put(EEPROM_ADDR_AUTO,autosend);
     EEPROM.put(EEPROM_ADDR_WRITE,logADIF);
@@ -1599,8 +1656,8 @@ void updateEEPROM() {
 #endif //RP2040_W 
     
     EEPROM.commit();
-    _INFOLIST("%s EEPROM completed\n",__func__);
- 
+    _INFOLIST("%s EEPROM commit completed\n",__func__);
+
 }
 
 //*********************************[ END OF BAND SELECT ]*****************************
@@ -1952,7 +2009,11 @@ void readEEPROM() {
     EEPROM.get(EEPROM_ADDR_TZ,timezone);
 
     EEPROM.get(EEPROM_ADDR_ADIF,adiffile);
+    
+#ifdef DATALOGGERUSB
     EEPROM.get(EEPROM_ADDR_LOG,logbook);
+#endif 
+    
     EEPROM.get(EEPROM_ADDR_MSG,qso_message);
     
 #ifdef RP2040_W    
@@ -1981,7 +2042,11 @@ void resetEEPROM() {
     strcpy(build,BUILD);
 
     strcpy(adiffile,ADIFFILE);
+
+#ifdef DATALOGGERUSB    
     strcpy(logbook,LOGBOOK);
+#endif //DATALOGGERUSB
+    
     strcpy(qso_message,QSO_MESSAGE);
     
     

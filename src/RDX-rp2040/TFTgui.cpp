@@ -1853,7 +1853,8 @@ void tft_checktouch() {
        s.init();
        text.reset();
 
-       updateEEPROM(); 
+       //updateEEPROM();
+       stallEEPROM=true; 
     }
 
     bool f=false;

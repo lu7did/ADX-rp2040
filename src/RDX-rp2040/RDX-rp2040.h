@@ -44,7 +44,7 @@
 #define PROGNAME "RDX"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION "2.0"
-#define BUILD   "69"
+#define BUILD   "70"
 /*-------------------------------------------------
  * Macro expansions and type definitions
  */
@@ -64,11 +64,14 @@ typedef int16_t sigBin[960];
    CPU Configuration parameters
   -------------------------------------------------------------*/
 
-#define OVERCLOCK       1       //Overclock the processor up to x2
 #define MULTICORE       1       //Processing is split between core0 and core1
+
+
 #define BAUD            115200  //Standard Serial port
 #define CPU_CLOCK       250000  //CPU Clock (KHz)
 #define STACK_SIZE      11000   //Bytes
+#define DSP_QUEUEMAX    2       //DSP Queue High Watermark
+#define OVERCLOCK       1       //Overclock the processor up to x2
 
 /*-------------------------------------------------------------*
    User defined configuration parameters
@@ -87,11 +90,24 @@ typedef int16_t sigBin[960];
 #undef WEBTOOLS
 #endif //MULTICORE
 
+#ifndef RP2040_W
+#undef FSBROWSER
+#undef WEBTOOLS
+#endif //RP2040_W
+
 #ifdef FSBROWSER
 #define CLITOOLS  1
 #undef DATALOGGERUSB
 #undef WEBTOOLS 
 #endif //FSBROWSER
+
+#ifdef WEBTOOLS
+#define CLITOOLS 1
+#endif //WEBTOOLS
+
+#ifdef DATALOGGERUSB
+#define ADIF 1
+#endif //DATALOGGERUSB
 
 /*----
    Output control lines
@@ -260,10 +276,8 @@ extern char qso_message[16];
 extern char logbook[32];
 extern char adiffile[16];
 
-#ifdef RP2040_W
 extern char wifi_ssid[40];
 extern char wifi_psk[16];
-#endif //RP2040_W
 
 extern int  tcp_port;
 extern int  http_port;
@@ -401,6 +415,15 @@ extern uint16_t queueR;           //Signal capture queue read pointer
 extern uint16_t queueW;           //Signal capture queue write pointer
 
 extern struct semaphore ipc;      //Semaphore to protect multithread access to the signal queue
+
+/*-------------------------------------
+ * Special structure to protect EEPROM
+ * updates
+ */
+extern struct semaphore epc;
+extern queue_t edata;
+extern bool stallEEPROM;
+
 
 extern queue_t qdata;
 extern queue_t sdata;

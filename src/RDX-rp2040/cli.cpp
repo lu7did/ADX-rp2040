@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "RDX-rp2040.h"
-#ifdef CLITOOL
+#ifdef CLITOOLS
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
  * cli.cpp                                                                                     *
  * Simple command line based configuration tool                                                *
@@ -148,22 +148,28 @@ cmdSet langSet[MAXTOKEN] =
                       {"call","Station callsign",'a',true,false,0,0,NULL,(void*)&my_callsign},
                       {"grid","Station grid locator",'a',true,false,0,0,NULL,(void*)&my_grid},
                       {"adif","Logbook name",'a',false,true,0,0,NULL,(void*)&adiffile},
+#ifdef RP2040_W                      
                       {"ssid","WiFi AP SSID",'a',false,false,0,0,NULL,(void*)&wifi_ssid},
                       {"psk","WiFi AP password",'a',false,false,0,0,NULL,(void*)&wifi_psk},
+                      {"rssi","Signal strength (dBm)",0x00,false,false,0,0,NULL,NULL},
+                      {"ip","IP address",0x00,false,false,0,0,NULL,NULL},
+                      {"tcpport","Telnet Port",'i',false,false,23,10000,NULL,&tcp_port},
+                      {"http","FS HTTP Port",'i',false,false,80,10000,NULL,(void*)&http_port},
+                      {"web","Web tool Port",'i',false,false,80,10000,NULL,(void*)&web_port},
+#endif //RP2040_W                      
+
+#ifdef DATALOGGERUSB                      
                       {"log","USB exported logbook",'a',false,false,0,0,NULL,(void*)&logbook},
+#endif //DATALOGGERUSB 
+                      
                       {"msg","FT8 ADIF message",'a',true,false,0,0,NULL,(void*)&qso_message},
                       {"host","Host name",'a',false,false,0,0,NULL,(void*)&hostname},
                       {"writelog","Enable ADIF log write",'b',false,false,0,0,NULL,(void*)&logADIF},
                       {"autosend","Enable FT8 QSO auto",'b',false,false,0,0,NULL,(void*)&autosend},
                       {"tx","Turn TX on/off",'b',false,false,0,0,NULL,NULL},
-                      {"tcpport","Telnet Port",'i',false,false,23,10000,NULL,&tcp_port},
-                      {"http","FS HTTP Port",'i',false,false,80,10000,NULL,(void*)&http_port},
-                      {"web","Web tool Port",'i',false,false,80,10000,NULL,(void*)&web_port},
                       {"ft8try","FT8 Max tries",'n',false,false,1,12,NULL,(void*)&maxTry},
                       {"ft8tx","FT8 Max tx",'n',false,false,1,12,NULL,(void*)&maxTx},
                       {"tz","TZ offset from UTC",'i',false,false,-12,+12,NULL,(void*)&timezone},
-                      {"ip","IP address",0x00,false,false,0,0,NULL,NULL},
-                      {"rssi","Signal strength (dBm)",0x00,false,false,0,0,NULL,NULL},
                       {"quit","quit terminal mode",0x00,false,false,0,0,NULL,NULL},
                       {"","",0x00,false,false,0,0,NULL,NULL}};
 
@@ -211,6 +217,7 @@ bool saveCmd(int idx, char *_cmd,char *_arg,char *_out) {
    return false;
 }
 
+#ifdef RP2040_W
 bool ipCmd(int idx, char *_cmd,char *_arg,char *_out) {
    char ipstr[16];
    strcpy(ipstr,ip);
@@ -225,6 +232,8 @@ bool rssiCmd(int idx, char *_cmd,char *_arg,char *_out) {
    _INFOLIST("%s rssi=%ul\n",rssi);
    return false;
 }  
+#endif //RP2040_W
+
 bool resetCmd(int idx, char *_cmd,char *_arg,char *_out) {
 
    resetEEPROM();
@@ -395,8 +404,12 @@ void cli_setHandlers() {
   langSet[4].handlerCmd=resetCmd;
   langSet[5].handlerCmd=shortCmd;
   langSet[16].handlerCmd=txCmd; 
+
+#ifdef RP2040_W  
   langSet[23].handlerCmd=ipCmd;
   langSet[24].handlerCmd=rssiCmd;
+#endif //RP2040_W
+  
   langSet[25].handlerCmd=quitCmd;
 
 }
@@ -459,4 +472,4 @@ void cli_command() {
   while (!Serial_processor());
     
 }
-#endif //CLITOOL
+#endif //CLITOOLS

@@ -12,6 +12,7 @@
 #define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 
 #define RP2040_W             1  //Comment if running on a standard Raspberry Pico (non Wireless)
+
 #if defined(RP2040_W)
 #define FSBROWSER            1  //Comment out if a File System browser is not needed
 #define CLITOOLS             1  //Terminal

@@ -357,6 +357,12 @@ void inc_collect_power() {
    * to start running at core1, so both the sampling
    * and the signal processing are synchronized
    */
+  if (queue_is_empty(&qdata)) {     //nothing pending
+     if (stallEEPROM) {
+        updateEEPROM();
+        stallEEPROM=false;
+     }
+  }
   queue_add_blocking(&qdata,(uint32_t)0);
 
   /*-------------------------------------------------
@@ -375,7 +381,7 @@ void inc_collect_power() {
      * This is a sensor to detect overrun at the queue
      * used to share data
      */
-    if (sizeSignal()>1) {
+    if (sizeSignal()>DSP_QUEUEMAX) {
        _INFO("Warning signal queue size(%d) DMA error (0x04)\n",sizeSignal());
     }    
 
