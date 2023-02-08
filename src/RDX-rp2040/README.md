@@ -400,21 +400,20 @@ In order to de-activate the web based file browser the board needs to be re-init
 When the Web File System Browser is activated a TCP based terminal configuration tool is also available at port 9000 or otherwise configurated.
 The commands and general "look-n-file" is the same than the one obtained with the serial based configuration tool.
 
-## USB Export of logbook
-A facility called USB export can be activated at compile time thru the **#define DATALOGGERUSB 1** directive in the RDX-rp2040.h file.
-When available is can be activated by the USB export icon, when enabled a single file is exported thru the USB. The file can be browsed, edited, deleted or copied
-to other place. The share finishes when the USB export icon is tapped again.
-This facility is based on a feature of the Arduino pico core called **SingleFileDrive** where a single file is mapped, in this case the file mapped is the
-**rdx.txt** used to store the ADIF logbook, the export name (the name used to be displayed in the host PC) will be **rdx-logbook.txt**.
-
-
-##mDNS support
+## mDNS support
 When TCP/IP is available, only the boards with rp2040-W are, and the function makes the TCP/IP connectivity to be ready the board can be reached by resolving
 the symbolic name **rdx.local**
 ```
 Warning
 The mDNS resolution requires the client machine used for the access and the board to be in the same physical LAN.
 ```
+
+## USB Export of logbook
+A facility called USB export can be activated at compile time thru the **#define DATALOGGERUSB 1** directive in the RDX-rp2040.h file.
+When available is can be activated by the USB export icon, when enabled a single file is exported thru the USB. The file can be browsed, edited, deleted or copied
+to other place. The share finishes when the USB export icon is tapped again.
+This facility is based on a feature of the Arduino pico core called **SingleFileDrive** where a single file is mapped, in this case the file mapped is the
+**rdx.txt** used to store the ADIF logbook, the export name (the name used to be displayed in the host PC) will be **rdx-logbook.txt**.
 
 
 ## GUI
