@@ -45,17 +45,7 @@
 //Credentials can also be placed on a file called ap.h in the same directory than the rest of the source
 //code
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-
-#if __has_include("ap.h")
 #include "ap.h"
-#else
-#include "Y:\Documents\GitHub\ap.h"        //This is a trick to provide credentials on a file outside of the GitHub package
-                                           //This is an horrendous practice that should be avoided, the only reason is
-                                           //not to forget and publish my WiFi credentials (I test with)
-                                           //Once you create your own ap.h file just place it at the folder where the rest
-                                           //of the firmware is and replace the include with
-                                           //     #include "ap.h"
-#endif                                           
 #endif //WIFI_SSID
 
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=

@@ -632,14 +632,11 @@ This is the informal roadmap followed to prioritize and implement the future fea
 * Develop or adopt a PCB layout design.
 * Support for Si4735 chipset based receiver
 * Hardware interface to SD-Card/Export
-* File system (SD card based)
 * Organize and add functionality for icons (partial)
-* Performance issues (DMA error 0x04) with slower TFT boards
-* Migrate signal processing to core1 (strategy to the DMA error).
 
 ## low priority roadmap
 
-* Support for smaller display 
+* Support for smaller display (partial)
 * CAT support (TS480).
 * WSPR beacon.
 * Support for QUAD multifilter board
@@ -654,8 +651,11 @@ This is the informal roadmap followed to prioritize and implement the future fea
 * OTA firmware update
 
 
-## Done (as per V2.0 build 65)
-
+## Done (as per V2.0 build 70)
+* Support for smaller display (partial)
+* File system (SD card based and USB based)
+* Migrate signal processing to core1 (strategy to the DMA error).
+* Performance issues (DMA error 0x04) with slower TFT boards
 * TCP based terminal configuration tool.
 * Explore overclock options (strategy to the DMA error).
 * Web based configuration tool
