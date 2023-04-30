@@ -24,11 +24,11 @@ the architecture differences between both platforms.
 *New in release 1.0 build(23) and higher*
 
 * Autocalibration mode has been added check the appropriate section on how to enable and operate
-```
 
 *New in release 1.0 build(40) and higher*
 
 * CAT support, TS2000 protocol
+```
 
 
 # Hardware
