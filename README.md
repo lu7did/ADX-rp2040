@@ -26,6 +26,9 @@ the architecture differences between both platforms.
 * Autocalibration mode has been added check the appropriate section on how to enable and operate
 ```
 
+*New in release 1.0 build(40) and higher*
+
+* CAT support, TS2000 protocol
 
 
 # Hardware
@@ -154,6 +157,27 @@ might present noises which trigger false counts.
 
 ```
 
+## CAT Support
+
+When enabled by removing comments from the **"#define CAT     1"** statement the UART (RX/TX) pins will be used to
+operate a CAT (Computer Aided Tuning).
+
+The parameters of the support would be:
+
+*	Protocol: Kenwood TS-2000.
+*	Speed: 115200
+*	Parity: 8N2
+*	Control lines: DTR/RTS lines On. Handshake: none.
+
+In order to connect the transceiver board with the computer the "Test CAT" button needs to be pressed, depending
+on the sync status more than once might need to be pressed.
+The board will detect the CAT commands being sent by the computer and turn itself into "CAT" mode, this is 
+signaled by lighting the JS8 and FT4 leds while turning off the FT8 and WSPR leds.
+Once the CAT mode is activated the board no longer reacts to the board buttons. The CAT settings will be
+lost when the board is turned off.
+When a frequency change is made the FT8 & WSPR leds will blink for 10 seconds to remaind the operator that
+the output filters might require a review prior to the operation.
+
 ## Automatic calibration (autocalibration)
 
 Starting on version 1.0 build(23) and higher a new capability to perform an automatic calibration of the Si5351 VFO has been added.
@@ -249,7 +273,7 @@ The resulting calibration factor to achieve that is then stored in EEPROM (flash
 The hardware required by this transceiver derives directly from the ADX Transceiver (WB2CBA), the implementation can take basically two forms:
 
 * Build a hand wired version of the circuit.
-* Build an ADX transceiver and replace the Arduino Nano with the ADX2PDX daughter board created by Barb (WB2CBA), see below.
+* Build an ADX transceiver, any using the Arduino Nano board, and replace it with the ADX2PDX daughter board created by Barb (WB2CBA), see below.
 
 ## ADX_rp2040 circuit
 
@@ -272,7 +296,15 @@ For circuit design and future expansion several assignmentes has been made on th
 ![Alt Text](docs/rp2040_pinout.jpg "rp2040 pinout")
 
 
+### CAT Support
 
+In order for the CAT to work an USB-TTL dongle is recommended. The connection wiring has to be
+
+*	GPIO12 (pin16) UART0 RX to board UART RX.
+*	GPIO13 (pin17) UART0 TX to board UART TX.
+*	GND (Any GND)  to board GND.
+
+The board +5Vcc and +3.3Vcc are left unwired.
 
 ### Power supply
 

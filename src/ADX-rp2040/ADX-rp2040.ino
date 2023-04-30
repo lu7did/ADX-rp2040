@@ -6,6 +6,19 @@
 // Version 1.0
 //
 // This is a direct port into the rp2040 architecture of the ADX_UNO firmware code (baseline version 1.1).
+// (add) Apr,28th Added CAT functionality
+//
+//********************************[ CAT CONTROL SETTINGS and CAT Functionality ]********************
+// Extract from ADX_CAT V1.4 header
+// CAT CONTROL RIG EMULATION: KENWOOD TS2000
+// SERIAL PORT SETTINGS: 115200 baud,8 bit,1 stop bit
+// When CAT is active FT4 and JS8 leds will be solid lit.
+// In CAT mode none of the Switches and leds are active including TX SWITCH in order to avoid different setting clashes except TX LED. 
+// TX LED WILL BE LIT briefly on/off and then solid during TX WHEN TRANSMITTING IN CAT Mode.
+// In CAT mode ADX can be controlled ONLY by CAT interface. Frequency and TX can be controlled via CAT.
+// To get out of CAT mode and to use ADX with Switch and led interface just recycle power. Once activated CAT mode stays active as rig control Until power recycle. 
+// In CAT mode manual Band setup is deactivated and ADX can be operated on any band as long as the right lpf filter module is plugged in. 
+// IN CAT MODE MAKE SURE THE CORRECT LPF MODULE IS PLUGGED IN WHEN OPERATING BAND IS CHANGED!!! IF WRONG LPF FILTER MODULE IS PLUGGED IN then PA POWER MOSFETS CAN BE DAMAGED
 //
 //*********************************************************************************************************
 // FW VERSION: ADX_UNO_V1.1 - Version release date: 08/05/2022
@@ -130,8 +143,8 @@
 */
 #define PROGNAME "ADX_rp2040"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
-#define VERSION 1.0
-#define BUILD     23
+#define VERSION  1.0
+#define BUILD     40
 
 /*-------------------------------------------------
    Macro expansions
@@ -142,30 +155,6 @@
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
-
-/*--------------------------------------------------
-   Program configuration parameters
-*/
-//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
-
-#undef  UART
-#define BAUD            115200
-#define FSK_IDLE          1000    //Standard wait without signal
-#define FSK_ERROR            4
-#define FSKMIN             300    //Minimum FSK frequency computed
-#define FSKMAX            3000    //Maximum FSK frequency computed
-#define FSK_USEC       1000000    //Constant to convert T to f
-#define VOX_MAXTRY          15    //VOX control cycles
-
-
-/*-----------------------------------------------------
-   Definitions for autocalibration
-
-*/
-#define AUTOCAL             1
-#define CAL_STEP          500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
-#define CAL_COMMIT         12
-#define CAL_ERROR           1
 
 /*-----------------------------------------------------
    External references to freqPIO variables and methods
@@ -181,31 +170,7 @@ extern void PIO_init();
 char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
-
-/*-------------------------------------------------------
-   Debug and development aid tracing
-   only enabled if DEBUG is defined previously
-*/
-#ifdef DEBUG
-
-#ifdef  UART    //Can test with the IDE, USB based, serial port or the UART based external serial port
-#define _SERIAL Serial1
-#else
-#define _SERIAL Serial
-#endif //UART
-
-#define _INFOLIST(...) \
-  do { \
-    strcpy(hi,"@"); \
-    sprintf(hi+1,__VA_ARGS__); \
-    _SERIAL.write(hi); \
-    _SERIAL.flush(); \
-  } while (false)
-//#define _INFOLIST(...)  strcpy(hi,"@");sprintf(hi+1,__VA_ARGS__);_SERIAL.write(hi);_SERIAL.flush();
-#else //!DEBUG
-#define _INFOLIST(...)
-#endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
-#endif //RP2040 
+#endif //RP2040
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
                                    End of porting definitions
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
@@ -230,7 +195,28 @@ int UP_State;
 int DOWN_State;
 int TXSW_State;
 int Bdly = 250;
+int cat_stat = 0;
+int CAT_mode = 2;   
 
+#ifdef CAT
+
+/*-------------------------------------------------------------------------------------------
+  CAT Processing loop
+*/
+#define CATCMD_SIZE          18
+
+char buf[CATCMD_SIZE];
+char CATResp[CATCMD_SIZE];
+char CATCmd[CATCMD_SIZE];
+char serialBuf[CATCMD_SIZE*2];
+char resp[CATCMD_SIZE*2];
+bool ignoreFA=false;
+
+int  CATT1=0;
+int  CATT2=0;
+bool flipLED=false;
+
+#endif //CAT
 /*---------------------
  * Definitions related to the autocalibration function
  */
@@ -295,6 +281,12 @@ int32_t  error    = 0;
 #define I2C_SDA        16  //I2C SDA
 #define I2C_SCL        17  //I2C SCL
 
+/*---
+    CAT
+*/
+#define UART_TX        12
+#define UART_RX        13
+
 
 /*----
    Autocalibration pin
@@ -330,12 +322,35 @@ Si5351 si5351;
 void setup()
 {
 
+_SERIAL.begin(115200);
+_SERIAL.setTimeout(4);
+
 #ifdef DEBUG
-  _SERIAL.begin(115200);
-  while (!_SERIAL);
-  delay(200);
-  _SERIAL.flush();
+while (!_SERIAL);
 #endif //DEBUG
+
+delay(50);
+_SERIAL.flush();
+
+#ifdef CAT
+
+_CAT.setTX(UART_TX);
+_CAT.setRX(UART_RX);
+
+cat_stat = 0;
+_CAT.begin(115200);
+delay(50);
+_CAT.flush();
+//_CAT.setTimeout(4);
+
+strcpy(CATResp,"");
+strcpy(CATCmd,"");
+strcpy(serialBuf,"");
+strcpy(resp,"");
+strcpy(buf,"");
+
+
+#endif //CAT
 
 #ifndef RP2040         //This is the original ADX_UnO port definitions, nullified by the porting
   pinMode(UP, INPUT);
@@ -489,6 +504,17 @@ void setup()
 void loop()
 {
 
+
+/*------------------------------------------------
+     Check serial port for new CAT frames and 
+     respond to them.
+  */
+
+  #ifdef CAT
+
+  CAT_check();
+  
+  #endif //CAT
   /*------------------------------------------------
      Explore and handle interactions with the user
      thru the UP/DOWN or TX buttons
@@ -501,11 +527,11 @@ void loop()
      Start band selection mode
   */
 
-  if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
+  if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0) && (cat_stat == 0 )) {
     delay(100);
     UP_State = digitalRead(UP);
     DOWN_State = digitalRead(DOWN);
-    if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0)) {
+    if ((UP_State == LOW) && (DOWN_State == LOW) && (TX_State == 0) && (cat_stat == 0)) {
       Band_Select();
     }
   }
@@ -515,10 +541,10 @@ void loop()
      Increase mode in direct sequence
   */
 
-  if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0)) {
+  if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0) && (cat_stat == 0)) {
     delay(100);
     UP_State = digitalRead(UP);
-    if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0)) {
+    if ((UP_State == LOW) && (DOWN_State == HIGH) && (TX_State == 0) && (cat_stat == 0)) {
       mode = mode - 1;
       if (mode < 1) {
         mode = 4;
@@ -540,11 +566,11 @@ void loop()
 
   */
   DOWN_State = digitalRead(DOWN);
-  if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0)) {
+  if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0) && (cat_stat == 0)) {
     delay(50);
 
     DOWN_State = digitalRead(DOWN);
-    if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0)) {
+    if ((UP_State == HIGH) && (DOWN_State == LOW) && (TX_State == 0) && (cat_stat == 0)) {
       mode = mode + 1;
 
       if (mode > 4) {
@@ -675,13 +701,7 @@ void loop()
           Frequency IS NOT changed on the first sample
           ----------------------------------------------------*/
         if (FSKtx == 0) {
-          TX_State = 1;
-          digitalWrite(TX, HIGH);
-          digitalWrite(RX, LOW);
-
-          si5351.output_enable(SI5351_CLK1, 0);   //RX off
-          si5351.output_enable(SI5351_CLK0, 1);   // TX on
-
+          setTX(HIGH);
           FSKtx = 1;
           prevfreq = 0;
           FSK = VOX_MAXTRY;
@@ -697,6 +717,7 @@ void loop()
           _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n", __func__, freq, codefreq, fx);
           si5351.set_freq(fx, SI5351_CLK0);
           prevfreq = codefreq;
+          FSK = VOX_MAXTRY;
         }
       }
     } else {
@@ -705,11 +726,25 @@ void loop()
         --------------------*/
       uint32_t tcnt = time_us_32() + uint32_t(FSK_IDLE);
       while (time_us_32() < tcnt);
-      FSK--;
-      if (FSK == 0 && TX_State == 1) {
+      
+      if (FSK > 0) {
+          FSK--;
+      }
+
+      if (FSK == 0 && TX_State == 1 && cat_stat == 0) {
         _INFOLIST("%s VOX turned OFF\n", __func__);
       }
     }
+#ifdef CAT  
+
+    CAT_check();
+    CAT_warning();
+  
+#endif //CAT
+
+
+
+
   }
 #endif //End the processing made by the FREQPIO algorithm    
   //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -718,14 +753,15 @@ void loop()
      If the code fallbacks here it's because there is no audio input anymore
      then switch the transmitter off and set it to receive
   */
+  if (TX_State == 1 && cat_stat == 0) {
+      setTX(LOW);
+  }
 
-  digitalWrite(TX, 0);
+  #ifdef CAT  
 
-  si5351.output_enable(SI5351_CLK0, 0);   //TX off
-  si5351.set_freq(freq * 100ULL, SI5351_CLK1);
-  si5351.output_enable(SI5351_CLK1, 1);   //RX on
-  TX_State = 0;
-  digitalWrite(RX, HIGH);
+    CAT_check();
+  
+  #endif //CAT
 
 }
 //*********************[ END OF MAIN LOOP FUNCTION ]*************************
@@ -739,6 +775,343 @@ void loop()
 //                       (mostly original from ADX_UnO except few debug messages)                             *
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
+#ifdef CAT
+/*-------------------------------------
+  Trim a string
+*/
+char *trim(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace((unsigned char)*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
+}
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                     CAT Support functions                                                  *
+//                partial implementation of the Kenwood TS2000 protocol (115200 8N2).                         *
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+void CAT_warning() {
+
+      if (millis()-CATT1 >=500 && CATT2 !=0 && cat_stat != 0) {
+
+       flipLED=!flipLED;
+       digitalWrite(WSPR, flipLED); 
+       digitalWrite(FT8, flipLED);
+       CATT1=millis();
+
+       if (millis()-CATT2 >= 10000) {
+
+          CATT1=0;
+          CATT2=0;
+          digitalWrite(WSPR, LOW); 
+          digitalWrite(FT8, LOW);
+
+       } 
+
+      }
+}      
+/*------------------------------
+  CAT_process
+  receives a string with a CAT command (delimited by "";"") and reacts with the
+  proper answer to that command.
+  Only FA,IF,TX and RX commands are properly implemented, the rest of the commands produces
+  mocked up responses to satisfy the logic of (mostly) WSJT-X
+*/
+bool CAT_process(char *c,char *r,char *cmd,char *arg){
+
+  char *q;
+  strcpy(cmd,"");
+  strcpy(arg,"");
+
+  cmd[0]=c[0];
+  cmd[1]=c[1];
+  cmd[2]=0x00;
+
+  if (strlen(cmd) != strlen(c)) {
+     strcpy(arg,&c[2]);
+  } else {
+     strcpy(arg,"");
+  }
+
+  if (strlen(cmd)<2) {
+    _INFOLIST("%s malformed command, ignored\n",__func__);
+    return false;
+  }
+
+  if (strcmp(cmd,"FA")==0) {  
+      if (strcmp(arg,"") != 0) {
+        unsigned long fx=strtol(arg, &q, 10);
+        freq=fx;        
+        freq1=fx;
+        si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+        si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+        CATT1=millis();
+        CATT2=millis();
+        setTX(LOW);
+      }    
+      String sent = "FA" // Return 11 digit frequency in Hz.  
+          + String("00000000000").substring(0,11-(String(freq).length()))   
+          + String(freq) + ";";     
+      strcpy(r,sent.c_str());
+      return true;
+  }
+  
+
+  if (strcmp(cmd,"PS")==0) {
+      strcpy(r,"PS1;");
+      return true;
+  }
+
+  if (strcmp(cmd,"TX")==0)  {   
+      strcpy(r,"TX0;");
+      setTX(HIGH);    
+      return true;
+  } 
+
+  if (strcmp(cmd,"RX")==0) {  
+    strcpy(r,"RX0;");
+    setTX(LOW);
+    return true;       
+  }
+
+  if (strcmp(cmd,"ID")==0) {  
+      strcpy(r,"ID019;");
+      return true;
+  }
+
+  if (strcmp(cmd,"AI")==0) {
+      strcpy(r,"AI0;"); 
+      return true;
+  }
+
+  if (strcmp(cmd,"IF")==0) {
+      if (TX_State == 1) {  
+          String sent = "IF" // Return 11 digit frequency in Hz.  
+                  + String("00000000000").substring(0,11-(String(freq).length()))   
+                  + String(freq) + "00000" + "+" + "0000" + "0" + "0" + "0" + "00" + "1" + String(CAT_mode) + "0" + "0" + "0" + "0" + "000" + ";"; 
+          strcpy(r,sent.c_str());        
+      } else {  
+          String sent = "IF" // Return 11 digit frequency in Hz.  
+                  + String("00000000000").substring(0,11-(String(freq).length()))   
+                  + String(freq) + "00000" + "+" + "0000" + "0" + "0" + "0" + "00" + "0" + String(CAT_mode) + "0" + "0" + "0" + "0" + "000" + ";"; 
+          strcpy(r,sent.c_str());
+      } 
+      return true;
+  }
+
+  if (strcmp(cmd,"MD")==0) {  
+      strcpy(r,"MD2;");
+      return true;
+  }
+  strcpy(r,"ID019;");   //dummy answer trying not to disrupt the CAT protocol flow
+  _INFOLIST("%s ***ERROR*** Entry(%s) nor processed response(%s)\n",__func__,c,r);
+  return false;
+
+}
+
+/*-----------------------------------------------
+  CAT_check
+  Read the serial port and parses the input for
+  non-confirming structures
+  parse the input stream and tokenize the commands
+  found on it.
+  Take into consideration some protocol deviations
+  (oddities) required by WSJT-X (or HamLib, I don't know)
+  to properly operate
+*/
+void CAT_check(void) {
+
+bool flagRXTX=false;
+char cmd[4];
+char arg[16];
+
+/*----------
+  Handle the brief frequency change
+*/
+CAT_warning();
+
+/*----------
+  Check if data is available on the serial port
+*/
+int nread=_CAT.available();
+if (nread > 0){
+   if (cat_stat == 0) {
+       cat_stat=1;
+       digitalWrite(WSPR, LOW); 
+       digitalWrite(FT8, LOW);
+       digitalWrite(JS8, HIGH);
+       digitalWrite(FT4, HIGH);
+       setTX(LOW);
+   }
+} else {
+  return;
+}
+
+/*-----------
+  Too small as a packet, perhaps fragmentation is occuring
+*/
+if (nread < 3) { return; }
+
+/*-----------
+  Read the serial port buffer
+*/
+int rc=_CAT.readBytes(buf,nread);
+if (rc <= 1) {return;}
+buf[rc]=0x0;
+
+/*------------
+  Look after spurious contents
+*/
+int k=strlen(serialBuf);
+for (int i=0;i<strlen(buf);i++){
+    char c=buf[i];
+    if (c>= 0x20 && c<=0x5f && c!=0x0a && c!=0x0d) {
+       serialBuf[k++]=c;
+    }
+}
+serialBuf[k]=0x00;
+    
+/*-------------
+  Fragmentation might occur
+*/
+if (serialBuf[strlen(serialBuf)-1] != ';') {
+   return;
+}
+
+/*--------------
+  Look for oddities from WSJT-X, if this string is
+  received the action to turn the TX on is expected
+  but only the answer to the ID command needs to 
+  be sent
+*/
+_INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,serialBuf,strlen(serialBuf));
+
+if (strcmp(serialBuf,"TX;ID;") == 0) {
+
+    setTX(HIGH);
+    strcpy(CATResp,"ID019;");
+    _CAT.print(CATResp);
+    _INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,CATResp,strlen(CATResp));
+
+    strcpy(CATResp,"");
+    strcpy(serialBuf,"");      
+    return;
+
+}
+
+/*-------------------
+  More oddities, now with the receiving part
+*/
+    if (strcmp(serialBuf,"RX;ID;") == 0) {      
+       setTX(LOW);
+       strcpy(CATResp,"ID019;");
+       _CAT.print(CATResp);
+       _INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,CATResp,strlen(CATResp));
+
+       strcpy(CATResp,"");
+       strcpy(serialBuf,"");      
+       return;
+
+    }
+
+/*----------------------
+  Parse the command using the ";" as the
+  token delimiter
+*/
+    int j=0;
+    strcpy(CATCmd,"");
+    strcpy(resp,"");
+    int last=0;
+
+    for(int i=0;i<strlen(serialBuf);i++) {
+       char data=serialBuf[i];
+       if (data==';') {
+          last=i;
+          strcpy(cmd,"");
+          strcpy(arg,"");         
+
+          /* EOT mark found --> process CAT command */
+          
+          if (!CAT_process(CATCmd,CATResp,cmd,arg)) {
+            _CAT.print(CATResp);
+            _INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,CATResp,strlen(CATResp));
+             strcpy(serialBuf,"");
+             strcpy(CATCmd,"");
+             strcpy(CATResp,"");
+             return;
+          }
+
+          /*--- Yet another WSJT-X oddity ---*/
+
+          if (strcmp(cmd,"FA")==0) {
+             if (ignoreFA==true) {
+                ignoreFA=false;
+                strcpy(CATCmd,"");
+                strcpy(CATResp,"");
+             } else {
+                _CAT.print(CATResp);
+                _INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,CATResp,strlen(CATResp));
+                strcpy(resp,"");
+                ignoreFA=true;
+             }   
+          } else {
+             strcat(resp,CATResp);
+             ignoreFA=false;
+          }   
+          strcpy(CATCmd,"");
+          strcpy(CATResp,"");
+          j=0;
+       } else {
+
+         /*--- Between tokens store the incoming data */
+         CATCmd[j++]= data;
+         CATCmd[j]=0x00;
+       }
+    }
+
+    /*------
+     Decide whether fragmentation happened 
+     */
+    if (last != strlen(serialBuf)) {
+       strcpy(serialBuf,&serialBuf[last+1]);
+    } else {
+       strcpy(serialBuf,"");
+    }       
+
+    /*-------
+     Reply to any pending message
+     */
+    if (strlen(resp)>0) {
+       _CAT.print(resp);      
+       _INFOLIST("%s CAT Command(%s) len(%d)\n",__func__,resp,strlen(resp));
+
+       if (strcmp(cmd,"RX")==0 || strcmp(cmd,"TX") == 0 ) delay(50);
+    }
+
+    /*-------- 
+      Clean up buffers
+    */
+    strcpy(resp,"");
+    strcpy(CATCmd,"");
+    strcpy(CATResp,"");
+    return;
+}
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                         end of CAT Protocol handler                                        *
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+#endif //CAT
 
 //************************************[ MODE Assign ]**********************************
 
@@ -864,6 +1237,7 @@ void Freq_assign() {
     F_JS8 = 28078000;
     F_WSPR = 28124600;
   }
+
   _INFOLIST("%s mode=%d freq=%ld\n", __func__, mode, freq);
 
 }
@@ -872,6 +1246,7 @@ void Freq_assign() {
 //******************************[ Band  Assign Function ]******************************
 
 void Band_assign() {
+
   digitalWrite(WSPR, LOW);
   digitalWrite(JS8, LOW);
   digitalWrite(FT4, LOW);
@@ -960,21 +1335,36 @@ void Band_assign() {
 
 
 //*******************************[ Manual TX FUNCTION ]********************************
+void setTX(bool tx) {
+   if (tx) {
+
+      TX_State = 1;
+      digitalWrite(RX, LOW);
+      digitalWrite(TX, HIGH);
+
+      si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
+      si5351.output_enable(SI5351_CLK1, 0);   //RX off
+      si5351.output_enable(SI5351_CLK0, 1);   // TX on
+      _INFOLIST("%s TX+\n",__func__);
+
+   } else {
+
+      digitalWrite(TX, LOW);
+      si5351.output_enable(SI5351_CLK0, 0);   //TX off
+      si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+      si5351.output_enable(SI5351_CLK1, 1);   //RX on
+      TX_State = 0;
+      digitalWrite(RX, HIGH);
+      _INFOLIST("%s TX-\n",__func__);
+  
+   }
+}
 void ManualTX() {
-
-  digitalWrite(RX, LOW);
-  si5351.output_enable(SI5351_CLK1, 0);   //RX off
-  _INFOLIST("%s TX+\n", __func__);
-
+  setTX(HIGH);
 
 TXON:
 
   TXSW_State = digitalRead(TXSW);
-  digitalWrite(TX, 1);
-  si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
-  si5351.output_enable(SI5351_CLK0, 1);   //TX on
-  TX_State = 1;
-
   if (TXSW_State == HIGH) {
     goto EXIT_TX;
 
@@ -982,11 +1372,7 @@ TXON:
   goto TXON;
 
 EXIT_TX:
-  digitalWrite(TX, 0);
-  si5351.output_enable(SI5351_CLK0, 0);   //TX off
-  TX_State = 0;
-  _INFOLIST("%s TX-\n", __func__);
-
+  setTX(LOW);
 }
 
 //********************************[ END OF Manual TX ]*********************************
@@ -1558,3 +1944,4 @@ void INIT() {
 
 }
 //********************************[ END OF INITIALIZATION FUNCTION ]*************************************
+
