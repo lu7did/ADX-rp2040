@@ -31,6 +31,23 @@
 #define CAT                  1  //Uncomment to activate CAT
 
 
+#define FSK_TOUT             50 //FSK timeout in mSecs (no signal present for more than)
+#define SAMPLE_RATE       44100 //Audio sample rate
+#define FSK_MIN           20000 //Minimum frequency allowed (200 Hz)
+#define FSK_MAX          300000 //Maximum frequency allowed (3000 Hz)
+#define FSK_THRESHOLD         5 //Minimum threshold to change the frequency
+#define FSK_MIN_CHANGE       10 //Minimum frequency change (0.10 Hz) in order to avoid small measurement errors to produce frequency shifts
+#define USB_MIN               1 //Minimum USB in queue size
+/*------------------------------------------------------
+ *   Internal clock handling
+ */
+struct tm timeinfo;        //current time
+struct tm timeprev;        //epoch time
+time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
+time_t now;
+char timestr[12];
+
+
 #define _INFO(...) \
   do { \
     now = time(0) - t_ofs;  \
