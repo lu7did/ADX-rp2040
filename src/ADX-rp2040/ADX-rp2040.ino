@@ -448,7 +448,13 @@ strcpy(buf,"");
   //------------------------------- SET SI5351 VFO -----------------------------------
   // The crystal load value needs to match in order to have an accurate calibration
   //----------------------------------------------------------------------------------
-  si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
+  bool rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
+  if(!rc)
+  {
+    _INFOLIST("%s Device not found on I2C bus!\n",__func__);
+  } else {
+    _INFOLIST("%s Device Si5351 found on I2C bus\n",__func__);
+  }
   si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);// SET For Max Power

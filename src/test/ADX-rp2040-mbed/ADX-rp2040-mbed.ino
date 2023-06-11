@@ -71,12 +71,19 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
 #include "PluggableUSBAudio.h"
+#include "si5351.h"
+#include "Wire.h"
 #include "ADX-rp2040.h"
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//.                Master clock
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+Si5351 si5351;
+bool si5351_rc;
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //.                Transceiver Frequency management memory areas
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-uint64_t RF_freq;   // RF frequency (Hz)
+uint64_t RF_freq=7074000;   // RF frequency (Hz)
 int C_freq = 0;  //FREQ_x: In this case, FREQ_0 is selected as the initial frequency.
 int Tx_Status = 0; //0=RX, 1=TX
 int Tx_Start = 0;  //0=RX, 1=TX
@@ -114,6 +121,7 @@ int64_t last_audio_freq=0;
 static uint8_t buf[128];
 char hi[256];
 int i=0;
+bool flagFirst=true;
 
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -165,10 +173,38 @@ void USBwrite(int16_t left,int16_t right) {
   pcCounter++;
   nBytes+=2;
 }
+
+void si5351_init() {
+
+  si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
+  if (!si5351_rc) {
+     Serial.println("no Si5351 clock found");
+  } else {
+     Serial.println("Si5351 clock found and initialized Ok");
+  }
+  int32_t cal_factor = -11800;
+
+  si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
+  si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
+  si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);  //for TX
+  si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
+  si5351.output_enable(SI5351_CLK0, 0);
+  si5351.set_freq(RF_freq*100ULL, SI5351_CLK1);  //for RX
+  si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA);
+  si5351.output_enable(SI5351_CLK1, 0);
+  Serial.println("Master clock sub-system Ok!");
+  Serial.flush();
+}  
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                               setup cycle
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() {
+  
+ //USB Audio initialization
+  USB_UAC();
+  _INFO("Transceiver USB Sub-system ready\n");
+  
+
   /*----------
     Serial port initialization
    */
@@ -176,10 +212,8 @@ void setup() {
   Serial.flush();
   _INFO("Test ADX-rp2040-mbed\n");
 
- //USB Audio initialization
-  USB_UAC();
-  _INFO("Transceiver USB Sub-system ready\n");
-  
+  si5351_init();
+
 
 }
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -187,6 +221,10 @@ void setup() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void loop() {
 
+  if (flagFirst) {
+     flagFirst=!flagFirst;
+     _INFO("Si5351 rc(%s)\n",BOOL2CHAR(si5351_rc));
+  }
 /*--------
   Tx_Status==0 RX mode -- Tx_Status!=0 TX mode
  */

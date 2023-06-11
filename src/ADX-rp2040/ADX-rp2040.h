@@ -39,7 +39,7 @@
  */
 #undef  UART
 
-//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
+#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 //#define UART                 1  //Uncomment to use UART0 as the main output
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT
