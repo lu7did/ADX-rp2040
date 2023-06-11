@@ -173,14 +173,16 @@ void USBwrite(int16_t left,int16_t right) {
   pcCounter++;
   nBytes+=2;
 }
-
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                Si5351 sub-system
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void si5351_init() {
 
   si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
   if (!si5351_rc) {
-     Serial.println("no Si5351 clock found");
+     _INFO("** ERROR ** no Si5351 clock found\n");
   } else {
-     Serial.println("Si5351 clock found and initialized Ok");
+     _INFO("Si5351 clock found and initialized Ok\n");
   }
   int32_t cal_factor = -11800;
 
@@ -192,29 +194,33 @@ void si5351_init() {
   si5351.set_freq(RF_freq*100ULL, SI5351_CLK1);  //for RX
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA);
   si5351.output_enable(SI5351_CLK1, 0);
-  Serial.println("Master clock sub-system Ok!");
-  Serial.flush();
+  _INFO("Master clock sub-system Ok!");
 }  
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                               setup cycle
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() {
   
- //USB Audio initialization
-  USB_UAC();
-  _INFO("Transceiver USB Sub-system ready\n");
-  
-
-  /*----------
+/*----------
     Serial port initialization
    */
   Serial.begin(115200);
+  while(!Serial);
   Serial.flush();
+
   _INFO("Test ADX-rp2040-mbed\n");
 
+/*-----------
+  Initialize Si5351
+ */
   si5351_init();
 
-
+/*------------
+  USB Audio initialization
+*/
+  USB_UAC();
+  _INFO("Transceiver USB Sub-system ready\n");
+  
 }
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                               loop cycle
@@ -424,9 +430,11 @@ void transmit(int64_t freq){
     /*
     digitalWrite(pin_RX,0);   //RX off
     digitalWrite(pin_TX,1);   //TX on
+    */
+    
     si5351.output_enable(SI5351_CLK1, 0);   //RX osc. off
     si5351.output_enable(SI5351_CLK0, 1);   //TX osc. on
-    */
+    
     Tx_Status=1;
     _INFO("TX+\n");
     /*
@@ -439,10 +447,8 @@ void transmit(int64_t freq){
 
     return;
   }
-  // CODE YET TO BE INTEGRATED TO CHANGE THE Si5351 CLK0 port
-  /*
   si5351.set_freq((RF_freq*100 + freq), SI5351_CLK0);  
-  */
+ 
 }
 
 /*-------------
@@ -454,10 +460,12 @@ void receive(){
   /*
   digitalWrite(pin_TX,0);  //TX off
   digitalWrite(pin_RX,1);  //RX on
+  */
+  
   si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
   si5351.set_freq(RF_freq*100, SI5351_CLK1);
   si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
-  */
+  
   
   Tx_Status=0;
   _INFO("TX-\n");
