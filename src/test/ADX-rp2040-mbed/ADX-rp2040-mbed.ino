@@ -214,13 +214,15 @@ bool getSW(uint8_t k) {
   }
   return HIGH;
 }
+/*----------------
+  set slot changing band and frequency accordingly
+*/  
 void setSlot(uint16_t s) {
 
-  _INFO("Set slot[%d]\n",s);
   band=slot2band(s);
-  _INFO("Band[%d]\n",band);
   RF_freq=band2freq(band);
-  _INFO("Freq_RF=%ul\n",RF_freq);
+
+
   setLEDbyband(band);
   _INFO("Set slot[%d] band[%d] mts freq=%ul Hz\n",band_slot,band,RF_freq);
 
