@@ -1,4 +1,6 @@
 /*
+ * Slightly modified for use on Windows by H. Kawaji <je1rav@gmail.com>
+ *
  * Copyright (c) 2018-2019, Arm Limited and affiliates.
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -32,6 +34,11 @@ using namespace arduino;
 #define XFER_FREQUENCY_HZ           1000
 #define WRITE_READY_UNBLOCK         (1 << 0)
 #define READ_READY_UNBLOCK          (1 << 1)
+
+//#define lock()
+//#define unlock()
+//#define assert_locked()
+//#define assert_unlocked()
 
 class USBAudio::AsyncWrite: public AsyncOp {
 public:
@@ -617,7 +624,8 @@ const uint8_t *USBAudio::string_iproduct_desc()
                                + (2 * STREAMING_INTERFACE_DESCRIPTOR_LENGTH) \
                                + (2 * FORMAT_TYPE_I_DESCRIPTOR_LENGTH) \
                                + (2 * (ENDPOINT_DESCRIPTOR_LENGTH + 2)) \
-                               + (2 * STREAMING_ENDPOINT_DESCRIPTOR_LENGTH) +8 )        //modified (added "+8" for IAD descriptor)
+                               + (2 * STREAMING_ENDPOINT_DESCRIPTOR_LENGTH)  \
+                               + 8 )    //for IAD descriptor
 
 #define TOTAL_CONTROL_INTF_LENGTH    (CONTROL_INTERFACE_DESCRIPTOR_LENGTH + 1 + \
                                       2*INPUT_TERMINAL_DESCRIPTOR_LENGTH     + \
@@ -638,16 +646,16 @@ void USBAudio::_build_configuration_desc()
         0x80,                                   // bmAttributes
         50,                                     // bMaxPower
 
-        // IAD to associate the Audio interfaces (required for Windows OS)
-        0x08,                                   // bLength
-        0x0b,                                   // bDescriptorType (IAD)
-        uint8_t(pluggedInterface),              // bInterfaceNumber
-        0x03,                                   // bAlternateSetting
-        AUDIO_CLASS,                            // bInterfaceClass
-        0x00,                                   // bInterfaceSubClass
-        0x00,                                   // bInterfaceProtocol (0;UAC1, 20;UAC2)
-        0x00,                                   // iInterface
-
+        // IAD to associate the AUDIO interfaces (this seems to be needed by Windows)
+        0x08,                                    // bLength
+        0x0b,                                    // bDescriptorType
+        uint8_t(pluggedInterface),               // bFirstInterface
+        0x03,                                    // bInterfaceCount
+        AUDIO_CLASS,                             // bInterfaceClass
+        SUBCLASS_AUDIOCONTROL,                   // bFunctionSubClass  
+        0x00,                                    // bFunctionProtocol  (UAC1:0x00, UAC2:0x20)
+        0x00,                                    // iFunction
+        
         // Interface 0, Alternate Setting 0, Audio Control
         INTERFACE_DESCRIPTOR_LENGTH,            // bLength
         INTERFACE_DESCRIPTOR,                   // bDescriptorType
@@ -658,7 +666,6 @@ void USBAudio::_build_configuration_desc()
         SUBCLASS_AUDIOCONTROL,                  // bInterfaceSubClass
         0x00,                                   // bInterfaceProtocol
         0x00,                                   // iInterface
-
 
         // Audio Control Interface
         CONTROL_INTERFACE_DESCRIPTOR_LENGTH + 1,// bLength
@@ -709,7 +716,6 @@ void USBAudio::_build_configuration_desc()
         0x02,                                   // bSourceID
         0x00,                                   // iTerminal
 
-
         // Audio Input Terminal (Microphone)
         INPUT_TERMINAL_DESCRIPTOR_LENGTH,       // bLength
         INTERFACE_DESCRIPTOR_TYPE,              // bDescriptorType
@@ -734,11 +740,6 @@ void USBAudio::_build_configuration_desc()
         0x00,                                   // bAssocTerminal
         0x04,                                   // bSourceID
         0x00,                                   // iTerminal
-
-
-
-
-
 
         // Interface 1, Alternate Setting 0, Audio Streaming - Zero Bandwith
         INTERFACE_DESCRIPTOR_LENGTH,            // bLength

@@ -1,4 +1,6 @@
 /*
+ * Slightly modified for use on Windows by H. Kawaji <je1rav@gmail.com>
+ *
  * Copyright (c) 2018-2019, Arm Limited and affiliates.
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -396,8 +398,8 @@ private:
     uint16_t _channel_config_tx;
 
     // configuration descriptor
-    uint8_t _config_descriptor[191];              //modified from _config_descriptor[183]
-
+    uint8_t _config_descriptor[191];         //changed from "uint8_t _config_descriptor[183];" for adding IAD descriptor
+    
     // buffer for control requests
     uint8_t _control_receive[2];
 

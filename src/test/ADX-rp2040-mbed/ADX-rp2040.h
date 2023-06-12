@@ -66,6 +66,14 @@
 #define BAUD             115200
 #define CAT                   1  //Uncomment to activate CAT
 #define DEBUG                 1  //Debug mode
+
+/*--------------------------
+  Consistency rule: either DEBUG or CAT but not both
+*/
+#if defined(CAT)
+#undef DEBUG
+#endif //CAT
+
 #define SUPERHETERODYNE.      1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
 #define NBANDS                4
 
@@ -80,6 +88,9 @@
 #define FREQ_BFO         446400 //Intermediate frequency
 #define AF_TONE          150000
 
+
+#define CAT_WARN1           500
+#define CAT_WARN2         10000
 /*------------------------------------------------------
  *   Internal clock handling
  */

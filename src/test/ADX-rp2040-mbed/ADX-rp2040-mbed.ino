@@ -145,6 +145,28 @@ char hi[256];
 int i=0;
 bool flagFirst=true;
 
+int cat_stat = 0;
+int CAT_mode = 2;   
+
+#ifdef CAT
+
+/*-------------------------------------------------------------------------------------------
+  CAT Processing loop
+*/
+#define CATCMD_SIZE          64
+
+char CATbuf[CATCMD_SIZE];
+char CATResp[CATCMD_SIZE];
+char CATCmd[CATCMD_SIZE];
+char serialBuf[CATCMD_SIZE*2];
+char resp[CATCMD_SIZE*2];
+bool ignoreFA=false;
+
+int  CATT1=0;
+int  CATT2=0;
+bool flipLED=false;
+
+#endif //CAT
 
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -195,6 +217,22 @@ for (int i=0;i<NBANDS;i++) {
 return i;
 
 }
+
+uint16_t freq2band(uint64_t f) {
+
+if (f>= 1800000 && f<= 1900000) {return 160;}
+if (f>= 3500000 && f<= 3800000) {return  80;}
+if (f>= 7000000 && f<= 7300000) {return  40;}
+if (f>=10000000 && f<=10300000) {return  30;}
+if (f>=14000000 && f<=14300000) {return  20;}
+if (f>=18000000 && f<=18300000) {return  17;}
+if (f>=21000000 && f<=21300000) {return  15;}
+if (f>=24000000 && f<=24300000) {return  12;}
+if (f>=28000000 && f<=29500000) {return  10;}
+
+return 40;
+
+}
 /*---------
   delay
 */
@@ -231,6 +269,9 @@ void setSlot(uint16_t s) {
   Handle switch commands on the board
 */
 void handleSW() {
+
+   if (cat_stat == 1) return;
+
    if (getSW(UP)==LOW) {
       while(getSW(UP)==LOW);
       band_slot=(band_slot+1);
@@ -311,6 +352,19 @@ void USBwrite(int16_t left,int16_t right) {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                Si5351 sub-system
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*---------
+  set Si5351 frequency
+*/
+void si5351_setFreq(uint64_t f) {
+
+  si5351.set_freq(f*100ULL, SI5351_CLK0);  //for TX
+  si5351.set_freq((f-BFO_freq)*100ULL, SI5351_CLK1);  //for RX
+  si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
+
+}
+/*---------
+  init Si5351 clock
+*/
 void si5351_init() {
 
   si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
@@ -328,22 +382,25 @@ void si5351_init() {
 /*------------
   Set TX clock
 */
-  si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);  //for TX
+  //si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);  //for TX
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
   si5351.output_enable(SI5351_CLK0, 0);   //Disabled on startup
 /*------------
   Set RX clock (BFO_freq should be zero if not superheterodyne)
 */  
-  si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);  //for RX
+  //si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);  //for RX
   si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_2MA);
   si5351.output_enable(SI5351_CLK1, 1);  //Enabled on startup
 
 /*------------
   Set BFO (if not superheterodyne set to zero)
 */  
-  si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
+  //si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
   si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA);
   si5351.output_enable(SI5351_CLK2, 1);   //Enabled on startup
+
+  si5351_setFreq(RF_freq);
+
 
   _INFO("Master clock sub-system Ok!\n");
 }  
@@ -447,7 +504,15 @@ _INFO("Transceiver in receiver mode, ready\n");
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void loop() {
 
+/*--------
+  Handle board switches
+*/
   handleSW();
+
+/*--------
+  Handle CAT commands
+*/
+  cat();
 /*--------
   Tx_Status==0 RX mode -- Tx_Status!=0 TX mode
  */
@@ -659,7 +724,7 @@ void transmit(int64_t freq){
 
     return;
   }
-  si5351.set_freq((RF_freq*100 + freq), SI5351_CLK0);  
+  si5351.set_freq((RF_freq*100ULL + freq), SI5351_CLK0);  
  
 }
 
@@ -671,7 +736,7 @@ void receive(){
   if (Tx_Status != 0) {
 
   si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
-  si5351.set_freq(RF_freq*100, SI5351_CLK1);
+  si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);
   si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);
   si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
   si5351.output_enable(SI5351_CLK2, 1);   //BFO osc. on
@@ -731,6 +796,381 @@ void freqChange(){
   */
 
 }
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                                             CAT management
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                       Support functions                                                    *
+//                       (mostly original from ADX_UnO except few debug messages)                             *
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+
+/*-------------------------------------
+  Trim a string
+*/
+char *trim(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace((unsigned char)*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
+}
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                     CAT Support functions                                                  *
+//                partial implementation of the Kenwood TS2000 protocol (115200 8N2).                         *
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+void CAT_warning() {
+
+      if (millis()-CATT1 >=CAT_WARN1 && CATT2 !=0 && cat_stat != 0) {
+
+       flipLED=!flipLED;
+       digitalWrite(WSPR, flipLED); 
+       digitalWrite(FT8, flipLED);
+       CATT1=millis();
+
+       if (millis()-CATT2 >= CAT_WARN2) {
+
+          CATT1=0;
+          CATT2=0;
+          digitalWrite(WSPR, LOW); 
+          digitalWrite(FT8, LOW);
+
+       } 
+
+      }
+}      
+/*------------------------------
+  CAT_process
+  receives a string with a CAT command (delimited by "";"") and reacts with the
+  proper answer to that command.
+  Only FA,IF,TX and RX commands are properly implemented, the rest of the commands produces
+  mocked up responses to satisfy the logic of (mostly) WSJT-X
+*/
+bool CAT_process(char *c,char *r,char *cmd,char *arg){
+
+  char *q;
+  strcpy(cmd,"");
+  strcpy(arg,"");
+
+  cmd[0]=c[0];
+  cmd[1]=c[1];
+  cmd[2]=0x00;
+
+  if (strlen(cmd) != strlen(c)) {
+     strcpy(arg,&c[2]);
+  } else {
+     strcpy(arg,"");
+  }
+
+  if (strlen(cmd)<2) {
+    _INFO("malformed command, ignored\n");
+    return false;
+  }
+
+  if (strcmp(cmd,"FA")==0) {  
+      if (strcmp(arg,"") != 0) {
+        unsigned long fx=strtol(arg, &q, 10);
+        uint16_t bx=freq2band(fx);
+        if (bx==0) return true;
+        uint16_t band_slot=band2slot(bx);
+        band=bx;
+        RF_freq=fx;
+        si5351_setFreq(RF_freq);
+
+        //si5351.set_freq(RF_freq * 100ULL, SI5351_CLK0);
+        //si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+        
+        CATT1=millis();
+        CATT2=millis();
+        receive();
+      }    
+      uint32_t fa=RF_freq;
+      String sent = "FA" // Return 11 digit frequency in Hz.  
+          + String("00000000000").substring(0,11-(String(fa).length()))   
+          + String(fa) + ";";     
+      strcpy(r,sent.c_str());
+      return true;
+  }
+  
+
+  if (strcmp(cmd,"PS")==0) {
+      strcpy(r,"PS1;");
+      return true;
+  }
+
+  if (strcmp(cmd,"TX")==0)  {   
+      strcpy(r,"TX0;");
+      transmit(AF_TONE);
+      return true;
+  } 
+
+  if (strcmp(cmd,"RX")==0) {  
+    strcpy(r,"RX0;");
+    receive();
+    return true;       
+  }
+
+  if (strcmp(cmd,"ID")==0) {  
+      strcpy(r,"ID019;");
+      return true;
+  }
+
+  if (strcmp(cmd,"AI")==0) {
+      strcpy(r,"AI0;"); 
+      return true;
+  }
+
+/*
+  if (strcmp(cmd,"IF")==0) {
+      uint32_t fb=(long int)RF_freq;
+      String sent = "IF" // Return 11 digit frequency in Hz.  
+              + String("00000000000").substring(0,11-(String(fb).length()))   
+              + String((long int)fb) + "0001" + "+" + "00000" + String(Tx_Status).substring(0,1) + "20000000;" ; 
+
+      strcpy(r,sent.c_str());        
+      return true;
+  }
+*/  
+  if (strcmp(cmd,"IF")==0) {
+
+      if (Tx_Status == 1) {  
+          String sent = "IF" // Return 11 digit frequency in Hz.  
+                  + String("00000000000").substring(0,11-(String((long int)RF_freq).length()))   
+                  + String((long int)RF_freq) + "0000" + "+" + "00000" + "0" + "0" + "0" + "00" + "12" + "0000000;"; 
+          strcpy(r,sent.c_str());        
+      } else {  
+          String sent = "IF" // Return 11 digit frequency in Hz.  
+                  + String("00000000000").substring(0,11-(String((long int)RF_freq).length()))   
+                  + String((long int)RF_freq) + "0000" + "+" + "00000" + "0" + "0" + "0" + "00" + "02" + "0000000;"; 
+          strcpy(r,sent.c_str());
+      } 
+      return true;
+  }
+
+
+  if (strcmp(cmd,"MD")==0) {  
+      strcpy(r,"MD2;");
+      return true;
+  }
+  strcpy(r,"ID019;");   //dummy answer trying not to disrupt the CAT protocol flow
+  _INFO("***ERROR*** Entry(%s) nor processed response(%s)\n",c,r);
+  return false;
+
+}
+
+/*-----------------------------------------------
+  CAT_check
+  Read the serial port and parses the input for
+  non-confirming structures
+  parse the input stream and tokenize the commands
+  found on it.
+  Take into consideration some protocol deviations
+  (oddities) required by WSJT-X (or HamLib, I don't know)
+  to properly operate
+*/
+void CAT_check(void) {
+
+bool flagRXTX=false;
+char cmd[4];
+char arg[16];
+
+/*----------
+  Handle the brief frequency change
+*/
+CAT_warning();
+
+/*----------
+  Check if data is available on the serial port
+*/
+int nread=Serial.available();
+if (nread > 0){
+   if (cat_stat == 0) {
+       cat_stat=1;
+       digitalWrite(WSPR, LOW); 
+       digitalWrite(FT8, LOW);
+       digitalWrite(JS8, HIGH);
+       digitalWrite(FT4, HIGH);
+       receive();
+   }
+} else {
+  return;
+}
+
+/*-----------
+  Too small as a packet, perhaps fragmentation is occuring
+*/
+if (nread < 3) { 
+  return;
+}
+
+/*-----------
+  Read the serial port buffer
+*/
+int rc=Serial.readBytes(CATbuf,nread);
+if (rc <= 1) {
+  return;
+}
+CATbuf[rc]=0x0;
+/*------------
+  Look after spurious contents
+*/
+int k=strlen(serialBuf);
+for (int i=0;i<strlen(CATbuf);i++){
+    char c=CATbuf[i];
+    if (c>= 0x20 && c<=0x5f && c!=0x0a && c!=0x0d) {
+       serialBuf[k++]=c;
+    }
+}
+serialBuf[k]=0x00;
+    
+/*-------------
+  Fragmentation might occur
+*/
+if (serialBuf[strlen(serialBuf)-1] != ';') {
+   return;
+}
+
+/*--------------
+  Look for oddities from WSJT-X, if this string is
+  received the action to turn the TX on is expected
+  but only the answer to the ID command needs to 
+  be sent
+*/
+
+if (strcmp(serialBuf,"TX;ID;") == 0) {
+
+    transmit(AF_TONE);
+    strcpy(CATResp,"ID019;");
+    Serial.print(CATResp);
+    _INFO("CAT Command(%s) len(%d)\n",CATResp,strlen(CATResp));
+
+    strcpy(CATResp,"");
+    strcpy(serialBuf,"");      
+    return;
+
+}
+
+/*-------------------
+  More oddities, now with the receiving part
+*/
+    if (strcmp(serialBuf,"RX;ID;") == 0) {      
+       receive();
+       strcpy(CATResp,"ID019;");
+       Serial.print(CATResp);
+       _INFO("CAT Command(%s) len(%d)\n",CATResp,strlen(CATResp));
+
+       strcpy(CATResp,"");
+       strcpy(serialBuf,"");      
+       return;
+
+    }
+
+/*----------------------
+  Parse the command using the ";" as the
+  token delimiter
+*/
+    int j=0;
+    strcpy(CATCmd,"");
+    strcpy(resp,"");
+    int last=0;
+
+    for(int i=0;i<strlen(serialBuf);i++) {
+       char data=serialBuf[i];
+       if (data==';') {
+          last=i;
+          strcpy(cmd,"");
+          strcpy(arg,"");         
+
+          /* EOT mark found --> process CAT command */
+          
+          if (!CAT_process(CATCmd,CATResp,cmd,arg)) {
+            Serial.print(CATResp);
+            _INFO("CAT Command(%s) len(%d)\n",CATResp,strlen(CATResp));
+             strcpy(serialBuf,"");
+             strcpy(CATCmd,"");
+             strcpy(CATResp,"");
+             return;
+          }
+
+          /*--- Yet another WSJT-X oddity ---*/
+
+          if (strcmp(cmd,"FA")==0) {
+             if (ignoreFA==true) {
+                ignoreFA=false;
+                strcpy(CATCmd,"");
+                strcpy(CATResp,"");
+             } else {
+                Serial.print(CATResp);
+                _INFO("CAT Command(%s) len(%d)\n",CATResp,strlen(CATResp));
+                strcpy(resp,"");
+                ignoreFA=true;
+             }   
+          } else {
+             strcat(resp,CATResp);
+             ignoreFA=false;
+          }   
+          strcpy(CATCmd,"");
+          strcpy(CATResp,"");
+          j=0;
+       } else {
+
+         /*--- Between tokens store the incoming data */
+         CATCmd[j++]= data;
+         CATCmd[j]=0x00;
+       }
+    }
+
+    /*------
+     Decide whether fragmentation happened 
+     */
+    if (last != strlen(serialBuf)) {
+       strcpy(serialBuf,&serialBuf[last+1]);
+    } else {
+       strcpy(serialBuf,"");
+    }       
+
+    /*-------
+     Reply to any pending message
+     */
+    if (strlen(resp)>0) {
+       Serial.print(resp);      
+       _INFO("CAT Command(%s) len(%d)\n",resp,strlen(resp));
+
+       if (strcmp(cmd,"RX")==0 || strcmp(cmd,"TX") == 0 ) delay(50);
+    }
+
+    /*-------- 
+      Clean up buffers
+    */
+    strcpy(resp,"");
+    strcpy(CATCmd,"");
+    strcpy(CATResp,"");
+    return;
+}
+
+/*--------------
+  Entry point for cat
+*/
+void cat() {
+
+#ifdef CAT
+  CAT_check();
+#endif //CAT
+}
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                         end of CAT Protocol handler                                        *
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                             end of RX/TX management cycle
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
