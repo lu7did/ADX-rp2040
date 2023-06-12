@@ -68,8 +68,17 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
-//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*-------------------------------------------------
+   IDENTIFICATION DIVISION.
+   (just a programmer joke)
+*/
+#define PROGNAME "ADX_rp2040-mbed"
+#define AUTHOR "Pedro E. Colla (LU7DZ)"
+#define VERSION  "1.0"
+#define BUILD     "01"
 
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+#include "hardware/adc.h"
 #include "PluggableUSBAudio.h"
 #include "si5351.h"
 #include "Wire.h"
@@ -83,7 +92,20 @@ bool si5351_rc;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //.                Transceiver Frequency management memory areas
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+uint16_t bands[NBANDS] = {40,30,20,10};
+uint64_t freqs[NBANDS] = {7074000,10136000,14074000,28074000};
+
+uint16_t band=40;
+uint16_t band_slot=0;
+//uint64_t freq=7074000;
 uint64_t RF_freq=7074000;   // RF frequency (Hz)
+
+#ifdef SUPERHETERODYNE
+int64_t BFO_freq = FREQ_BFO;  
+#else
+int64_t BFO_freq = 0;
+#endif //SUPERHETERODYNE
+
 int C_freq = 0;  //FREQ_x: In this case, FREQ_0 is selected as the initial frequency.
 int Tx_Status = 0; //0=RX, 1=TX
 int Tx_Start = 0;  //0=RX, 1=TX
@@ -124,6 +146,117 @@ int i=0;
 bool flagFirst=true;
 
 
+
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                Band and frequency management
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*--------------
+  given the current slot return the band associated with it from bands[]
+*/  
+uint16_t slot2band(uint16_t s) {
+
+if (s >= 0 && s <= (NBANDS-1)) {
+   return bands[s];  
+}
+return 40;
+  
+}
+/*---------------
+  given the band return the frequency associated with it from freqs[]
+*/  
+uint64_t band2freq(uint16_t b) {
+
+if (b >160 || b < 10) {
+   return 40;
+}
+
+for (int i=0;i<NBANDS;i++) {
+   if (bands[i]==b) {
+       return freqs[i];
+   }  
+}
+return freqs[0];
+
+}
+/*------------------------
+  given the band return the slot
+*/  
+uint16_t band2slot(uint16_t b) {
+
+if (b >160 || b < 10) {
+   return 0;
+}
+
+for (int i=0;i<NBANDS;i++) {
+   if (bands[i]==b) {
+       return i;
+   }  
+}
+return i;
+
+}
+/*---------
+  delay
+*/
+void waitmillis(uint16_t wtout) {
+  uint16_t m=millis();
+  while(millis()-m<wtout);
+  return;
+}
+/*---------
+  get a Switch value with de-bouncing
+*/  
+bool getSW(uint8_t k) {
+
+  if (digitalRead(k)==LOW) {
+    waitmillis(1);
+    return digitalRead(k);
+  }
+  return HIGH;
+}
+void setSlot(uint16_t s) {
+
+  _INFO("Set slot[%d]\n",s);
+  band=slot2band(s);
+  _INFO("Band[%d]\n",band);
+  RF_freq=band2freq(band);
+  _INFO("Freq_RF=%ul\n",RF_freq);
+  setLEDbyband(band);
+  _INFO("Set slot[%d] band[%d] mts freq=%ul Hz\n",band_slot,band,RF_freq);
+
+}
+/*----------
+  Handle switch commands on the board
+*/
+void handleSW() {
+   if (getSW(UP)==LOW) {
+      while(getSW(UP)==LOW);
+      band_slot=(band_slot+1);
+      if (band_slot>NBANDS-1) { 
+        band_slot=0;
+      }
+      setSlot(band_slot);         
+   }
+
+   if (getSW(DOWN)==LOW) {
+      while(getSW(DOWN)==LOW);
+      int new_slot=band_slot-1;
+      if (new_slot<0) {
+         band_slot = NBANDS-1;
+      }  else {
+         band_slot=new_slot;
+      }
+      setSlot(band_slot);
+   }
+
+   if (getSW(TXSW)==LOW) {
+     Tx_Status=0;
+     transmit(int64_t(AF_TONE));
+     while(getSW(TXSW)==LOW);
+     receive();     
+
+   }
+}
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                USB UAC2 managing blocks
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -179,6 +312,7 @@ void USBwrite(int16_t left,int16_t right) {
 void si5351_init() {
 
   si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
+
   if (!si5351_rc) {
      _INFO("** ERROR ** no Si5351 clock found\n");
   } else {
@@ -188,14 +322,82 @@ void si5351_init() {
 
   si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
+
+/*------------
+  Set TX clock
+*/
   si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);  //for TX
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);
-  si5351.output_enable(SI5351_CLK0, 0);
-  si5351.set_freq(RF_freq*100ULL, SI5351_CLK1);  //for RX
-  si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_8MA);
-  si5351.output_enable(SI5351_CLK1, 0);
-  _INFO("Master clock sub-system Ok!");
+  si5351.output_enable(SI5351_CLK0, 0);   //Disabled on startup
+/*------------
+  Set RX clock (BFO_freq should be zero if not superheterodyne)
+*/  
+  si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);  //for RX
+  si5351.drive_strength(SI5351_CLK1, SI5351_DRIVE_2MA);
+  si5351.output_enable(SI5351_CLK1, 1);  //Enabled on startup
+
+/*------------
+  Set BFO (if not superheterodyne set to zero)
+*/  
+  si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
+  si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA);
+  si5351.output_enable(SI5351_CLK2, 1);   //Enabled on startup
+
+  _INFO("Master clock sub-system Ok!\n");
 }  
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                Board management
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+void init_IO() {
+
+  pinMode(UP, INPUT_PULLUP);
+  pinMode(DOWN, INPUT_PULLUP);
+  pinMode(TXSW, INPUT_PULLUP);
+
+  pinMode(TX, OUTPUT);
+
+  pinMode(WSPR, OUTPUT);
+  pinMode(JS8, OUTPUT);
+  pinMode(FT4, OUTPUT);
+  pinMode(FT8, OUTPUT);
+
+  pinMode(RX, OUTPUT);
+
+/*--------------------
+     Initialize starting mode (RX on,TX off, all LED off)
+  */
+  digitalWrite(RX, HIGH);
+  digitalWrite(TX, LOW);
+  digitalWrite(WSPR,LOW);
+  digitalWrite(FT8,LOW);
+  digitalWrite(FT4,LOW);
+  digitalWrite(JS8,LOW);
+
+  _INFO("Board I/O initialized\n");
+
+}
+/*-------------
+  Set a given LED set by the slot
+*/  
+void setLEDbyslot(uint16_t s) {
+
+  for (int i=0;i<4;i++) {
+      if (i==s) {
+         digitalWrite(7-i,HIGH);
+      } else {
+         digitalWrite(7-i,LOW);
+      }
+  }
+
+}
+/*-------------
+  Set a given LED set by the band
+*/
+void setLEDbyband(uint16_t b) {
+  uint16_t s=band2slot(b);
+  setLEDbyslot(s);
+}  
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                               setup cycle
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -206,10 +408,20 @@ void setup() {
    */
   Serial.begin(115200);
   while(!Serial);
+  Serial.setTimeout(100);
   Serial.flush();
 
-  _INFO("Test ADX-rp2040-mbed\n");
+  _INFO("ADX-rp2040-mbed digital transceiver v(%s) build(%s)\n",VERSION,BUILD);
 
+/*-----------
+  Init I/O
+*/
+  init_IO();
+
+/*-----------
+  Set initial band, slot, frequency and set LED
+*/
+  setSlot(band_slot);
 /*-----------
   Initialize Si5351
  */
@@ -220,6 +432,12 @@ void setup() {
 */
   USB_UAC();
   _INFO("Transceiver USB Sub-system ready\n");
+
+/*-------------
+  Place the transceiver in receiver mode
+*/
+receive();
+_INFO("Transceiver in receiver mode, ready\n");    
   
 }
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -227,10 +445,7 @@ void setup() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void loop() {
 
-  if (flagFirst) {
-     flagFirst=!flagFirst;
-     _INFO("Si5351 rc(%s)\n",BOOL2CHAR(si5351_rc));
-  }
+  handleSW();
 /*--------
   Tx_Status==0 RX mode -- Tx_Status!=0 TX mode
  */
@@ -427,21 +642,16 @@ void transmit(int64_t freq){
    */ 
   if (Tx_Status==0){
   
-    /*
-    digitalWrite(pin_RX,0);   //RX off
-    digitalWrite(pin_TX,1);   //TX on
-    */
+    digitalWrite(RX,LOW);   //Disable receiver
+    digitalWrite(TX,HIGH);   //Turn TX LED on
     
     si5351.output_enable(SI5351_CLK1, 0);   //RX osc. off
+    si5351.output_enable(SI5351_CLK2, 0);   //BFO. off
     si5351.output_enable(SI5351_CLK0, 1);   //TX osc. on
     
     Tx_Status=1;
     _INFO("TX+\n");
     /*
-    digitalWrite(pin_RED, 0);
-    digitalWrite(pin_GREEN, 1);
-    //digitalWrite(pin_BLUE, 1);
-
     adc_run(false);                         //stop ADC free running
     */
 
@@ -457,24 +667,23 @@ void transmit(int64_t freq){
 void receive(){
   
   if (Tx_Status != 0) {
-  /*
-  digitalWrite(pin_TX,0);  //TX off
-  digitalWrite(pin_RX,1);  //RX on
-  */
-  
+
   si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
   si5351.set_freq(RF_freq*100, SI5351_CLK1);
+  si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);
   si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
-  
+  si5351.output_enable(SI5351_CLK2, 1);   //BFO osc. on
+
+/*--------
+  Turn TX led off and enable receiver
+*/
+
+  digitalWrite(TX,LOW);
+  digitalWrite(RX,HIGH);
   
   Tx_Status=0;
   _INFO("TX-\n");
   
-  /*
-  digitalWrite(pin_RED, 1);
-  digitalWrite(pin_GREEN, 0);
-  //digitalWrite(pin_BLUE, 1);
-  */
   }
   /*-----------
     Initialize the USB incoming queue
