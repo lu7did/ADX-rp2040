@@ -203,7 +203,7 @@ int CAT_mode = 2;
 /*-------------------------------------------------------------------------------------------
   CAT Processing loop
 */
-#define CATCMD_SIZE          18
+#define CATCMD_SIZE          64
 
 char buf[CATCMD_SIZE];
 char CATResp[CATCMD_SIZE];
@@ -902,20 +902,25 @@ bool CAT_process(char *c,char *r,char *cmd,char *arg){
       return true;
   }
 
+//*---
+
   if (strcmp(cmd,"IF")==0) {
+
       if (TX_State == 1) {  
           String sent = "IF" // Return 11 digit frequency in Hz.  
-                  + String("00000000000").substring(0,11-(String(freq).length()))   
-                  + String(freq) + "00000" + "+" + "0000" + "0" + "0" + "0" + "00" + "1" + String(CAT_mode) + "0" + "0" + "0" + "0" + "000" + ";"; 
+                  + String("00000000000").substring(0,11-(String((long int)freq).length()))   
+                  + String((long int)freq) + "0000" + "+" + "00000" + "0" + "0" + "0" + "00" + "12" + "0000000;"; 
           strcpy(r,sent.c_str());        
       } else {  
           String sent = "IF" // Return 11 digit frequency in Hz.  
-                  + String("00000000000").substring(0,11-(String(freq).length()))   
-                  + String(freq) + "00000" + "+" + "0000" + "0" + "0" + "0" + "00" + "0" + String(CAT_mode) + "0" + "0" + "0" + "0" + "000" + ";"; 
+                  + String("00000000000").substring(0,11-(String((long int)freq).length()))   
+                  + String((long int)freq) + "0000" + "+" + "00000" + "0" + "0" + "0" + "00" + "02" + "0000000;"; 
           strcpy(r,sent.c_str());
       } 
       return true;
   }
+
+//*---
 
   if (strcmp(cmd,"MD")==0) {  
       strcpy(r,"MD2;");

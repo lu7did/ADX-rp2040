@@ -931,17 +931,6 @@ bool CAT_process(char *c,char *r,char *cmd,char *arg){
       return true;
   }
 
-/*
-  if (strcmp(cmd,"IF")==0) {
-      uint32_t fb=(long int)RF_freq;
-      String sent = "IF" // Return 11 digit frequency in Hz.  
-              + String("00000000000").substring(0,11-(String(fb).length()))   
-              + String((long int)fb) + "0001" + "+" + "00000" + String(Tx_Status).substring(0,1) + "20000000;" ; 
-
-      strcpy(r,sent.c_str());        
-      return true;
-  }
-*/  
   if (strcmp(cmd,"IF")==0) {
 
       if (Tx_Status == 1) {  
