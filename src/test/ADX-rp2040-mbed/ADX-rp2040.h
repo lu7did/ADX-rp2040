@@ -64,7 +64,7 @@
  * Program configuration parameters
  */
 #define BAUD             115200
-#define CAT                   1  //Uncomment to activate CAT
+//#define CAT                   1  //Uncomment to activate CAT
 #define DEBUG                 1  //Debug mode
 
 /*--------------------------
@@ -74,7 +74,7 @@
 #undef DEBUG
 #endif //CAT
 
-#define SUPERHETERODYNE.      1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
+#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
 #define NBANDS                4
 
 
@@ -91,6 +91,26 @@
 
 #define CAT_WARN1           500
 #define CAT_WARN2         10000
+#define ONE_MSEC           1000
+
+
+/*------------------------------*
+   ADC port values
+  ------------------------------*/
+#define ADC_NUM 1
+#define ADC_PIN (26 + ADC_NUM)
+#define ADC_VREF 3.3
+#define ADC_RANGE (1 << 12)
+#define ADC_CONVERT (ADC_VREF / (ADC_RANGE - 1))
+
+/*------------------------------*
+   ADC Limits and operation
+  ------------------------------*/
+#define  ADCMAX      4096
+#define  ADCMIN         0
+#define  ADCZERO     (ADCMAX+ADCMIN)/2
+#define  ADCSAMPLE      1 
+
 /*------------------------------------------------------
  *   Internal clock handling
  */

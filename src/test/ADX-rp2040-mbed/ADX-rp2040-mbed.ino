@@ -1,7 +1,7 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                                              ADX_rp2040                                                 *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-// Pedro (Pedro Colla) - LU7DZ - 2022,2023
+//                            Pedro (Pedro Colla) - LU7DZ - 2022,2023
 //
 //                                         Version 3.0
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
@@ -9,7 +9,7 @@
 //* Originally ported from ADX_UnO_V1.3 by Barb Asuroglu (WB2CBA)
 //
 // This is experimental code trying to port the ADX-rp2040 code to the Arduino IDE mbed core in order 
-// to implement the link with WSJT-X thru an USB audio port
+// to implement the link with WSJT-X thru an USB audio/serial port
 //
 // This code relies heavily on the great work from Hitoshi, JE1RAV at the QP-7C_RP2040 transceiver and
 // his generous sharing of insights and code leading to this solution.
@@ -44,8 +44,10 @@
 // Arduino "Wire.h" I2C library         (built-into arduino ide)
 // Arduino "EEPROM.h" EEPROM Library    (built-into arduino ide)
 // To be installed using the Arduino IDE Library Manager
-// Etherkit Si5351
-// SI5351       (https://github.com/etherkit/Si5351Arduino) Library by Jason Mildrum (NT7S) 
+// Etherkit Si5351 is used thru a modified version contained with this package
+//                The reason for the local copy is to set the SDA/SCL ports as 16/17 which are required
+//                by the board and can not be set externally to the library under the mbed core
+//                SI5351       (https://github.com/etherkit/Si5351Arduino) Library by Jason Mildrum (NT7S) 
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 // License
 // -------
@@ -88,7 +90,6 @@
 //.                Master clock
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 Si5351 si5351;
-bool si5351_rc;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //.                Transceiver Frequency management memory areas
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -123,6 +124,37 @@ float delta_prev=0;
 int16_t sampling=0;
 int16_t cycle=0;
 int32_t cycle_frequency[34];
+
+/*-----------------------------
+  ADC processing
+*/
+int16_t adc_offset = 0;          //Receiver offset
+
+/*-------------------------------*
+   Sample data
+*/
+/*
+extern uint16_t adc_v1;
+extern uint16_t adc_v2;
+extern uint32_t adc_t1;
+extern uint32_t adc_t2;
+*/
+
+bool     adc_high;
+bool     adc_low;
+   
+/*-------------------------------*
+   Computed frequency limits
+*/
+double   ffmin;
+double   ffmax;    
+uint16_t adc_min;
+uint16_t adc_max;
+uint16_t adc_zero;
+uint16_t adc_uh;
+uint16_t adc_ul;
+
+
 /*-----------------------------
   USB Audio definition and control blocks
  */
@@ -217,7 +249,10 @@ for (int i=0;i<NBANDS;i++) {
 return i;
 
 }
-
+/*-----------------------------------
+  Given the (aprox) frequency compute the
+  nearest ham radio band
+*/
 uint16_t freq2band(uint64_t f) {
 
 if (f>= 1800000 && f<= 1900000) {return 160;}
@@ -234,20 +269,13 @@ return 40;
 
 }
 /*---------
-  delay
-*/
-void waitmillis(uint16_t wtout) {
-  uint16_t m=millis();
-  while(millis()-m<wtout);
-  return;
-}
-/*---------
   get a Switch value with de-bouncing
 */  
 bool getSW(uint8_t k) {
 
   if (digitalRead(k)==LOW) {
-    waitmillis(1);
+    uint32_t t = time_us_32() + ONE_MSEC;
+    while (t > time_us_32());
     return digitalRead(k);
   }
   return HIGH;
@@ -265,6 +293,13 @@ void setSlot(uint16_t s) {
   _INFO("Set slot[%d] band[%d] mts freq=%ul Hz\n",band_slot,band,RF_freq);
 
 }
+/*-------------
+  Set a given LED set by the band
+*/
+void setLEDbyband(uint16_t b) {
+  uint16_t s=band2slot(b);
+  setLEDbyslot(s);
+}  
 /*----------
   Handle switch commands on the board
 */
@@ -367,7 +402,7 @@ void si5351_setFreq(uint64_t f) {
 */
 void si5351_init() {
 
-  si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
+  bool si5351_rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0); 
 
   if (!si5351_rc) {
      _INFO("** ERROR ** no Si5351 clock found\n");
@@ -409,6 +444,8 @@ void si5351_init() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void init_IO() {
 
+  pinMode(A0, INPUT);            //ADC input pin
+
   pinMode(UP, INPUT_PULLUP);
   pinMode(DOWN, INPUT_PULLUP);
   pinMode(TXSW, INPUT_PULLUP);
@@ -449,13 +486,94 @@ void setLEDbyslot(uint16_t s) {
   }
 
 }
-/*-------------
-  Set a given LED set by the band
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                                               ADC setup & processing
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+/*-------------------------------
+  initialize ADC port
 */
-void setLEDbyband(uint16_t b) {
-  uint16_t s=band2slot(b);
-  setLEDbyslot(s);
-}  
+void adc_setup() {
+
+  adc_init();
+  adc_select_input(0);                        //ADC input pin A0
+  adc_set_clkdiv(249.0);                      // 192kHz sampling  (48000 / (249.0 +1) = 192)
+  adc_fifo_setup(true,false,0,false,false);   // fifo
+  adc_run(true);                              //ADC free running
+
+}
+/*--------------------------------
+  Collect samples from the receiving port
+*/
+int16_t adc() {
+  int16_t adc = 0;
+  for (int i=0;i<24;i++){                    // 192kHz/24 = 8kHz
+  
+/*--------------------------------
+  This needs to be reviewed for the ADX-rp2040 board
+  considering whether the receiver is a CD2003GP or a Si473x
+*/    
+  #ifdef SUPERHETERODYNE
+    adc += adc_fifo_get_blocking() -1862 ;   // read from ADC fifo (offset about 1.5 V: DET OUT)
+  #else
+    adc += adc_fifo_get_blocking() -745 ;    // read from ADC fifo (offset about 0.6 V: AM MIX OUT)
+  #endif
+  
+  }  
+  return adc;
+}
+/*------------------------------------------------------------------------------------------*
+   calibrateADC
+   Calibrate the ADC zero level
+*/
+uint16_t adc_calibrate(uint16_t min, uint16_t max) {
+  return uint16_t((adc_max - adc_min) * 1.0 / 2.0) + adc_min;
+}
+/*-------------------------------------------------------------------------------------------*   
+   adc_reset
+   restore all calibration values
+*/
+void adc_reset() {
+  adc_min  = ADCMAX;
+  //qadc_max  = ADCMIN;
+  adc_zero = ADCZERO;
+  adc_uh   = adc_zero * 110 / 100;
+  adc_ul   = adc_zero * 90 / 100;
+//  ffmin    = FSKMAX;
+//  ffmax    = FSKMIN;
+  _INFO("Timeout, recalibrate input level");
+}
+/*------------------------------------------------------------------------------------------*
+   adc_sample
+   collect an ADC sample running free.
+   update the minimum and maximum
+*/
+uint16_t adc_sample() {
+  uint16_t v = adc_read();
+  if (v > adc_max) {
+    adc_max = v;
+    adc_zero = adc_calibrate(adc_min, adc_max);
+    adc_uh = adc_zero * 110 / 100;
+    adc_ul = adc_zero * 90 / 100;  
+    _INFO("calibration (max) adc_max=%d adc_min=%d adc_Zero=%d\n",adc_max, adc_min, adc_zero);
+     return v;
+  }
+  if (v <= adc_min) {
+    adc_min = v; 
+    adc_zero = adc_calibrate(adc_min, adc_max);
+    adc_uh = adc_zero * 110 / 100;
+    adc_ul = adc_zero * 90 / 100;
+   
+    _INFO("calibration (min) adc_max=%d adc_min=%d adc_Zero=%d\n",adc_max, adc_min, adc_zero);
+    return v;
+  }
+  if (v >= adc_uh) {
+    adc_high = true;
+  }
+  if (v <= adc_ul) {
+    adc_low = true;
+  }
+  return  v;  
+} 
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                               setup cycle
@@ -481,6 +599,11 @@ void setup() {
   Set initial band, slot, frequency and set LED
 */
   setSlot(band_slot);
+
+//ADC initialize ----- 
+  adc_setup();
+
+
 /*-----------
   Initialize Si5351
  */
@@ -491,6 +614,14 @@ void setup() {
 */
   USB_UAC();
   _INFO("Transceiver USB Sub-system ready\n");
+
+
+/*-------------
+  read the DC offset value of ADC input (about 0.6V)----- 
+*/  
+  delay(500);
+  adc_fifo_drain ();
+  adc_offset = adc();
 
 /*-------------
   Place the transceiver in receiver mode
@@ -688,15 +819,16 @@ void receiving() {
     not_TX_first = 0;
     return;
   }
-/*  THIS IS CODE NOT MIGRATED YET RELATED TO THE READING OF RX DATA FROM THE ADC PORT
-    AT THIS POINT THE FIRMWARE IS STILL A TRANSMIT ONE
   freqChange();
   int16_t rx_adc = adc() - adc_offset; //read ADC data (8kHz sampling)
-  // write the same 6 stereo data to PC for 48kHz sampling (up-sampling: 8kHz x 6 = 48 kHz)
+
+  /*-------------------
+    write the same 6 stereo data to PC for 48kHz sampling (up-sampling: 8kHz x 6 = 48 kHz)
+  */  
   for (int i=0;i<6;i++){
     USBwrite(rx_adc, rx_adc);
   }
-*/  
+
 }
 
 /*----------
@@ -718,9 +850,10 @@ void transmit(int64_t freq){
     
     Tx_Status=1;
     _INFO("TX+\n");
-    /*
+  /*----------------------------------
+    stop ADC collection
+  */
     adc_run(false);                         //stop ADC free running
-    */
 
     return;
   }
@@ -759,13 +892,13 @@ void receive(){
     monodata[i] = 0;
   } 
   
-  /*
-  // initialization of ADC and the data write counter
+  /*------------
+    initialization of ADC and the data write counter
+  */
   pcCounter=0;
   nBytes=0;
   adc_fifo_drain ();                     //initialization of adc fifo
   adc_run(true);                         //start ADC free running
-  */
   
 }
 
@@ -789,6 +922,7 @@ void freqChange(){
     //NEOPIXEL LED change
     pixels.setPixelColor(0, colors[C_freq]);
     pixels.show();
+    
     delay(100);
     adc_fifo_drain ();
     adc_offset = adc();
@@ -796,6 +930,7 @@ void freqChange(){
   */
 
 }
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                             CAT management
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -826,6 +961,7 @@ char *trim(char *str)
 
   return str;
 }
+#ifdef CAT
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                                     CAT Support functions                                                  *
 //                partial implementation of the Kenwood TS2000 protocol (115200 8N2).                         *
@@ -887,6 +1023,10 @@ bool CAT_process(char *c,char *r,char *cmd,char *arg){
         band=bx;
         RF_freq=fx;
         si5351_setFreq(RF_freq);
+
+        adc_fifo_drain ();
+        adc_offset = adc();
+
 
         //si5351.set_freq(RF_freq * 100ULL, SI5351_CLK0);
         //si5351.set_freq(freq * 100ULL, SI5351_CLK1);
@@ -1147,7 +1287,7 @@ if (strcmp(serialBuf,"TX;ID;") == 0) {
     strcpy(CATResp,"");
     return;
 }
-
+#endif //CAT
 /*--------------
   Entry point for cat
 */
