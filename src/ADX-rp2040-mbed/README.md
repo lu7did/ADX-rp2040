@@ -1,5 +1,5 @@
 # ADX rp2040 Digital Transceiver with USB support
-#(ADX_rp2040-mbed)
+# ADX_rp2040-mbed
 
 ## Overview to Version 1.0
 
