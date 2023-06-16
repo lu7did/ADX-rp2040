@@ -584,7 +584,11 @@ void setup() {
     Serial port initialization
    */
   Serial.begin(115200);
+
+  #ifndef CAT
   while(!Serial);
+  #endif //CAT
+  
   Serial.setTimeout(100);
   Serial.flush();
 

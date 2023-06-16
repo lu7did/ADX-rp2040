@@ -1,12 +1,20 @@
-# ADX rp2040 Digital Transceiver with USB support(ADX_rp2040-mbed)
+# ADX rp2040 Digital Transceiver with USB support
+#(ADX_rp2040-mbed)
 
-# Overview to Version 1.0
+## Overview to Version 1.0
 
 This project derives from the ADX-rp2040 with some mods to enable it to be ran using an USB connection
 instead of audio cables.
 
 Please refer to the main documentation of the ADX-rp2040 project, everything there is valid for this 
 version unless noted otherwise in this documentation.
+
+## Acknowledgement
+
+This version could not be possible without the generous insights, preliminary work and code shared by
+Sitoshi-san (JE1RAV). Excerpts from his QP-7C-CAT firmware has been extensively used in this firmware.
+
+## Release history
 
 ```
 *New in release 1.0 build(01) and higher*
