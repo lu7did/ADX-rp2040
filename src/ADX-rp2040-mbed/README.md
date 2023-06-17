@@ -21,7 +21,7 @@ Sitoshi-san (JE1RAV). Excerpts from his QP-7C-CAT firmware has been extensively 
 
 * Initial evaluation release.
 ```
-
+![Receiver audio feed](../../docs/ADX-rp2040-mbed.png "ADX-rp2040 RX wire mod")
 
 # Support and issues
 
@@ -54,6 +54,11 @@ This firmware version works with the following boards:
 *	ADX-rp2040 (CD2003GP receiver), porting from the ADX-UNO board but using a rp2040 processor, no PCB available.
 *	ADX-rp2040 daughterboard, an additional board to be plugged in the Arduino Nano socket of a standard ADX-UNO board, PCB available.
 *	RDX-rp2040 (CD2003GP and Si4732 receiver versions), stand alone FT8 pocket transceiver, still can be flashed with this firmware.
+
+
+## ADX-rp2040 mods
+
+The audio from the receiver needs to be routed to the ADC0 port including some floating polarization according with the following circuit:
 
 
 # Firmware
