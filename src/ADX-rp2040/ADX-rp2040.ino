@@ -144,7 +144,7 @@
 #define PROGNAME "ADX_rp2040"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION  1.0
-#define BUILD     40
+#define BUILD     41
 
 /*-------------------------------------------------
    Macro expansions
@@ -492,15 +492,19 @@ strcpy(buf,"");
 #endif //Initialize the PIO based counting method used on rp2040
 
   /*--------------------
-     Place the receiver in reception mode
-  */
-  digitalWrite(RX, LOW);
-
-  /*--------------------
      Assign initial mode
   */
   Mode_assign();
+
+  /*--------------------
+     Place the receiver in reception mode
+  */
+  digitalWrite(RX, HIGH);
+
+
+
   _INFOLIST("%s setup completed successfully\n", __func__);
+
 
 }
 
