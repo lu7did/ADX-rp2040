@@ -55,11 +55,15 @@ This firmware version works with the following boards:
 *	RDX-rp2040 (CD2003GP and Si4732 receiver versions), stand alone FT8 pocket transceiver, still can be flashed with this firmware.
 
 
+## RDX-rp2040 mods
+
+Please refer to the RDX-rp2040 site for hardware mods to be introduced for the board to properly work.
+
 ## ADX-rp2040 mods
 
-The audio from the receiver needs to be routed to the ADC0 port including some floating polarization according with the following circuit:
+*	The audio from the receiver needs to be routed to the ADC0 port including some floating polarization according with the following circuit:
 ![Receiver audio feed](../../docs/ADX-rp2040-mbed.png "ADX-rp2040 RX wire mod")
-
+*	
 
 # Firmware
 ## Build environment

@@ -77,7 +77,7 @@
 #define PROGNAME "ADX_rp2040-mbed"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
 #define VERSION  "1.0"
-#define BUILD     "01"
+#define BUILD     "21"
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 #include "hardware/adc.h"
@@ -93,13 +93,23 @@ Si5351 si5351;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //.                Transceiver Frequency management memory areas
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-uint16_t bands[NBANDS] = {40,30,20,10};
-uint64_t freqs[NBANDS] = {7074000,10136000,14074000,28074000};
+const uint16_t Bands[BANDS] = {40,30,20,10};
+//const uint64_t freqs[BANDS] = {7074000,10136000,14074000,28074000};
 
-uint16_t band=40;
-uint16_t band_slot=0;
-//uint64_t freq=7074000;
+const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},         //80m [0]
+                                         {5357000UL,5351000UL,5356000UL},         //60m [1]
+                                         {7074000UL,7000000UL,7300000UL},         //40m [2]
+                                         {10136000UL,10100000UL,10150000UL},      //30m [3]
+                                         {14074000UL,14000000UL,14350000UL},      //20m [4]
+                                         {18100000UL,18068000UL,18168000UL},      //17m [5]
+                                         {21074000UL,21000000UL,21450000UL},      //15m [6]
+                                         {24915000UL,24890000UL,24990000UL},      //12m [7]
+                                         {28074000UL,28000000UL,29700000UL}};     //10m [8]
+int Band_slot = 3;     // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
+int mode=3;
+uint16_t band;
 uint64_t RF_freq=7074000;   // RF frequency (Hz)
+bool SI473x_enabled=false;
 
 #ifdef SUPERHETERODYNE
 int64_t BFO_freq = FREQ_BFO;  
@@ -113,6 +123,18 @@ int Tx_Start = 0;  //0=RX, 1=TX
 int not_TX_first = 0;
 uint32_t Tx_last_mod_time;
 uint32_t Tx_last_time;
+
+time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
+time_t now;
+char timestr[12];
+
+/*------------------------------------------------------
+ *   Internal clock handling
+ */
+struct tm timeinfo;        //current time
+struct tm timeprev;        //epoch time
+
+uint32_t trssi = time_us_32();
 
 /*-----------------------------
   Audio signal frequency determination
@@ -130,15 +152,6 @@ int32_t cycle_frequency[34];
 */
 int16_t adc_offset = 0;          //Receiver offset
 
-/*-------------------------------*
-   Sample data
-*/
-/*
-extern uint16_t adc_v1;
-extern uint16_t adc_v2;
-extern uint32_t adc_t1;
-extern uint32_t adc_t2;
-*/
 
 bool     adc_high;
 bool     adc_low;
@@ -159,14 +172,23 @@ uint16_t adc_ul;
   USB Audio definition and control blocks
  */
 
-USBAudio audio(true, SAMPLE_RATE, 2, SAMPLE_RATE, 2);
+USBAudio audio(true, AUDIOSAMPLING, 2, AUDIOSAMPLING, 2);
 
-int16_t monodata[24];
+int16_t monodata[SAMPLESIZE];
 uint16_t pcCounter=0;
 uint16_t nBytes=0;
-uint8_t myRawBuffer[96]; //24 sampling (= 0.5 ms at 48000 Hz sampling) data sent from PC are received.
-int16_t pcBuffer16[48];  //24 sampling date are written to PC in one packet.
-int16_t USB_read=0;
+/*
+uint8_t myRawBuffer[24]; //was 24 sampling (= 0.5 ms at 48000 Hz sampling) data sent from PC are received.
+int16_t pcBuffer16[24];  //was 24 sampling date are written to PC in one packet.
+*/
+static uint8_t readBuffer[192];  //48 sampling (=  0.5 ms at 48000 Hz sampling) data sent from PC are recived (16bit stero; 48*2*2).
+int16_t writeBuffer16[SAMPLESIZE*2];       //48 sampling date are written to PC in one packet (stero).
+uint16_t writeCounter=0;
+int prevRSSI=0;
+
+
+//int16_t USB_read=0;
+bool USBAudio_read;
 int64_t last_audio_freq=0;
 
 /*-----------------------------
@@ -209,8 +231,8 @@ bool flipLED=false;
 */  
 uint16_t slot2band(uint16_t s) {
 
-if (s >= 0 && s <= (NBANDS-1)) {
-   return bands[s];  
+if (s >= 0 && s <= (BANDS-1)) {
+   return Bands[s];  
 }
 return 40;
   
@@ -219,18 +241,21 @@ return 40;
   given the band return the frequency associated with it from freqs[]
 */  
 uint64_t band2freq(uint16_t b) {
-
+uint16_t bx=b;
 if (b >160 || b < 10) {
-   return 40;
+   bx=40;
 }
+uint16_t j=Band2Idx(bx);
+return slot[j][0];
 
-for (int i=0;i<NBANDS;i++) {
-   if (bands[i]==b) {
-       return freqs[i];
+/*
+for (int i=0;i<BANDS;i++) {
+   if (Bands[i]==b) {
+       return freqs[b];
    }  
 }
 return freqs[0];
-
+*/
 }
 /*------------------------
   given the band return the slot
@@ -241,8 +266,8 @@ if (b >160 || b < 10) {
    return 0;
 }
 
-for (int i=0;i<NBANDS;i++) {
-   if (bands[i]==b) {
+for (int i=0;i<BANDS;i++) {
+   if (Bands[i]==b) {
        return i;
    }  
 }
@@ -268,6 +293,62 @@ if (f>=28000000 && f<=29500000) {return  10;}
 return 40;
 
 }
+/*----------------------------------------
+ * min Freq
+ *----------------------------------------*/
+uint16_t minFreq(uint16_t i){
+  unsigned long s=slot[i][1];
+  unsigned long f=s/1000;
+  _INFO("index received(%d) s(%ld) freq(%ld)\n",i,s,f);
+  uint16_t mf=uint16_t(f);
+  _INFO("Slot[%d] f=%d KHz\n",i,mf);
+  delay(1000);
+  return mf;
+}
+/*----------------------------------------
+ * max Freq
+ *----------------------------------------*/
+uint16_t maxFreq(uint16_t i){
+  unsigned long s=slot[i][2];
+  unsigned long f=s/1000;
+  _INFO("index received(%d) s(%ld) freq(%ld)\n",i,s,f);
+  uint16_t mf=uint16_t(f);
+  _INFO("Slot[%d] f=%d KHz\n",i,mf);
+  delay(1000);
+
+  return mf;
+}
+/*----------------------------------------
+ * current Freq
+ *----------------------------------------*/
+uint16_t currFreq(uint16_t i){
+  unsigned long s=slot[i][0];
+  unsigned long f=s/1000;
+  _INFO("index received(%d) s(%ld) freq(%ld)\n",i,s,f);
+  uint16_t mf=uint16_t(f);
+  _INFO("Slot[%d] f=%d KHz\n",i,mf);
+  delay(1000);
+  return mf;
+}
+
+//*********************************[ INITIALIZATION FUNCTION ]******************************************
+uint16_t Band2Idx(uint16_t b) {
+  uint16_t i=2;
+  switch (b) {
+    case 80 : i=0;break;
+    case 60 : i=1;break;
+    case 40 : i=2;break;    //This is the default band in case the argument is wrong
+    case 30 : i=3;break;
+    case 20 : i=4;break;
+    case 17 : i=5;break;
+    case 15 : i=6;break;
+    case 12 : i=7;break;
+    case 10 : i=8;break;
+  }
+  return i;
+
+}
+
 /*---------
   get a Switch value with de-bouncing
 */  
@@ -288,9 +369,19 @@ void setSlot(uint16_t s) {
   band=slot2band(s);
   RF_freq=band2freq(band);
 
+  _INFO("Slot=(%d) band(%d) Freq(%llu)\n",s,band,RF_freq);
+
+/*------------
+  If present and already enabled change the Si473x frequency accordingly
+*/
+#ifdef RX_SI473X
+  if (SI473x_enabled) {
+     SI473x_setFrequency(s);
+  }
+#endif //RX_SI473X  
 
   setLEDbyband(band);
-  _INFO("Set slot[%d] band[%d] mts freq=%ul Hz\n",band_slot,band,RF_freq);
+  _INFO("Set slot[%d] band[%d] mts freq=%ul Hz\n",Band_slot,band,RF_freq);
 
 }
 /*-------------
@@ -305,26 +396,33 @@ void setLEDbyband(uint16_t b) {
 */
 void handleSW() {
 
-   if (cat_stat == 1) return;
-
+   if (cat_stat == 1) {
+      _INFO("CAT operating\n");
+      return;
+   }
+   
    if (getSW(UP)==LOW) {
+      _INFO("(UP) Button\n");
       while(getSW(UP)==LOW);
-      band_slot=(band_slot+1);
-      if (band_slot>NBANDS-1) { 
-        band_slot=0;
+      Band_slot=(Band_slot+1);
+      if (Band_slot>BANDS-1) { 
+        Band_slot=0;
       }
-      setSlot(band_slot);         
+      setSlot(Band_slot);     
+      si5351_setFreq(RF_freq);
    }
 
    if (getSW(DOWN)==LOW) {
+      _INFO("(DOWN) button\n");
       while(getSW(DOWN)==LOW);
-      int new_slot=band_slot-1;
+      int new_slot=Band_slot-1;
       if (new_slot<0) {
-         band_slot = NBANDS-1;
+         Band_slot = BANDS-1;
       }  else {
-         band_slot=new_slot;
+         Band_slot=new_slot;
       }
-      setSlot(band_slot);
+      setSlot(Band_slot);
+      si5351_setFreq(RF_freq);
    }
 
    if (getSW(TXSW)==LOW) {
@@ -343,47 +441,52 @@ void handleSW() {
   UAC2 initialization
  */
 void USB_UAC() {
- for (int i = 0; i < 24; i++) {
+ for (int i = 0; i < SAMPLESIZE; i++) {
    monodata[i] = 0;
  }
 }
-/*-------------
-  UAC2 USB data read
- */
-void USBread() {
-  USB_read = audio.read(myRawBuffer, sizeof(myRawBuffer));
-  if (USB_read) {
-    int16_t *lessRawBuffer = (int16_t *)myRawBuffer;
-    for (int i = 0; i < 24; i++) {
-      // the left value;
-      int16_t outL = *lessRawBuffer;
-      lessRawBuffer++;
-      // the right value
-      int16_t outR = *lessRawBuffer;
-      lessRawBuffer++;
-      //mono value
-      int16_t mono = (outL + outR) / 2;
+/*
+USBAudioRead
+Read the USB buffer and takes 48 samples, average left and right channel into a mono sample
+
+** Fix suggested by Hitoshi to avoid the stack issue found on earlier versions, increase the buffer and 
+   avoid addressing the buffer using a int16_t* variable
+
+*/
+void USBAudioRead() {
+  USBAudio_read = audio.read(readBuffer, sizeof(readBuffer));
+  int32_t monosum=0;
+  if (USBAudio_read) { 
+    for (int i = 0; i < SAMPLESIZE ; i++) {
+      int16_t outL = ((int16_t)readBuffer[4*i]) + ((int16_t)readBuffer[4*i+1] << 8);
+      int16_t outR = ((int16_t)readBuffer[4*i+2]) + ((int16_t)readBuffer[4*i+3] << 8);
+      int16_t mono = (outL+outR)/2;
+      monosum += mono;
       monodata[i] = mono;
     }
   }
+  if (monosum == 0) {
+     USBAudio_read=0;
+  }   
 }
-/*-------------
-  UAC2 data write
- */
-void USBwrite(int16_t left,int16_t right) {
-  if(nBytes>95){
-    uint8_t *pcBuffer =  (uint8_t *)pcBuffer16;
-    audio.write(pcBuffer, 96);
-    pcCounter =0;
+/*------------------------------------------------------
+  Write the buffer from the ADC into the USB
+*/
+void USBAudioWrite(int16_t left,int16_t right) {
+  if(nBytes>191){
+    uint8_t *writeBuffer =  (uint8_t *)writeBuffer16;
+    audio.write(writeBuffer, 192);
+    writeCounter =0;
     nBytes =0;
   }
-  pcBuffer16[pcCounter]=left;
-  pcCounter++;
+  writeBuffer16[writeCounter]=left;
+  writeCounter++;
   nBytes+=2;
-  pcBuffer16[pcCounter]=right;
-  pcCounter++;
+  writeBuffer16[writeCounter]=right;
+  writeCounter++;
   nBytes+=2;
 }
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                Si5351 sub-system
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -392,9 +495,10 @@ void USBwrite(int16_t left,int16_t right) {
 */
 void si5351_setFreq(uint64_t f) {
 
-  si5351.set_freq(f*100ULL, SI5351_CLK0);  //for TX
-  si5351.set_freq((f-BFO_freq)*100ULL, SI5351_CLK1);  //for RX
-  si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
+  _INFO("Freq=%llu BFO=%llu\n",f,BFO_freq);
+  si5351.set_freq(f*100ULL, SI5351_CLK0);              //for TX
+  si5351.set_freq((f-BFO_freq)*100ULL, SI5351_CLK1);   //for RX
+  si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);       //for BFO
 
 }
 /*---------
@@ -433,11 +537,8 @@ void si5351_init() {
   //si5351.set_freq(BFO_freq*100ULL, SI5351_CLK2);  //for BFO
   si5351.drive_strength(SI5351_CLK2, SI5351_DRIVE_2MA);
   si5351.output_enable(SI5351_CLK2, 1);   //Enabled on startup
-
   si5351_setFreq(RF_freq);
-
-
-  _INFO("Master clock sub-system Ok!\n");
+  _INFO("Master clock sub-system initializationn completed rc(%s)!\n",BOOL2CHAR(si5351_rc));
 }  
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                Board management
@@ -602,17 +703,26 @@ void setup() {
 /*-----------
   Set initial band, slot, frequency and set LED
 */
-  setSlot(band_slot);
+  setSlot(Band_slot);
 
 //ADC initialize ----- 
   adc_setup();
-
 
 /*-----------
   Initialize Si5351
  */
   si5351_init();
 
+#ifdef RX_SI473X
+/*-----------
+  Initialize Si473x chipset
+*/
+  _INFO("Si473x chip initialization\n");
+  delay(500);
+  SI473x_Setup();
+#else
+  _INFO("CD2003GP chip receiver\n");
+#endif //RX_SI473X  
 /*------------
   USB Audio initialization
 */
@@ -669,170 +779,121 @@ void loop() {
 /*------------
   Main transmitting control cycle
  */
-void transmitting(){
 
+
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+ Transmitting
+ This function checks if there is USB data to transmit, applying some heuristics to understand when the data stream ceases
+ and thus a switch to the receiving mode is needed.
+ When data stream is available a zero crossing algorithm (see QDX algorithm by Hans Summers) is used to get the period
+ and then the frequency of the signal, a couple of heuristics (min & max, minimum change, minimum latency) are applied
+ to reject noise or transient frequency changes.
+*/
+void transmitting(){
   int64_t audio_freq;
-  /*-------
-    Is there any data on the USB in queue?
-   */
-  if (USB_read) {    //USB_read=true there is data on the USB Queue
-    /*-------
-      Collect the data from the USB buffer
-     */
-    for (int i=0;i<24;i++){
-      
+  if (USBAudio_read) {
+    for (int i=0;i<SAMPLESIZE ;i++){
       int16_t mono = monodata[i];
-      
-      if ((mono_prev < 0) && (mono >= 0)) {    // Check for a zero crossing
-        
-        /*------------
-          Check if there is a sudden drop to zero
-         */
+      if ((mono_prev < 0) && (mono >= 0)) {
         if ((mono == 0) && (((float)mono_prev * 1.8 - (float)mono_preprev < 0.0) || ((float)mono_prev * 2.02 - (float)mono_preprev > 0.0))) {    //Detect the sudden drop to zero due to the end of transmission
-           Tx_Start=0;
-           last_audio_freq=0;
-           break;
+          Tx_Start = 0;
+          last_audio_freq=0;
+          break;
         }
-        /*-------------
-          Check for differences between current USB value and previous, compute the difference                  
-        */
         int16_t difference = mono - mono_prev;
 
         /*------ (Original from Hitoshi-san code)
         // x=0付近のsin関数をテーラー展開の第1項まで(y=xで近似）
         // Sin(x) function near x=0 can be approximated with the the first term of Taylor series (y=x approximation)
-
-        Compute the audio frequency from the incoming signal
         */
+
         float delta = (float)mono_prev / (float)difference;
         float period = (1.0 + delta_prev) + (float)sampling - delta;
-        audio_freq = SAMPLE_RATE*100.0/period; // in 0.01Hz    
+        audio_freq = AUDIOSAMPLING*100.0/period; // in 0.01Hz    
 
         if ((audio_freq>FSK_MIN) && (audio_freq<FSK_MAX)){
           cycle_frequency[cycle]=audio_freq;
           cycle++;
         }
-        /*------
-          Store previous values
-         */
         delta_prev = delta;
         sampling=0;
         mono_preprev = mono_prev;
         mono_prev = mono;     
-
-      } else 
-        /*-------
-          Detect non-transmission
-         */
-        if ((not_TX_first == 1) && (mono_prev == 0) && (mono == 0)) {        //Detect non-transmission
-           Tx_Start=0;
-           last_audio_freq=0;
-           break;
-        }
-       else {
-        /*-------
-          Prepare for next sample
-         */
+      }
+      else if ((not_TX_first == 1) && (mono_prev == 0) && (mono == 0)) {        //Detect non-transmission
+        Tx_Start = 0;
+        last_audio_freq=0;
+        break;
+      }
+      else {
         sampling++;
         mono_preprev = mono_prev;
         mono_prev = mono;
       }
     }
-    //End of USB data collection and processing cycle
-
-    /*-----------
-      If reach here because of the signal break then Tx_Status == 0 and the
-      transceiver needs to be placed in receive mode
-     */
     if (Tx_Start == 0){
       cycle = 0;
       receive();
-      return;     // Gotta be out of Dodge City
+      return;
     }
-    /*------------
-      This is a cycle throttle meassurement where even if a frequency change has been detected no
-      change will be propagated to the Si5351 unless a minimum of FSK_THRESHOLD (msec) has been elapsed
-      avoiding cluttering the I2C bus with noise
-    */  
-    if ((cycle > 0) && (millis() - Tx_last_mod_time > FSK_THRESHOLD)){ 
+    if ((cycle > 0) && (millis() - Tx_last_mod_time > 5)){          //inhibit the frequency change faster than 5mS
       audio_freq = 0;
-      
       for (int i=0;i<cycle;i++){
         audio_freq += cycle_frequency[i];
       }
-      
-      audio_freq = audio_freq / cycle;
 
+      audio_freq = audio_freq / cycle;
       long unsigned freqdiff=abs((long int)audio_freq-(long int)last_audio_freq);
-      
+
       if (freqdiff > FSK_MIN_CHANGE) {
-         _INFO("FSK=%ld Hz (diff=%lu)\n",(long int)audio_freq,freqdiff);
+         //_INFO("FSK=%ld Hz (diff=%lu)\n",(long int)audio_freq,freqdiff);
          transmit(audio_freq);
       }   
       cycle = 0;
       Tx_last_mod_time = millis();
-      last_audio_freq = audio_freq;
-
+      last_audio_freq=audio_freq;
+         
     }
-    /*------------
-      Update first occurrence flag and timers for next cycle
-     */
     not_TX_first = 1;
     Tx_last_time = millis();
-  
-  } else      //end of if(USB_Read) 
-    /*----------------
-      USBAudio data has not been received for more than 50 msec during transmission, VOX is turned off
-     */  
-    if (millis()-Tx_last_time > FSK_TOUT) { 
-       Tx_Start = 0;
-       cycle = 0;
-       last_audio_freq=0;
-       receive();
-       return;
-    }   
-  
-  
-  /*------------------
-    Read USB Data again
-   */
-
-  USBread();
+  }
+  else if (millis()-Tx_last_time > 50) {     // If USBaudio data is not received for more than 50 ms during transmission, the system moves to receive. 
+    Tx_Start = 0;
+    cycle = 0;
+    _INFO("TX-\n");
+    receive();
+    return;
+  }  
+  USBAudioRead();
 }
 
-/*--------------
-  Main receiving control cycle
- */
 void receiving() {
-  /*---------
-    Read the USB incoming queue
-  */
-  USBread();
-  /*---------
-    If while in receive mode data is present in the USB buffer then a transmission cycle
-    must be started, it's assumed this is a digital link with the transmitting program
-    thus it will be perfectly silent if no transmission is made
-  */
-
-  if (USB_read) {
-
-    /*---------------
-      Place the transceiver in transmit mode
-     */
-    Tx_Start = 1;
-    not_TX_first = 0;
-    return;
+  USBAudioRead();  // read in the USB Audio buffer (myRawBuffer) to check the transmitting
+  if (USBAudio_read) {
+      Tx_Start = 1;
+      not_TX_first = 0;
+      _INFO("TX+ Tx_Start\n");
+      return;
+/*      
+    }
+*/    
   }
   freqChange();
   int16_t rx_adc = adc() - adc_offset; //read ADC data (8kHz sampling)
-
-  /*-------------------
-    write the same 6 stereo data to PC for 48kHz sampling (up-sampling: 8kHz x 6 = 48 kHz)
-  */  
+  // write the same 6 stereo data to PC for 48kHz sampling (up-sampling: 8kHz x 6 = 48 kHz)
   for (int i=0;i<6;i++){
-    USBwrite(rx_adc, rx_adc);
+    USBAudioWrite(rx_adc, rx_adc);
   }
 
+/*
+#ifdef RX_SI473X
+  if (time_us_32()>trssi) {
+     int RSSI=getRSSI();
+     _INFO("RSSI=%d\n",RSSI);
+     trssi=time_us_32()+1000000;
+  }
+#endif //RX_SI473X
+*/
 }
 
 /*----------
@@ -872,27 +933,29 @@ void receive(){
   
   if (Tx_Status != 0) {
 
-  si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
-  si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);
-  si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);
-  si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
-  si5351.output_enable(SI5351_CLK2, 1);   //BFO osc. on
+     si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
+     si5351.set_freq(RF_freq*100ULL, SI5351_CLK0);
+
+     si5351.set_freq((RF_freq-BFO_freq)*100ULL, SI5351_CLK1);
+     
+     si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
+     si5351.output_enable(SI5351_CLK2, 1);   //BFO osc. on
 
 /*--------
   Turn TX led off and enable receiver
 */
 
-  digitalWrite(TX,LOW);
-  digitalWrite(RX,HIGH);
+     digitalWrite(TX,LOW);
+     digitalWrite(RX,HIGH);
   
-  Tx_Status=0;
-  _INFO("TX-\n");
+     Tx_Status=0;
+     _INFO("TX-\n");
   
   }
   /*-----------
     Initialize the USB incoming queue
   */
-  for (int i = 0; i < 24; i++) {
+  for (int i = 0; i < SAMPLESIZE; i++) {
     monodata[i] = 0;
   } 
   
@@ -901,9 +964,10 @@ void receive(){
   */
   pcCounter=0;
   nBytes=0;
+
   adc_fifo_drain ();                     //initialization of adc fifo
   adc_run(true);                         //start ADC free running
-  
+
 }
 
 /*-------------
@@ -1023,7 +1087,7 @@ bool CAT_process(char *c,char *r,char *cmd,char *arg){
         unsigned long fx=strtol(arg, &q, 10);
         uint16_t bx=freq2band(fx);
         if (bx==0) return true;
-        uint16_t band_slot=band2slot(bx);
+        Band_slot=band2slot(bx);
         band=bx;
         RF_freq=fx;
         si5351_setFreq(RF_freq);

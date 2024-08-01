@@ -9,6 +9,17 @@
 // This code relies heavily on the great work from Hitoshi, JE1RAV at the QP-7C_RP2040 transceiver
 //
 //*********************************************************************************************************
+/*---------------------------------------------------------------------------------------------------*
+ *                                     Program definition and parameters.                            *
+ *---------------------------------------------------------------------------------------------------*/
+
+/*--------------------------------------------------
+ * Program configuration parameters
+ */
+#define BAUD             115200
+//#define CAT                   1  //Uncomment to activate CAT
+#define DEBUG                 1  //Debug mode
+//#define RX_SI473X             1  //Si473x receiver
 
 
 /*---------------------------------------------------------------------------------------------------*
@@ -56,16 +67,10 @@
 
 #define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
 
-/*---------------------------------------------------------------------------------------------------*
- *                                     Program definition and parameters.                            *
- *---------------------------------------------------------------------------------------------------*/
 
-/*--------------------------------------------------
- * Program configuration parameters
- */
-#define BAUD             115200
-#define CAT                   1  //Uncomment to activate CAT
-#define DEBUG                 1  //Debug mode
+/*---------------------------------------------------------------------------------------------------*
+ *                                  Consistency rules and constants                            *
+ *---------------------------------------------------------------------------------------------------*/
 
 /*--------------------------
   Consistency rule: either DEBUG or CAT but not both
@@ -75,11 +80,26 @@
 #endif //CAT
 
 //#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
-#define NBANDS                4
+#define BANDS                 4
+#define MAXBAND               9
+
+/*-----------------------------------------------
+  If RX_SI473X receiver defined declare constants
+ *-----------------------------------------------*/
+
+#ifdef RX_SI473X           //Define RESET pin for SI473x if defined
+
+#define RESET_SI473X    1  //Si473x RESET pin
+#define AM_FUNCTION     1
+#define RESET_PIN       1
+#define LSB             1
+#define USB             2
+
+#endif //RX_SI473X
 
 
 #define FSK_TOUT             50 //FSK timeout in mSecs (no signal present for more than)
-#define SAMPLE_RATE       44100 //Audio sample rate
+#define AUDIOSAMPLING     48000 //
 #define FSK_MIN           20000 //Minimum frequency allowed (200 Hz)
 #define FSK_MAX          300000 //Maximum frequency allowed (3000 Hz)
 #define FSK_THRESHOLD         5 //Minimum threshold to change the frequency
@@ -87,6 +107,7 @@
 #define USB_MIN               1 //Minimum USB in queue size
 #define FREQ_BFO         446400 //Intermediate frequency
 #define AF_TONE          150000
+#define SAMPLESIZE           48
 
 
 #define CAT_WARN1           500
@@ -97,28 +118,20 @@
 /*------------------------------*
    ADC port values
   ------------------------------*/
-#define ADC_NUM 1
-#define ADC_PIN (26 + ADC_NUM)
-#define ADC_VREF 3.3
-#define ADC_RANGE (1 << 12)
-#define ADC_CONVERT (ADC_VREF / (ADC_RANGE - 1))
+#define ADC_NUM       1
+#define ADC_PIN       (26 + ADC_NUM)
+#define ADC_VREF      3.3
+#define ADC_RANGE     (1 << 12)
+#define ADC_CONVERT   (ADC_VREF / (ADC_RANGE - 1))
 
 /*------------------------------*
    ADC Limits and operation
   ------------------------------*/
-#define  ADCMAX      4096
-#define  ADCMIN         0
+#define  ADCMAX       4096
+#define  ADCMIN       0
 #define  ADCZERO     (ADCMAX+ADCMIN)/2
-#define  ADCSAMPLE      1 
+#define  ADCSAMPLE     1 
 
-/*------------------------------------------------------
- *   Internal clock handling
- */
-struct tm timeinfo;        //current time
-struct tm timeprev;        //epoch time
-time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
-time_t now;
-char timestr[12];
 
 /*------------------------------------
  DEBUG macro
@@ -139,5 +152,43 @@ char timestr[12];
 #else
 #define _INFO(...) (void)0
 #endif //_INFO macro definition as NOP when not in debug mode, will consume one byte of nothingness
+
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+/*                                        External references                                                    */
+/*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+
+extern const uint16_t Bands[BANDS];
+extern uint16_t Band2Idx(uint16_t b);
+extern const long unsigned slot[MAXBAND][3];
+extern int Band_slot;     // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
+extern char hi[256];
+extern uint64_t RF_freq;   // RF frequency (Hz)
+
+/*------------------------------------------------------
+ *   Internal clock handling
+ */
+extern struct tm timeinfo;        //current time
+extern struct tm timeprev;        //epoch time
+extern time_t t_ofs;          //time correction after sync (0 if not sync-ed)
+extern time_t now;
+extern char timestr[12];
+
+/*------------------------------------------------------
+ *   Optional Si473x handling
+ */
+
+#ifdef RX_SI473X
+extern void SI473x_Setup();
+
+extern bool SI473x_enabled;
+extern void SI473x_setFrequency(int s);
+extern int getRSSI();
+extern void SI473x_Status();
+extern String getFrequency();
+extern int getSNR();
+extern int getVolume();
+extern int getSignal();
+extern void setVolume();
+#endif //RX_SI473X
 
 
