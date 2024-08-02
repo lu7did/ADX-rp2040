@@ -86,6 +86,11 @@
 
 #define FAN               14  //FAN activation line
 
+#define LED_BRIGHT       255
+#define LED_MEDIUM       127
+#define LED_LOW           63
+#define LED_DIMM          31
+
  #endif //PixiePico
 
 /*---------------------------------------------------------------------------------------------------*

@@ -3,7 +3,7 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                            Pedro (Pedro Colla) - LU7DZ - 2022,2023
 //
-//                                         Version 3.0
+//                                         Version 4.0
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 //* Based on ADX-rp2040 by Pedro Colla LU7DZ (2022)
 //* Originally ported from ADX_UnO_V1.3 by Barb Asuroglu (WB2CBA)
@@ -48,7 +48,7 @@
 //                The reason for the local copy is to set the SDA/SCL ports as 16/17 which are required
 //                by the board and can not be set externally to the library under the mbed core
 //                SI5351       (https://github.com/etherkit/Si5351Arduino) Library by Jason Mildrum (NT7S) 
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
+//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 // License
 // -------
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -68,7 +68,7 @@
 // ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
 
 /*-------------------------------------------------
    IDENTIFICATION DIVISION.
@@ -76,8 +76,8 @@
 */
 #define PROGNAME "ADX_rp2040-mbed"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
-#define VERSION  "1.0"
-#define BUILD     "21"
+#define VERSION  "4.0"
+#define BUILD     "00"
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 #include "hardware/adc.h"
@@ -86,8 +86,12 @@
 #include "Wire.h"
 #include "ADX-rp2040.h"
 
+//*--------------------------------------------------------------------------------------------
+//* Definition of NeoPixel RGB management library
+//*--------------------------------------------------------------------------------------------
 #ifdef PixiePico
 #include <NeoPixelConnect.h>
+NeoPixelConnect led(16, 1, pio0, 0);  // creamos la instacia para utilizar el led, con el nombre de led
 #endif //Support for NeoPixel RGB led for signaling
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -95,7 +99,15 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 Si5351 si5351;
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//.                Transceiver Frequency management memory areas
+//*                Transceiver Frequency management memory areas
+//*
+//* Notes on PixiePico project
+//*
+//* PixiePico is a single band transceiver, originally aimed for the 28 MHz band
+//* however, the band switch capability of the firmware is left in a way that it can be
+//* programmed by firmware to operate in other band (assuming the LPF of the Pixie transceiver)
+//* is adjusted accordingly by changing the value of the Band_slot variable to point to the
+//* correct entry in the Bands table.
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 const uint16_t Bands[BANDS] = {40,30,20,10};
 const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},         //80m [0]
@@ -108,14 +120,15 @@ const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},       
                                          {24915000UL,24890000UL,24990000UL},      //12m [7]
                                          {28074000UL,28000000UL,29700000UL}};     //10m [8]
 #ifdef ADX-rp2040                                         
+
 int Band_slot = 3;     // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
-int mode=3;
 uint64_t RF_freq=7074000;   // RF frequency (Hz)
 
 #else
+
 int Band_slot = 4;           //Default for PixiePico is 28MHz
-int mode=3;                  //FT8
 uint64_t RF_freq=28074000;   // RF frequency (Hz)
+uint8_t rxMask =LED_DIMM;
 
 #endif //ADX-rp2040
 
@@ -309,7 +322,11 @@ if (f>=21000000 && f<=21300000) {return  15;}
 if (f>=24000000 && f<=24300000) {return  12;}
 if (f>=28000000 && f<=29500000) {return  10;}
 
+#ifdef ADX-rp2040
 return 40;
+#else
+return 10;
+#endif //ADX-rp2040
 
 }
 /*----------------------------------------
@@ -367,7 +384,23 @@ uint16_t Band2Idx(uint16_t b) {
   return i;
 
 }
-
+#ifdef PixiePico
+/*---------
+  showRGB
+  set the RGB LED
+*/
+void showRGB(uint8_t r,uint8_t g,uint8_t b,uint8_t RGBmode) {
+  led.neoPixelClear(true); // limpiamos el led
+  delay(10);
+  led.neoPixelFill(r & RGBmode, g & RGBmode, b & RGBmode, true); // le pasamos el valor de RGB del color que queremos
+}
+void showTX() {
+  showRGB(0,0,255,rxMask);
+}
+void showRX() {
+  showRGB(255,0,0,rxMask);
+}
+#endif //PixiePico
 /*---------
   get a Switch value with de-bouncing
 */  
@@ -626,7 +659,7 @@ void setLEDbyslot(uint16_t s) {
   }
 #else
 
-/*---- Here it comes the RGB LED management of PixiePico */
+  showRGB(0,0,255,rxMask);
 
 #endif //ADX-rp2040
 
@@ -951,9 +984,9 @@ void transmit(int64_t freq){
     digitalWrite(RXSW,LOW);   //Disable receiver
 
 #ifdef ADX-rp2040
-
     digitalWrite(TX,HIGH);   //Turn TX LED on
-
+#else
+    showTX();                //Set RGB LED as red
 #endif //ADX-rp2040
 
     si5351.output_enable(SI5351_CLK1, 0);   //RX osc. off
@@ -993,9 +1026,9 @@ void receive(){
 */
 
 #ifdef ADX-rp2040
-
      digitalWrite(TX,LOW);
-
+#else
+     showRX();               //Show RGB led as blue (receiving mode)
 #endif  //ADX-rp2040
 
      digitalWrite(RXSW,HIGH);
