@@ -25,8 +25,8 @@
 
 #define BAUD             115200
 #define DEBUG                 1  //Debug mode
-
 //#define CAT                   1  //Uncomment to activate CAT
+
 //#define RX_SI473X             1  //Si473x receiver
 //#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
 
@@ -41,7 +41,7 @@
 #endif
 
 #ifdef ADX-rp2040
-#undef PixiePico
+#undef PixiePico                //ADX-rp2040 prevails over PixiePico
 #endif 
 
 /*---------------------------------------------------------------------------------------------------*
@@ -59,7 +59,6 @@
  *                        ADX-rp2040 board hardware definition and parameters.                            *
  *---------------------------------------------------------------------------------------------------*/
  #ifdef ADX-rp2040
-
 
 /*---
    LED
@@ -104,17 +103,16 @@
 /*----
    Output control lines RX-TX 
 */
-#define RXSW              2  //RX Switch
+#define RXSW            2  //RX Switch
 
 /*----
    Output control lines RX-TX 
 */
-#define CAL               11  //Si5351 automatic calibration
+#define CAL            11  //Si5351 automatic calibration
 
 /*----
    Input switch
 */
-
 #define TXSW            8  //RX-TX Switch
 /*---------------------------------------------------------------------------------------------------*
  *                                  Consistency rules and constants                            *
@@ -129,7 +127,6 @@
 
 #define BANDS                 4
 #define MAXBAND               9
-
 /*-----------------------------------------------
   If RX_SI473X receiver defined declare constants
  *-----------------------------------------------*/
@@ -164,7 +161,6 @@
 #define CAT_WARN2         10000
 #define ONE_MSEC           1000
 
-
 /*------------------------------*
    ADC port values
   ------------------------------*/
@@ -181,7 +177,6 @@
 #define  ADCMIN       0
 #define  ADCZERO     (ADCMAX+ADCMIN)/2
 #define  ADCSAMPLE     1 
-
 
 /*------------------------------------
  DEBUG macro
@@ -206,7 +201,6 @@
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*                                        External references                                                    */
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-
 extern const uint16_t Bands[BANDS];
 extern uint16_t Band2Idx(uint16_t b);
 extern const long unsigned slot[MAXBAND][3];

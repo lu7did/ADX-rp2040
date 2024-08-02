@@ -121,8 +121,8 @@ const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},       
                                          {28074000UL,28000000UL,29700000UL}};     //10m [8]
 #ifdef ADX-rp2040                                         
 
-int Band_slot = 3;     // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
-uint64_t RF_freq=7074000;   // RF frequency (Hz)
+int Band_slot = 3;           // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
+uint64_t RF_freq=7074000;    // RF frequency (Hz)
 
 #else
 
@@ -176,7 +176,6 @@ int32_t cycle_frequency[34];
 */
 int16_t adc_offset = 0;          //Receiver offset
 
-
 bool     adc_high;
 bool     adc_low;
    
@@ -191,7 +190,6 @@ uint16_t adc_zero;
 uint16_t adc_uh;
 uint16_t adc_ul;
 
-
 /*-----------------------------
   USB Audio definition and control blocks
  */
@@ -201,17 +199,10 @@ USBAudio audio(true, AUDIOSAMPLING, 2, AUDIOSAMPLING, 2);
 int16_t monodata[SAMPLESIZE];
 uint16_t pcCounter=0;
 uint16_t nBytes=0;
-/*
-uint8_t myRawBuffer[24]; //was 24 sampling (= 0.5 ms at 48000 Hz sampling) data sent from PC are received.
-int16_t pcBuffer16[24];  //was 24 sampling date are written to PC in one packet.
-*/
 static uint8_t readBuffer[192];  //48 sampling (=  0.5 ms at 48000 Hz sampling) data sent from PC are recived (16bit stero; 48*2*2).
 int16_t writeBuffer16[SAMPLESIZE*2];       //48 sampling date are written to PC in one packet (stero).
 uint16_t writeCounter=0;
 int prevRSSI=0;
-
-
-//int16_t USB_read=0;
 bool USBAudio_read;
 int64_t last_audio_freq=0;
 
@@ -399,6 +390,14 @@ void showTX() {
 }
 void showRX() {
   showRGB(255,0,0,rxMask);
+}
+void showSetup() {
+  for (int i=0;i<10;i++) {
+     showRGB(255,255,0,rxMask);
+     delay(100);
+     showRGB(0,255,255,rxMask);
+     delay(100);
+  }
 }
 #endif //PixiePico
 /*---------
@@ -780,6 +779,7 @@ void setup() {
   Init I/O
 */
   init_IO();
+  showSetup();
 
 /*-----------
   Set initial band, slot, frequency and set LED
