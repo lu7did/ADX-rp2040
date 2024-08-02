@@ -1,12 +1,15 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                                              ADX_rp2040                                                 *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-// Pedro (Pedro Colla) - LU7DZ - 2022,2023
+// Pedro (Pedro Colla) - LU7DZ - 2022,2024
 //
 // Version 3.0
-// This is experimental code trying to port the ADX-rp2040 code to the Arduino IDE mbed core in order 
-// to implement the USB audio feature
+// This is an experimental code porting the ADX-rp2040 code to the Arduino IDE mbed core in order 
+// to implement the support for audio over USB feature
 // This code relies heavily on the great work from Hitoshi, JE1RAV at the QP-7C_RP2040 transceiver
+//
+// Version 4.0
+// Extended support for the PixiePico project (Pixie kit based FT8 28 MHz transceiver)
 //
 //*********************************************************************************************************
 /*---------------------------------------------------------------------------------------------------*
@@ -16,11 +19,30 @@
 /*--------------------------------------------------
  * Program configuration parameters
  */
-#define BAUD             115200
-//#define CAT                   1  //Uncomment to activate CAT
-#define DEBUG                 1  //Debug mode
-//#define RX_SI473X             1  //Si473x receiver
+#define PixiePico               1  //Define PicoPixie board support
+//#define ADX-rp2040                     1  //Define ADX board support
 
+
+#define BAUD             115200
+#define DEBUG                 1  //Debug mode
+
+//#define CAT                   1  //Uncomment to activate CAT
+//#define RX_SI473X             1  //Si473x receiver
+//#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
+
+/*---------------------------------------------------------------------------------------------------*
+ * Apply few integrity rules to avoid conflicting directives to make the code compilation to go wrong
+ * if project PixiePico then the processor has to be rp2040Z, else a normal Raspberry Pico (rp2040)
+ */
+
+#ifdef PixiePico
+#undef  RX_SI473X               //PixiePico doesn't use a Si473X chipset
+#undef  SUPERHETERODYNE         //PixiePico doesn't use a SUPERHETERODYNE mode
+#endif
+
+#ifdef ADX-rp2040
+#undef PixiePico
+#endif 
 
 /*---------------------------------------------------------------------------------------------------*
  * Includes and macro definitions for the ADX-rp2040 transceiver firmware                            *
@@ -29,20 +51,15 @@
 /*-------------------------------------------------
  * Macro expansions
  */
-//#define digitalWrite(x,y) gpio_put(x,y)
-//#define digitalRead(x)  gpio_get(x)
-
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
 
 /*---------------------------------------------------------------------------------------------------*
- *                              Board hardware definition and parameters.                            *
+ *                        ADX-rp2040 board hardware definition and parameters.                            *
  *---------------------------------------------------------------------------------------------------*/
-/*----
-   Output control lines
-*/
-#define RX              2  //RX Switch
+ #ifdef ADX-rp2040
+
 
 /*---
    LED
@@ -59,15 +76,41 @@
 */
 #define UP             10  //UP Switch
 #define DOWN           11  //DOWN Switch
-#define TXSW            8  //RX-TX Switch
 
+#endif //ADX-rp2040
+
+/*---------------------------------------------------------------------------------------------------*
+ *                    PixiePico board hardware definition and parameters.                            *
+ *---------------------------------------------------------------------------------------------------*/
+ #ifdef PixiePico
+
+#define FAN               14  //FAN activation line
+
+ #endif //PixiePico
+
+/*---------------------------------------------------------------------------------------------------*
+ *                    Definitions common for both PixiePico and ADX-rp2040 boards                    *
+ *---------------------------------------------------------------------------------------------------*/
 /*---
    Signal input pin
 */
-
 #define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
 
+/*----
+   Output control lines RX-TX 
+*/
+#define RXSW              2  //RX Switch
 
+/*----
+   Output control lines RX-TX 
+*/
+#define CAL               11  //Si5351 automatic calibration
+
+/*----
+   Input switch
+*/
+
+#define TXSW            8  //RX-TX Switch
 /*---------------------------------------------------------------------------------------------------*
  *                                  Consistency rules and constants                            *
  *---------------------------------------------------------------------------------------------------*/
@@ -79,7 +122,6 @@
 #undef DEBUG
 #endif //CAT
 
-//#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
 #define BANDS                 4
 #define MAXBAND               9
 
@@ -97,6 +139,9 @@
 
 #endif //RX_SI473X
 
+/*-----------------------------------------------
+  Frequency counting algorithm
+ *-----------------------------------------------*/
 
 #define FSK_TOUT             50 //FSK timeout in mSecs (no signal present for more than)
 #define AUDIOSAMPLING     48000 //

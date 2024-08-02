@@ -86,6 +86,10 @@
 #include "Wire.h"
 #include "ADX-rp2040.h"
 
+#ifdef PixiePico
+#include <NeoPixelConnect.h>
+#endif //Support for NeoPixel RGB led for signaling
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //.                Master clock
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -94,8 +98,6 @@ Si5351 si5351;
 //.                Transceiver Frequency management memory areas
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 const uint16_t Bands[BANDS] = {40,30,20,10};
-//const uint64_t freqs[BANDS] = {7074000,10136000,14074000,28074000};
-
 const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},         //80m [0]
                                          {5357000UL,5351000UL,5356000UL},         //60m [1]
                                          {7074000UL,7000000UL,7300000UL},         //40m [2]
@@ -105,10 +107,19 @@ const unsigned long slot[MAXBAND][3] = { {3573000UL,3500000UL,3800000UL},       
                                          {21074000UL,21000000UL,21450000UL},      //15m [6]
                                          {24915000UL,24890000UL,24990000UL},      //12m [7]
                                          {28074000UL,28000000UL,29700000UL}};     //10m [8]
+#ifdef ADX-rp2040                                         
 int Band_slot = 3;     // This is he default starting band 1=40m, 2=30m, 3=20m, 4=10m
 int mode=3;
-uint16_t band;
 uint64_t RF_freq=7074000;   // RF frequency (Hz)
+
+#else
+int Band_slot = 4;           //Default for PixiePico is 28MHz
+int mode=3;                  //FT8
+uint64_t RF_freq=28074000;   // RF frequency (Hz)
+
+#endif //ADX-rp2040
+
+uint16_t band;
 bool SI473x_enabled=false;
 
 #ifdef SUPERHETERODYNE
@@ -234,37 +245,45 @@ uint16_t slot2band(uint16_t s) {
 if (s >= 0 && s <= (BANDS-1)) {
    return Bands[s];  
 }
+
+#ifdef ADX-rp2040
 return 40;
+#else
+return 10;
+#endif //ADX-rp2040
   
 }
 /*---------------
   given the band return the frequency associated with it from freqs[]
 */  
 uint64_t band2freq(uint16_t b) {
+
 uint16_t bx=b;
+
+#ifdef ADX-rp2040
 if (b >160 || b < 10) {
    bx=40;
 }
+#else
+   bx=10;
+#endif //ADX-rp2040
+
 uint16_t j=Band2Idx(bx);
 return slot[j][0];
-
-/*
-for (int i=0;i<BANDS;i++) {
-   if (Bands[i]==b) {
-       return freqs[b];
-   }  
-}
-return freqs[0];
-*/
 }
 /*------------------------
   given the band return the slot
 */  
 uint16_t band2slot(uint16_t b) {
 
+#ifdef ADX-rp2040
 if (b >160 || b < 10) {
    return 0;
 }
+#else
+return 3;
+#endif //ADX-rp2040
+
 
 for (int i=0;i<BANDS;i++) {
    if (Bands[i]==b) {
@@ -400,7 +419,9 @@ void handleSW() {
       _INFO("CAT operating\n");
       return;
    }
-   
+
+#ifdef ADX-rp2040
+
    if (getSW(UP)==LOW) {
       _INFO("(UP) Button\n");
       while(getSW(UP)==LOW);
@@ -425,13 +446,21 @@ void handleSW() {
       si5351_setFreq(RF_freq);
    }
 
-   if (getSW(TXSW)==LOW) {
+   #endif //ADX-rp2040
+
+/*--------------------------------------------------------------------
+  when the TXSW switch is presed while in operation the transceiver is
+  placed in transmission mode (for testing purposes)
+*/  
+
+  if (getSW(TXSW)==LOW) {
      Tx_Status=0;
      transmit(int64_t(AF_TONE));
      while(getSW(TXSW)==LOW);
      receive();     
 
-   }
+  }
+
 }
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //                USB UAC2 managing blocks
@@ -546,10 +575,13 @@ void si5351_init() {
 void init_IO() {
 
   pinMode(A0, INPUT);            //ADC input pin
+  pinMode(TXSW, INPUT_PULLUP);
+  pinMode(RXSW, OUTPUT);
+
+#ifdef ADX-rp2040
 
   pinMode(UP, INPUT_PULLUP);
   pinMode(DOWN, INPUT_PULLUP);
-  pinMode(TXSW, INPUT_PULLUP);
 
   pinMode(TX, OUTPUT);
 
@@ -558,17 +590,23 @@ void init_IO() {
   pinMode(FT4, OUTPUT);
   pinMode(FT8, OUTPUT);
 
-  pinMode(RX, OUTPUT);
+#endif //ADX-rp2040
+
 
 /*--------------------
      Initialize starting mode (RX on,TX off, all LED off)
   */
-  digitalWrite(RX, HIGH);
+  digitalWrite(RXSW, HIGH);
+
+#ifdef ADX-rp2040
+
   digitalWrite(TX, LOW);
   digitalWrite(WSPR,LOW);
   digitalWrite(FT8,LOW);
   digitalWrite(FT4,LOW);
   digitalWrite(JS8,LOW);
+
+#endif //ADX-rp2040
 
   _INFO("Board I/O initialized\n");
 
@@ -578,6 +616,7 @@ void init_IO() {
 */  
 void setLEDbyslot(uint16_t s) {
 
+#ifdef ADX-rp2040
   for (int i=0;i<4;i++) {
       if (i==s) {
          digitalWrite(7-i,HIGH);
@@ -585,6 +624,11 @@ void setLEDbyslot(uint16_t s) {
          digitalWrite(7-i,LOW);
       }
   }
+#else
+
+/*---- Here it comes the RGB LED management of PixiePico */
+
+#endif //ADX-rp2040
 
 }
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -693,7 +737,11 @@ void setup() {
   Serial.setTimeout(100);
   Serial.flush();
 
+#ifdef ADX-rp2040
   _INFO("ADX-rp2040-mbed digital transceiver v(%s) build(%s)\n",VERSION,BUILD);
+#else
+  _INFO("PixiePico digital transceiver v(%s) build(%s)\n",VERSION,BUILD);
+#endif //ADX-rp2040
 
 /*-----------
   Init I/O
@@ -721,7 +769,11 @@ void setup() {
   delay(500);
   SI473x_Setup();
 #else
+#ifdef ADX-rp2040
   _INFO("CD2003GP chip receiver\n");
+#else
+  _INFO("Pixie receiver\n");
+#endif   
 #endif //RX_SI473X  
 /*------------
   USB Audio initialization
@@ -884,16 +936,6 @@ void receiving() {
   for (int i=0;i<6;i++){
     USBAudioWrite(rx_adc, rx_adc);
   }
-
-/*
-#ifdef RX_SI473X
-  if (time_us_32()>trssi) {
-     int RSSI=getRSSI();
-     _INFO("RSSI=%d\n",RSSI);
-     trssi=time_us_32()+1000000;
-  }
-#endif //RX_SI473X
-*/
 }
 
 /*----------
@@ -906,9 +948,14 @@ void transmit(int64_t freq){
    */ 
   if (Tx_Status==0){
   
-    digitalWrite(RX,LOW);   //Disable receiver
+    digitalWrite(RXSW,LOW);   //Disable receiver
+
+#ifdef ADX-rp2040
+
     digitalWrite(TX,HIGH);   //Turn TX LED on
-    
+
+#endif //ADX-rp2040
+
     si5351.output_enable(SI5351_CLK1, 0);   //RX osc. off
     si5351.output_enable(SI5351_CLK2, 0);   //BFO. off
     si5351.output_enable(SI5351_CLK0, 1);   //TX osc. on
@@ -945,8 +992,13 @@ void receive(){
   Turn TX led off and enable receiver
 */
 
+#ifdef ADX-rp2040
+
      digitalWrite(TX,LOW);
-     digitalWrite(RX,HIGH);
+
+#endif  //ADX-rp2040
+
+     digitalWrite(RXSW,HIGH);
   
      Tx_Status=0;
      _INFO("TX-\n");
