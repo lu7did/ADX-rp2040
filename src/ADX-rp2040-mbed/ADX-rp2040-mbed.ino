@@ -392,7 +392,7 @@ void showRX() {
   showRGB(255,0,0,rxMask);
 }
 void showSetup() {
-  for (int i=0;i<10;i++) {
+  for (int i=0;i<LED_BLINK;i++) {
      showRGB(255,255,0,rxMask);
      delay(100);
      showRGB(0,255,255,rxMask);
