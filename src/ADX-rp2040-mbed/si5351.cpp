@@ -27,12 +27,24 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "si5351.h"
+#include "ADX-rp2040.h"
 
+#ifdef ADX-rp2040
 /*---
     I2C
 */
 #define I2C_SDA        16  //I2C SDA
 #define I2C_SCL        17  //I2C SCL
+#endif //ADX-rp2040
+
+#ifdef PixiePico
+/*---
+    I2C
+*/
+#define I2C_SDA        12  //I2C SDA
+#define I2C_SCL        13  //I2C SCL
+#endif //PixiePico
+
 
 /********************/
 /* Public functions */

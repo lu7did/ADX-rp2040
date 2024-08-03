@@ -386,12 +386,27 @@ void showRGB(uint8_t r,uint8_t g,uint8_t b,uint8_t RGBmode) {
   led.neoPixelFill(r & RGBmode, g & RGBmode, b & RGBmode, true); // le pasamos el valor de RGB del color que queremos
 }
 void showTX() {
-  showRGB(0,0,255,rxMask);
-}
-void showRX() {
+  _INFO(" TX RGB=BLUE mode cat_stat=%d\n",cat_stat);
   showRGB(255,0,0,rxMask);
 }
+void showRX() {
+  #ifdef CAT
+    showRGB(255,255,0,rxMask);
+  _INFO(" RX RGB=YELLOW mode cat_stat=%d\n",cat_stat);
+
+    //if (cat_stat == 0) {
+    //  showRGB(255,255,0,rxMask);
+    //} else {
+    //  showRGB(192,192,192,rxMask);
+    //}
+  #else  
+    showRGB(0,0,255,rxMask);
+  _INFO(" RX RGB=BLUE mode cat_stat=%d\n",cat_stat);
+
+  #endif //CAT
+}
 void showSetup() {
+  _INFO("rxMask=%d\n",rxMask);
   for (int i=0;i<LED_BLINK;i++) {
      showRGB(255,255,0,rxMask);
      delay(100);
@@ -448,7 +463,7 @@ void setLEDbyband(uint16_t b) {
 void handleSW() {
 
    if (cat_stat == 1) {
-      _INFO("CAT operating\n");
+      //_INFO("CAT operating\n");
       return;
    }
 
@@ -628,16 +643,18 @@ void init_IO() {
 /*--------------------
      Initialize starting mode (RX on,TX off, all LED off)
   */
-  digitalWrite(RXSW, HIGH);
+
 
 #ifdef ADX-rp2040
-
+  digitalWrite(RXSW, HIGH);
   digitalWrite(TX, LOW);
   digitalWrite(WSPR,LOW);
   digitalWrite(FT8,LOW);
   digitalWrite(FT4,LOW);
   digitalWrite(JS8,LOW);
 
+#else
+  digitalWrite(RXSW,LOW);
 #endif //ADX-rp2040
 
   _INFO("Board I/O initialized\n");
@@ -676,6 +693,8 @@ void adc_setup() {
   adc_set_clkdiv(249.0);                      // 192kHz sampling  (48000 / (249.0 +1) = 192)
   adc_fifo_setup(true,false,0,false,false);   // fifo
   adc_run(true);                              //ADC free running
+  _INFO("ADC setup completed\n");
+
 
 }
 /*--------------------------------
@@ -803,9 +822,9 @@ void setup() {
   SI473x_Setup();
 #else
 #ifdef ADX-rp2040
-  _INFO("CD2003GP chip receiver\n");
+  _INFO("CD2003GP chip receiver selected\n");
 #else
-  _INFO("Pixie receiver\n");
+  _INFO("Pixie receiver selected\n");
 #endif   
 #endif //RX_SI473X  
 /*------------
@@ -981,7 +1000,12 @@ void transmit(int64_t freq){
    */ 
   if (Tx_Status==0){
   
+#ifdef ADX-rp2040  
     digitalWrite(RXSW,LOW);   //Disable receiver
+#else
+    _INFO(" setting Tx_Status=%d\n",Tx_Status);
+    digitalWrite(RXSW,HIGH);
+#endif        
 
 #ifdef ADX-rp2040
     digitalWrite(TX,HIGH);   //Turn TX LED on
@@ -1010,7 +1034,8 @@ void transmit(int64_t freq){
   Place the transceiver in receiver mode and change the frequency accordingly
  */
 void receive(){
-  
+
+  _INFO("TX_Status=%d\n",Tx_Status);
   if (Tx_Status != 0) {
 
      si5351.output_enable(SI5351_CLK0, 0);   //TX osc. off
@@ -1021,22 +1046,24 @@ void receive(){
      si5351.output_enable(SI5351_CLK1, 1);   //RX osc. on
      si5351.output_enable(SI5351_CLK2, 1);   //BFO osc. on
 
+  
+     Tx_Status=0;
+     _INFO("TX-\n"); 
+  }
+
 /*--------
   Turn TX led off and enable receiver
 */
 
 #ifdef ADX-rp2040
      digitalWrite(TX,LOW);
+     digitalWrite(RXSW,HIGH);
 #else
+     _INFO("showRX() Rx RF Freq=%ul\n",RF_freq);
      showRX();               //Show RGB led as blue (receiving mode)
+     digitalWrite(RXSW,LOW);
 #endif  //ADX-rp2040
 
-     digitalWrite(RXSW,HIGH);
-  
-     Tx_Status=0;
-     _INFO("TX-\n");
-  
-  }
   /*-----------
     Initialize the USB incoming queue
   */
@@ -1121,6 +1148,7 @@ char *trim(char *str)
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void CAT_warning() {
 
+#ifdef ADX-rp2040
       if (millis()-CATT1 >=CAT_WARN1 && CATT2 !=0 && cat_stat != 0) {
 
        flipLED=!flipLED;
@@ -1136,8 +1164,9 @@ void CAT_warning() {
           digitalWrite(FT8, LOW);
 
        } 
-
       }
+#endif //ADX-rp2040
+
 }      
 /*------------------------------
   CAT_process
@@ -1279,10 +1308,14 @@ int nread=Serial.available();
 if (nread > 0){
    if (cat_stat == 0) {
        cat_stat=1;
+
+#ifdef ADX-rp2040
        digitalWrite(WSPR, LOW); 
        digitalWrite(FT8, LOW);
        digitalWrite(JS8, HIGH);
        digitalWrite(FT4, HIGH);
+#endif //ADX-rp2040
+
        receive();
    }
 } else {

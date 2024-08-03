@@ -25,7 +25,7 @@
 
 #define BAUD             115200
 #define DEBUG                 1  //Debug mode
-//#define CAT                   1  //Uncomment to activate CAT
+#define CAT                   1  //Uncomment to activate CAT
 
 //#define RX_SI473X             1  //Si473x receiver
 //#define SUPERHETERODYNE       1  //Superhet mode (receiver frequency displaced by FREQ_BFO)
@@ -124,7 +124,7 @@
   Consistency rule: either DEBUG or CAT but not both
 */
 #if defined(CAT)
-#undef DEBUG
+//#undef DEBUG
 #endif //CAT
 
 #define BANDS                 4
