@@ -41,43 +41,36 @@
  */
 #undef  UART
 
-#define PROGRAMID       "dds_rp2040"
-#define VERSIONID       "1.0"
+/*-------------------------------------------------
+   IDENTIFICATION DIVISION.
+   (just a programmer joke)
+*/
+#define PROGNAME "ADX_rp2040"
+#define AUTHOR "Pedro E. Colla (LU7DZ)"
+#define VERSION  1.0
+#define BUILD     41
+
 #define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT
-#define STACK_SIZE      11000   //Bytes
 
 /*-------------------------------------------------------------*
    CPU Configuration parameters
   -------------------------------------------------------------*/
 #define MULTICORE       1       //Processing is split between core0 and core1
+#define STACK_SIZE      11000   //Bytes
 extern struct semaphore spc;      //Semaphore to protect multithread access to the signal queue
+
+/*-------------------------------------------------------------*
+   Time definition & messaging
+  -------------------------------------------------------------*/
 extern char timestr[12];
 #define TIMEZONE 0.00
 extern char hi[80];
 
-
-//extern int PioDCOInit(PioDco *pdco, int gpio, int cpuclkhz);
-/*
-extern int PioDCOSetFreq(PioDco *pdco, uint32_t ui32_frq_hz, int32_t ui32_frq_millihz);
-extern int32_t PioDCOGetFreqShiftMilliHertz(const PioDco *pdco, uint64_t u64_desired_frq_millihz);
-extern void PioDCOStart(PioDco *pdco);
-extern void PioDCOStop(PioDco *pdco);
-extern void RAM (PioDCOWorker2)(PioDco *pDCO);
-extern void RAM (PioDCOWorker)(PioDco *pDCO);
-extern void PioDCOSetMode(PioDco *pdco, enum PioDcoMode emode);
-*/
-
-
-
-
-
-
-
-
-
-
+/*-------------------------------------------------------------*
+   Debug messaging
+  -------------------------------------------------------------*/
 #ifdef DEBUG
 #define _SERIAL Serial
 
@@ -145,11 +138,10 @@ extern void PioDCOSetMode(PioDco *pdco, enum PioDcoMode emode);
 
 #endif
 
-
-
-#define GEN_FRQ_HZ 29977777L
- 
-
+/*-----------------------------------------------------
+   DDS Parameters
+*/
+#define GEN_FRQ_HZ 28074000L
 /*-----------------------------------------------------
    Definition of CAT (comment out if not desired)
 */

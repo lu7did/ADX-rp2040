@@ -167,7 +167,7 @@ void setup() {
     _SERIAL.begin(115200);
     _SERIAL.setTimeout(4);
 
-    _INFO("Program %s version %s\n",PROGRAMID,VERSIONID);
+    _INFO("Program %s version %s(%s)\n",PROGNAME,VERSION,BUILD);
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
