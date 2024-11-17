@@ -48,14 +48,6 @@
 #define CAT                  1  //Uncomment to activate CAT
 #define STACK_SIZE      11000   //Bytes
 
-/****************************************************************************  
-* RPi pico specific defs.
-****************************************************************************/  
-#define CLK_ADC_FREQ 48000000L                 /* pico's ADC clock is 48M. */
-#define GPIO(x) (x)                        /* pico GPIO number to address. */
-#define PLL_SYS_MHZ 270                                   /* system clock. */
-
-
 /*-------------------------------------------------------------*
    CPU Configuration parameters
   -------------------------------------------------------------*/
