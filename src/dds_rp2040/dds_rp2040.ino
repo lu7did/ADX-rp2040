@@ -121,6 +121,8 @@
 #include "dco2.pio.h"
 #include "protos.h"
 
+#include <NeoPixelConnect.h>
+
 /*------------------------------------------------------
  *   Internal clock handling
  */
@@ -139,6 +141,7 @@ char hi[80];
 
 uint32_t core1_stack[STACK_SIZE];
 PioDco DCO; /* External in order to access in both cores. */
+//NeoPixelConnect led(pin_led, 1, pio0, 0);  // creamos la instacia para utilizar el led, con el nombre de led
 
 
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -164,19 +167,61 @@ void core1_entry()
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() {
 
-    _SERIAL.begin(115200);
-    _SERIAL.setTimeout(4);
+  _SERIAL.begin(115200);
+  _SERIAL.setTimeout(4);
 
-    _INFO("Program %s version %s(%s)\n",PROGNAME,VERSION,BUILD);
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  _INFO("Program %s version %s(%s)\n",PROGNAME,VERSION,BUILD);
 
-    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
-    set_sys_clock_khz(clkhz / 1000L, true);
-    _INFO("System clock set to %ld KHz",clkhz/1000L);
 
-    multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
-    _INFO("%s: System initialization completed\n", __func__);
+  /*-----------------------------------------
+   * define special semaphore to control 
+   * access to the serial port while 
+   * debugging avoiding recursion and 
+   * re-entrancy problems.
+   */
+  sem_init(&spc, 1, 1);
+
+//*-------------------------------------------------------------------------------------------*
+//*from AA1GD*
+//overclocking the processor
+//133MHz default, 250MHz is safe at 1.1V and for flash
+//if using clock > 290MHz, increase voltage and add flash divider
+//see https://raspberrypi.github.io/pico-sdk-doxygen/vreg_8h.html
+
+  const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
+  set_sys_clock_khz(clkhz / 1000L, true);
+  _INFO("System clock set to %ld KHz",clkhz/1000L);
+
+  /*--------
+     Initialize switches
+  */
+  gpio_init(UP);
+  gpio_init(DOWN);
+  gpio_init(TXSW);
+  gpio_init(PICO_DEFAULT_LED_PIN);
+
+  /*-----
+     Set direction of input ports
+  */
+  gpio_set_dir(UP, GPIO_IN);
+  gpio_set_dir(DOWN, GPIO_IN);
+  gpio_set_dir(TXSW, GPIO_IN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
+  /*-----
+     Pull-up for input ports
+     (Warning! See hardware instructions
+  */
+
+  gpio_pull_up(TXSW);
+  gpio_pull_up(DOWN);
+  gpio_pull_up(UP);
+
+
+
+
+  multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
+  _INFO("%s: System initialization completed\n", __func__);
 
 /*
   This is to change frequency
@@ -188,8 +233,14 @@ void setup() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void loop() {
 
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(5);
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(5);
+/*
+    led.neoPixelFill(0, 0, 255, true); // Encendemos el led , en este ejemplo encendemos el AZUL
+    delay(1000);
+    led.neoPixelClear(true); // Apagamos el led
+    delay(1000);
+*/
+  gpio_put(PICO_DEFAULT_LED_PIN, 0);
+  sleep_ms(5);
+  gpio_put(PICO_DEFAULT_LED_PIN, 1);
+  sleep_ms(5);
 }

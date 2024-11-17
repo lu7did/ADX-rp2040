@@ -142,6 +142,16 @@ extern char hi[80];
    DDS Parameters
 */
 #define GEN_FRQ_HZ 28074000L
+
+/*-----------------------------------------------------
+   Switch configuration
+*/
+
+#define UP             2  //UP Switch
+#define DOWN           3  //DOWN Switch
+#define TXSW           4  //TX Switch
+#define LED_RGB       16 //On board RGB LED
+
 /*-----------------------------------------------------
    Definition of CAT (comment out if not desired)
 */
