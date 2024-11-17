@@ -52,7 +52,7 @@
 // ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-///////////////////////////////////////////////////////////////////////////////
+//*-------------------------------------------------------------------------------------------------------------
 //
 //  Roman Piksaykin [piksaykin@gmail.com], R2BDY
 //  https://www.qrz.com/db/r2bdy
@@ -85,23 +85,14 @@
 //      Rev 1.0   16 Nov 2024   Initial creation
 //
 //  PROJECT PAGE
-//      https://github.com/RPiks/pico-hf-oscillator
+//      https://github.com/lu7did/ADX-rp2040/tree/master
 //
 //  LICENCE
 //      MIT License (http://www.opensource.org/licenses/mit-license.php)
 //
 //  Copyright (c) 2023 by Roman Piksaykin
-//  
-//  Permission is hereby granted, free of charge,to any person obtaining a copy
-//  of this software and associated documentation files (the Software), to deal
-//  in the Software without restriction,including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
+//  Copyright (c) 2024 by Dr. Pedro E. Colla (LU7DZ)
+//*-------------------------------------------------------------------------------------------------------------
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -109,252 +100,98 @@
 //  LIABILITY,WHETHER IN AN ACTION OF CONTRACT,TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
-///////////////////////////////////////////////////////////////////////////////
+//*-------------------------------------------------------------------------------------------------------------
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "defines.h"
-
-#include "piodco.h"
-//#include "build/dco2.pio.h"
 #include "hardware/vreg.h"
+#include "pico/stdlib.h"
+#include "hardware/gpio.h"
+#include "pico/binary_info.h"
+#include "hardware/adc.h"
+#include "hardware/dma.h"
 #include "pico/multicore.h"
-#include "pico/stdio/driver.h"
+#include "hardware/irq.h"
+#include "hardware/watchdog.h"
 
-#include "./lib/assert.h"
-#include "./debug/logutils.h"
 #include "hwdefs.h"
-
-#include "GPStime.h"
-
-#include "hfconsole.h"
-
+#include "dds_rp2040.h"
+#include "piodco.h"
+#include "dco2.pio.h"
 #include "protos.h"
 
-//#define GEN_FRQ_HZ 32333333L
-#define GEN_FRQ_HZ 29977777L
+/*------------------------------------------------------
+ *   Internal clock handling
+ */
+struct tm timeinfo;        //current time
+struct tm timeprev;        //epoch time
+time_t t_ofs = 0;          //time correction after sync (0 if not sync-ed)
+time_t now;
+char timestr[12];
+struct semaphore spc;
+float timezone=TIMEZONE;
+int   tzh=0;
+int   tzm=0;
+int   localHour=0;
+int   localMin=0;
+char hi[80];
 
+uint32_t core1_stack[STACK_SIZE];
 PioDco DCO; /* External in order to access in both cores. */
 
-int main() 
-{
-    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
-    set_sys_clock_khz(clkhz / 1000L, true);
 
-    //*----> Revisar con que reemplazar stdio_init_all();
-    sleep_ms(1000);
-    printf("Start\n");
-
-    HFconsoleContext *phfc = HFconsoleInit(-1, 0);
-    
-    HFconsoleSetWrapper(phfc, (void *) ConsoleCommandsWrapper);
-
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
-    multicore_launch_core1(core1_entry);
-
-    for(;;)
-    {
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(5);
-        int r = HFconsoleProcess(phfc, 10);
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(1);
-    }
-
-    for(;;)
-    {
-        sleep_ms(100);
-        int chr = getchar_timeout_us(100);//getchar();
-        printf("%d %c\n", chr, (char)chr);
-    }
-  
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
-    multicore_launch_core1(core1_entry);
-
-    //SpinnerDummyTest();
-    //SpinnerSweepTest();
-    //SpinnerMFSKTest();
-    SpinnerRTTYTest();
-    //SpinnerMilliHertzTest();
-    //SpinnerWide4FSKTest();
-    //SpinnerGPSreferenceTest();
-}
-
-/* This is the code of dedicated core. 
-   We deal with extremely precise real-time task. */
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//*                                 Dedicated core DDS function
+//* Running on PIO processor
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void core1_entry()
 {
     const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
 
     /* Initialize DCO */
-    //*FIX* assert_(0 == PioDCOInit(&DCO, 6, clkhz));
-
+    PioDCOInit(&DCO, 6, clkhz);
     /* Run DCO. */
     PioDCOStart(&DCO);
-
     /* Set initial freq. */
-    //*FIX* assert_(0 == PioDCOSetFreq(&DCO, GEN_FRQ_HZ, 0u));
-
+    PioDCOSetFreq(&DCO, GEN_FRQ_HZ, 0u);
     /* Run the main DCO algorithm. It spins forever. */
     PioDCOWorker2(&DCO);
 }
 
-void RAM (SpinnerMFSKTest)(void)
-{
-    uint32_t rndval = 77777777;
-    for(;;)
-    {
-        /* This example sets new RND frequency every ~250 ms.
-           Frequency shift is 5 Hz for each step.
-        */
-        PioDCOSetFreq(&DCO, GEN_FRQ_HZ - 5*(rndval & 7), 0u);
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(250);
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(250);
-
-        PRN32(&rndval);
-    }
-}
-
-void RAM (SpinnerSweepTest)(void)
-{
-    int i = 0;
-    for(;;)
-    {
-        /* This example sets new frequency every ~250 ms.
-           Frequency shift is 5 Hz for each step.
-        */
-        PioDCOSetFreq(&DCO, GEN_FRQ_HZ - 5*i, 0u);
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(500);
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(500);
-
-        /* Return to initial freq after 20 steps (100 Hz). */
-        if(++i == 20)
-            i = 0;
-    }
-}
-
-void RAM (SpinnerRTTYTest)(void)
-{
-    int32_t df = 170;   /* 170 Hz freq diff. */
-    uint32_t rndval = 77777777;
-    for(;;)
-    {
-        /* This example sets new PRN frequency every ~22 ms.
-           Note: You should use precise timing while building a real transmitter.
-        */
-        PioDCOSetFreq(&DCO, GEN_FRQ_HZ - df*(rndval & 1), 0u);
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(22);
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(22);
-
-        PRN32(&rndval);
-    }
-}
-
-void RAM (SpinnerMilliHertzTest)(void)
-{
-    int i = 0;
-    for(;;)
-    {
-        /* This example sets new frequency every ~1s.
-           Frequency shift is 0.99 Hz for each step.
-        */
-        PioDCOSetFreq(&DCO, GEN_FRQ_HZ, 990*(++i&1));
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(1000);
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(1000);
-    }
-}
-
-void RAM (SpinnerWide4FSKTest)(void)
-{
-    int32_t df = 100;   /* 100 Hz freq diff * 4 = 400 Hz. */
-    uint32_t rndval = 77777777;
-    for(;;)
-    {
-        /* This example sets new PRN frequency every ~20 ms.
-           Note: You should use precise timing while building a real transmitter.
-        */
-        PioDCOSetFreq(&DCO, GEN_FRQ_HZ - df*(rndval & 3), 0u);
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(20);
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(20);
-
-        PRN32(&rndval);
-    }
-}
-
-/* This example sets the OUT frequency to 5.555 MHz.
-   Next every ~1 sec the shift of the OUT frequency relative to GPS
-   reference is calculated and the OUT frequency is corrected.
-   The example is working only when GPS receiver provides an
-   accurate PPS output (pulse per second). If no such option,
-   the correction parameter is zero.
-*/
-void RAM (SpinnerGPSreferenceTest)(void)
-{
-    const uint32_t ku32_freq = 5555000UL;
-    const int kigps_pps_pin = 2;
-
-    int32_t i32_compensation_millis = 0;
-
-    GPStimeContext *pGPS = GPStimeInit(0, 9600, kigps_pps_pin);
-    //*FIX* assert_(pGPS);
-    DCO._pGPStime = pGPS;
-    int tick = 0;
-    for(;;)
-    {
-        PioDCOSetFreq(&DCO, ku32_freq, -2*i32_compensation_millis);
-
-        /* LED signal */
-        gpio_put(PICO_DEFAULT_LED_PIN, 1);
-        sleep_ms(2500);
-
-        i32_compensation_millis = 
-            PioDCOGetFreqShiftMilliHertz(&DCO, (uint64_t)(ku32_freq * 1000LL));
-
-        gpio_put(PICO_DEFAULT_LED_PIN, 0);
-        sleep_ms(2500);
-
-        if(0 == ++tick % 6)
-        {
-            //stdio_set_driver_enabled(&stdio_uart, false);
-            GPStimeDump(&(pGPS->_time_data));
-            //stdio_set_driver_enabled(&stdio_uart, true);
-        }
-    }
-}
-
-
-
-
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                             Initial Setup
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() {
-  // put your setup code here, to run once:
 
+    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
+    set_sys_clock_khz(clkhz / 1000L, true);
+    _SERIAL.begin(115200);
+    _SERIAL.setTimeout(4);
+
+    //*----> Revisar con que reemplazar stdio_init_all();
+    //sleep_ms(1000);
+    //printf("Start\n");
+
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
+    //multicore_launch_core1(core1_entry);
+    multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
+    _INFO("%s: System initialization completed\n", __func__);
+
+/*
+  This is to change frequency
+        PioDCOSetFreq(&DCO, GEN_FRQ_HZ - 5*(rndval & 7), 0u);
+*/
 }
-
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
+//                                             Loop
+//*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void loop() {
-  // put your main code here, to run repeatedly:
 
+        gpio_put(PICO_DEFAULT_LED_PIN, 0);
+        sleep_ms(5);
+        gpio_put(PICO_DEFAULT_LED_PIN, 1);
+        sleep_ms(5);
 }

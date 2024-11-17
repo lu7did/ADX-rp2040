@@ -67,14 +67,13 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 ///////////////////////////////////////////////////////////////////////////////
+#include "hwdefs.h"
 #include "piodco.h"
-
 #include <string.h>
-#include "./lib/assert.h"
-
 #include "dco2.pio.h"
 
-volatile int32_t si32precise_cycles;
+//*FIX*volatile int32_t si32precise_cycles;
+static int32_t si32precise_cycles;
 
 /// @brief Initializes DCO context and prepares PIO hardware.
 /// @param pdco Ptr to DCO context.
@@ -83,17 +82,13 @@ volatile int32_t si32precise_cycles;
 /// @return 0 if OK.
 int PioDCOInit(PioDco *pdco, int gpio, int cpuclkhz)
 {
-    //*FIX* assert_(pdco);
-    //*FIX* assert_(cpuclkhz);
 
     memset(pdco, 0, sizeof(PioDco));
-
     pdco->_clkfreq_hz = cpuclkhz;
     pdco->_pio = pio0;
     pdco->_gpio = gpio;
     pdco->_offset = pio_add_program(pdco->_pio, &dco_program);
     pdco->_ism = pio_claim_unused_sm(pdco->_pio, true);
-
     gpio_init(pdco->_gpio);
     pio_gpio_init(pdco->_pio, pdco->_gpio);
 
@@ -117,15 +112,11 @@ int PioDCOInit(PioDco *pdco, int gpio, int cpuclkhz)
 /// @attention The func can be called while DCO running.
 int PioDCOSetFreq(PioDco *pdco, uint32_t ui32_frq_hz, int32_t ui32_frq_millihz)
 {
-    //*FIX* assert_(pdco);
-    //*FIX* assert(pdco->_clkfreq_hz);
-
     /* RPix: Calculate an accurate value of phase increment of the freq 
        per 1 tick of CPU clock, here 2^24 is scaling coefficient. */
     const int64_t i64denominator = 2000LL * (int64_t)ui32_frq_hz + (int64_t)ui32_frq_millihz;
     pdco->_frq_cycles_per_pi = (int32_t)(((int64_t)pdco->_clkfreq_hz * (int64_t)(1<<24) * 1000LL
                                          +(i64denominator>>1)) / i64denominator);
-
     si32precise_cycles = pdco->_frq_cycles_per_pi - (PIOASM_DELAY_CYCLES<<24);
 
     pdco->_ui32_frq_hz = ui32_frq_hz;
@@ -141,38 +132,16 @@ int PioDCOSetFreq(PioDco *pdco, uint32_t ui32_frq_hz, int32_t ui32_frq_millihz)
 /// @return Pico's reference clock shift. 2854974.
 int32_t PioDCOGetFreqShiftMilliHertz(const PioDco *pdco, uint64_t u64_desired_frq_millihz)
 {
-    //*KEY* assert_(pdco);
-    if(!pdco->_pGPStime)
-    {
-        return 0U;
-    }
-
-    static int64_t i64_last_correction = 0;
-    const int64_t dt = pdco->_pGPStime->_time_data._i32_freq_shift_ppb; /* Parts per billion. */
-    if(dt)
-    {
-        i64_last_correction = dt;
-    }
-
-    int32_t i32ret_millis;
-    if(i64_last_correction)
-    {
-        int64_t i64corr_coeff = (u64_desired_frq_millihz + 500000LL) / 1000000LL;
-        i32ret_millis = (i64_last_correction * i64corr_coeff + 50000LL) / 1000000LL;
-
-        return i32ret_millis;
-    }
 
     return 0U;
+   
 }
 
 /// @brief Starts the DCO.
 /// @param pdco Ptr to DCO context.
 void PioDCOStart(PioDco *pdco)
 {
-    //*FIX*assert_(pdco);
     pio_sm_set_enabled(pdco->_pio, pdco->_ism, true);
-
     pdco->_is_enabled = YES;
 }
 
@@ -180,9 +149,7 @@ void PioDCOStart(PioDco *pdco)
 /// @param pdco Ptr to DCO context.
 void PioDCOStop(PioDco *pdco)
 {
-    //*FIX* assert_(pdco);
     pio_sm_set_enabled(pdco->_pio, pdco->_ism, false);
-
     pdco->_is_enabled = NO;
 }
 
@@ -192,11 +159,12 @@ void PioDCOStop(PioDco *pdco)
 /// @return No return. It spins forever.
 void RAM (PioDCOWorker2)(PioDco *pDCO)
 {
-    register PIO pio = pDCO->_pio;
-    register uint sm = pDCO->_ism;
-    register int32_t i32acc_error = 0;
-    register uint32_t i32wc, i32reg;
+    PIO pio = pDCO->_pio;
+    uint sm = pDCO->_ism;
+    int32_t i32acc_error = 0;
+    uint32_t i32wc, i32reg;
     
+
 LOOP:
     i32reg = si32precise_cycles;
     i32wc = (i32reg - i32acc_error) >> 24U;
@@ -212,17 +180,16 @@ LOOP:
 /// @return No return. It spins forever.
 void RAM (PioDCOWorker)(PioDco *pDCO)
 {
-    //*FIX* assert_(pDCO);
-
-    register PIO pio = pDCO->_pio;
-    register uint sm = pDCO->_ism;
-    register int32_t i32acc_error = 0;
-    register uint32_t *preg32 = pDCO->_ui32_pioreg;
-    register uint8_t *pu8reg = (uint8_t *)preg32;
+    PIO pio = pDCO->_pio;
+    uint sm = pDCO->_ism;
+    int32_t i32acc_error = 0;
+    uint32_t *preg32 = pDCO->_ui32_pioreg;
+    uint8_t *pu8reg = (uint8_t *)preg32;
 
     for(;;)
     {
-        const register int32_t i32reg = si32precise_cycles;
+        int32_t i32reg = si32precise_cycles;
+
         /* RPix: Load the next precise value of CPU CLK cycles per DCO cycle,
            scaled by 2^24. It yields about 24 millihertz resolution at @10MHz
            DCO frequency. */
@@ -252,9 +219,7 @@ void RAM (PioDCOWorker)(PioDco *pDCO)
 /// @attention Not actual so far. User-independent freq. correction not impl'd yet. !FIXME!
 void PioDCOSetMode(PioDco *pdco, enum PioDcoMode emode)
 {
-    //*FIX* assert_(pdco);
     pdco->_mode = emode;
-
     switch(emode)
     {
         case eDCOMODE_IDLE:
@@ -267,5 +232,6 @@ void PioDCOSetMode(PioDco *pdco, enum PioDcoMode emode)
 
         default:
             break;
+
     }
 }
