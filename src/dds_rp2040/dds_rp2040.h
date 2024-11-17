@@ -41,6 +41,8 @@
  */
 #undef  UART
 
+#define PROGRAMID       "dds_rp2040"
+#define VERSIONID       "1.0"
 #define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT

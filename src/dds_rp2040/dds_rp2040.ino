@@ -164,19 +164,17 @@ void core1_entry()
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() {
 
-    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
-    set_sys_clock_khz(clkhz / 1000L, true);
     _SERIAL.begin(115200);
     _SERIAL.setTimeout(4);
 
-    //*----> Revisar con que reemplazar stdio_init_all();
-    //sleep_ms(1000);
-    //printf("Start\n");
-
+    _INFO("Program %s version %s\n",PROGRAMID,VERSIONID);
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    //multicore_launch_core1(core1_entry);
+    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
+    set_sys_clock_khz(clkhz / 1000L, true);
+    _INFO("System clock set to %ld KHz",clkhz/1000L);
+
     multicore_launch_core1_with_stack (core1_entry,core1_stack,STACK_SIZE);
     _INFO("%s: System initialization completed\n", __func__);
 
