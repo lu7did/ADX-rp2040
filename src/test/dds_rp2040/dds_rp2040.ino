@@ -112,6 +112,7 @@
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pio.h"
+
 //*-------------------------------------------------------------------------------------------------------------
 //*
 //*-------------------------------------------------------------------------------------------------------------
@@ -140,7 +141,6 @@ char hi[128];
 #define _INFOLIST(...) (void)0
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-
 double fx=14000000;      //Initial frequency setup
 PIOSettings pio;         //PIO structure
 
@@ -222,6 +222,7 @@ static inline float PIO_program_init(PIO pio, uint sm, uint offset, float tuned_
 /*---------------------------
   Once obtained the best system clock for a given frequency set it
 */
+  _INFOLIST("%s PLL Frequency=%ld refdiv=%d fbdib=%d div1=%d div2=%d\n",__func__,best_settings.frequency,best_settings.refdiv,best_settings.fbdiv,best_settings.postdiv1,best_settings.postdiv2);
   uint32_t vco_freq = (PLL_BASE / best_settings.refdiv) * best_settings.fbdiv;
   set_sys_clock_pll(vco_freq, best_settings.postdiv1, best_settings.postdiv2);
 
