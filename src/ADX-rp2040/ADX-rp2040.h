@@ -26,6 +26,15 @@
  *---------------------------------------------------------------------------------------------------*/
 
 /*-------------------------------------------------
+   IDENTIFICATION DIVISION.
+   (just a programmer joke)
+*/
+#define PROGNAME "ADX_rp2040"
+#define AUTHOR "Pedro E. Colla (LU7DZ)"
+#define VERSION  "2.0"
+#define BUILD     "00"
+
+/*-------------------------------------------------
  * Macro expansions
  */
 #define digitalWrite(x,y) gpio_put(x,y)
@@ -34,6 +43,8 @@
 #define BOOL2CHAR(x)  (x==true ? "True" : "False")
 #undef  _NOP
 #define _NOP (byte)0
+
+
 /*--------------------------------------------------
  * Program configuration parameters
  */
@@ -44,6 +55,11 @@
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT
 #define DDSPIO               1  //ddsPIO activated (comment to activate Si5351 clock) 
+
+
+#define NBANDS        7
+#define NMODES        4
+#define SLOT          4
 /*-----------------------------------------------------
    Definition of CAT (comment out if not desired)
 */
@@ -67,6 +83,83 @@
 #define CAL_STEP          500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
 #define CAL_COMMIT         12
 #define CAL_ERROR           1
+
+/*-----------------------------------------------------
+ * ddsPIO definitions
+ */
+
+#define DDSPIO               1                  //Use soft rp2040-based DDS
+#define OVERCLOCK            1                  //Users extended clock range to improve PLL error at high frequencies
+#define PLL_BASE      12000000                  //PLL
+#define DDSFREQ       14000000                  //Initial DDS frequency
+
+//***********************************************************************************************
+//* The following defines the ports used to connect the hard switches (UP/DOWN/TX) and the LED
+//* to the rp2040 processor in replacement of the originally used for the ADX Arduino Nano or UNO
+//* (see documentation for the hardware schematic and pinout
+//***********************************************************************************************
+/*----
+   Output control lines
+*/
+#define RX              2  //RX Switch
+
+/*---
+   LED
+*/
+#define WSPR            7  //WSPR LED
+#define JS8             6  //JS8 LED
+#define FT4             5  //FT4 LED
+#define FT8             4  //FT8 LED
+
+#define TX              3  //TX LED
+
+/*---
+   Switches
+*/
+#define UP             10  //UP Switch
+#define DOWN           11  //DOWN Switch
+#define TXSW            8  //RX-TX Switch
+
+/*---
+   Signal input pin
+*/
+
+#define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
+
+/*-------
+   Define pinout for CLK0 and CLK1 when using the rp2040 as a clock generator (DDS)
+*/   
+
+#ifdef DDSPIO
+#define DDS_CLK0        0
+#define DDS_CLK1        1
+#endif //DDSPIO
+
+#ifndef DDSPIO
+/*---
+    I2C
+*/
+#define I2C_SDA        16  //I2C SDA
+#define I2C_SCL        17  //I2C SCL
+#endif //!DDSPIO
+
+/*---
+    CAT
+*/
+#define UART_TX        12
+#define UART_RX        13
+
+/*----
+   Autocalibration pin
+*/
+#ifdef AUTOCAL
+#define CAL             9      //Automatic calibration entry
+#endif //AUTOCAL
+//**********************************************************************************************
+
+#ifndef DDSPIO
+#define SI5351_REF 		25000000UL  //change this to the frequency of the crystal on your si5351’s PCB, usually 25 or 27 MHz
+#endif //!DDSPIO
 
 /*-----------------------------------------------------
  * External references to freqPIO variables and methods
@@ -96,6 +189,8 @@ extern void PIO_init();
 #define _CAT    Serial
 #define _SERIAL Serial1
 #endif //Consistency rule
+
+//char hi[128];
 
 #ifdef DEBUG
 #define _INFOLIST(...) \

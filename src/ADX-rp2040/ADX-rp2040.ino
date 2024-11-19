@@ -4,13 +4,14 @@
 // Pedro (Pedro Colla) - LU7DZ - 2022
 //
 // Version 1.0
-//
+// 
 // This is a direct port into the rp2040 architecture of the ADX_UNO firmware code (baseline version 1.1).
 // (add) Apr,28th Added CAT functionality
 //
 // Version 2.0
 // Addition of the ddsPIO feature where the Si5351 chip is replaced by firmware at the rp2040 providing
 // both CLK0 & CLK1 of the board
+// Overall clean-up of the code to remove non-rp2040 code
 //
 //*********************************************************************************************************
 // FW VERSION: ADX_UNO_V1.1 - Version release date: 08/05/2022
@@ -124,9 +125,6 @@
                                  PORTING DEFINES
    The following defines are used for porting and testing purposes
   ---------------------------------------------------------------------------------------------*/
-#define RP2040    1
-
-#ifdef RP2040
 
 /*-----------------------------------------------
    Pico Arduino CORE includes
@@ -144,29 +142,12 @@
 #include "pico/multicore.h"
 #include "hardware/adc.h"
 #include "hardware/uart.h"
-#include <WiFi.h>
+//#include <WiFi.h>
 #include <Time.h>
+
+char hi[128];
+
 #include "ADX-rp2040.h"
-
-/*-------------------------------------------------
-   IDENTIFICATION DIVISION.
-   (just a programmer joke)
-*/
-#define PROGNAME "ADX_rp2040"
-#define AUTHOR "Pedro E. Colla (LU7DZ)"
-#define VERSION  2.0
-#define BUILD     00
-
-/*-------------------------------------------------
-   Macro expansions
-*/
-#define digitalWrite(x,y) gpio_put(x,y)
-#define digitalRead(x)  gpio_get(x)
-
-#define BOOL2CHAR(x)  (x==true ? "True" : "False")
-#undef  _NOP
-#define _NOP (byte)0
-
 /*-----------------------------------------------------
    External references to freqPIO variables and methods
 */
@@ -178,28 +159,29 @@ extern void PIO_init();
    External references to ddsPIO variables and methods
 */
 
+extern double fpio;
+extern void ddsPIO_configure();
+extern void ddsPIO_setFrequency(double f);
+
 //    *********************************************************************************************
 //    *                        Variable definitions                                               *
 //    *********************************************************************************************
 
-char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
 
-#endif //RP2040
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
                                    End of porting definitions
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 
-//    *********************************************************************************************
-//    *                        Variable definitions (ADX original)                                *
-//    *********************************************************************************************
+//*********************************************************************************************
+//*                        Variable definitions (ADX original)                                *
+//*********************************************************************************************
+
 int      temp;
 int      addr = 0;
 int      mode;
 int      TX_State = 0;
-int      Band_slot;
-int      Band = 0;
 int      UP_State;
 int      DOWN_State;
 int      TXSW_State;
@@ -213,15 +195,17 @@ int32_t  cal_factor;
 
 unsigned long freq;
 unsigned long freq1;
+
+
+/*
 unsigned long F_FT8;
 unsigned long F_FT4;
 unsigned long F_JS8;
 unsigned long F_WSPR;
-
+*/
 #ifdef CAT
-
 /*-------------------------------------------------------------------------------------------
-  CAT Processing loop
+  CAT definitions
 */
 #define CATCMD_SIZE          64
 
@@ -237,85 +221,17 @@ int  CATT2=0;
 bool flipLED=false;
 
 #endif //CAT
+
 /*---------------------
  * Definitions related to the autocalibration function
  */
+#ifdef AUTOCAL 
 unsigned long Cal_freq  = 1000000UL; // Calibration Frequency: 1 Mhz = 1000000 Hz
 int      pwm_slice;
 uint32_t f_hi;
 uint32_t fclk     = 0;
 int32_t  error    = 0;
-//***********************************************************************************************
-//* The following defines the ports used to connect the hard switches (UP/DOWN/TX) and the LED
-//* to the rp2040 processor in replacement of the originally used for the ADX Arduino Nano or UNO
-//* (see documentation for the hardware schematic and pinout
-//***********************************************************************************************
-
-#ifndef RP2040         //The following definitions are for the ADX_UnO and NOT used for the porting
-#define UP             2  //UP Switch
-#define DOWN           3  //DOWN Switch
-#define TXSW           4  //TX Switch
-
-#define TX            13  //TX LED
-#define WSPR           9  //WSPR LED 
-#define JS8           10  //JS8 LED
-#define FT4           11  //FT4 LED
-#define FT8           12  //FT8 LED
-
-#define RX             8   //RX SWITCH
-#endif //!RP2040
-//***********************************************************************************************
-#ifdef RP2040          //The following definitions are for the ADX_rp2040 porting
-/*----
-   Output control lines
-*/
-#define RX              2  //RX Switch
-
-/*---
-   LED
-*/
-#define WSPR            7  //WSPR LED
-#define JS8             6  //JS8 LED
-#define FT4             5  //FT4 LED
-#define FT8             4  //FT8 LED
-
-#define TX              3  //TX LED
-
-/*---
-   Switches
-*/
-#define UP             10  //UP Switch
-#define DOWN           11  //DOWN Switch
-#define TXSW            8  //RX-TX Switch
-
-/*---
-   Signal input pin
-*/
-
-#define FSKpin         27  //Frequency counter algorithm, signal input PIN (warning changes must also be done in freqPIO)
-
-/*---
-    I2C
-*/
-#define I2C_SDA        16  //I2C SDA
-#define I2C_SCL        17  //I2C SCL
-
-/*---
-    CAT
-*/
-#define UART_TX        12
-#define UART_RX        13
-
-
-/*----
-   Autocalibration pin
-*/
-#define CAL             9      //Automatic calibration entry
-
-#endif //RP2040
-//**********************************************************************************************
-
-#define SI5351_REF 		25000000UL  //change this to the frequency of the crystal on your si5351’s PCB, usually 25 or 27 MHz
+#endif //AUTOCAL
 
 //**********************************[ BAND SELECT ]************************************************
 // ADX can support up to 4 bands on board. Those 4 bands needs to be assigned to Band1 ... Band4
@@ -329,68 +245,77 @@ int32_t  error    = 0;
 // band mode.
 // Assign your prefered bands to B1,B2,B3 and B4
 // Supported Bands are: 80m, 40m, 30m, 20m,17m, 15m, 10m
+int slot[4]   = {40,30,20,10};
+int Band_slot = SLOT;                  //This is the default band Band1=1,Band2=2,Band3=3,Band4=4
+int Band      =   10;                  //This is the default band 
+           
+long unsigned int Bands[NBANDS][NMODES] = {
+              { 3568600, 3578000, 3575000, 3573000},
+              { 7038600, 7078000, 7047500, 7074000},
+              {10138700,10130000,10140000,10136000},
+              {14095600,14078000,14080000,14074000},
+              {18104600,18104000,18104000,18100000},
+              {21094600,21078000,21140000,21074000},
+              {28124600,28078000,28180000,28074000}};
 
-int Band1 = 40; // Band 1 // These are default bands. Feel free to swap with yours
-int Band2 = 30; // Band 2
-int Band3 = 20; // Band 3
-int Band4 = 10; // Band 4 //*RP2040* changed to 10m from 17m
-
+#ifndef DDSPIO
 Si5351 si5351;
+#endif //!DDSPIO
+
 
 //*************************************[ SETUP FUNCTION ]**************************************
 void setup()
 {
+/*------------------------------------
+  Setup default LED
+*/
+
+pinMode(LED_BUILTIN, OUTPUT);
+gpio_set_mask(1 << LED_BUILTIN);
+
+/*------------------------------------
+  Setup Serial USB Monitor line
+*/
 
 _SERIAL.begin(115200);
 _SERIAL.setTimeout(4);
 
+
 #ifdef DEBUG
-while (!_SERIAL);
+while (!_SERIAL); 
+  gpio_set_mask(1<<LED_BUILTIN);
+  delay(250);
+  gpio_clr_mask(1<<LED_BUILTIN);
+  delay(250);
+
 #endif //DEBUG
 
-delay(50);
-_SERIAL.flush();
+  delay(50);
+  _SERIAL.flush();
 
+  _INFOLIST("%s Firmware %s version(%s) build(%s)\n",__func__,PROGNAME,VERSION,BUILD);
 #ifdef CAT
 
-_CAT.setTX(UART_TX);
-_CAT.setRX(UART_RX);
+  _CAT.setTX(UART_TX);
+  _CAT.setRX(UART_RX);
 
-cat_stat = 0;
-_CAT.begin(115200);
-delay(50);
-_CAT.flush();
+  cat_stat = 0;
+  _CAT.begin(115200);
+  delay(50);
+  _CAT.flush();
 //_CAT.setTimeout(4);
 
-strcpy(CATResp,"");
-strcpy(CATCmd,"");
-strcpy(serialBuf,"");
-strcpy(resp,"");
-strcpy(buf,"");
-
+  strcpy(CATResp,"");
+  strcpy(CATCmd,"");
+  strcpy(serialBuf,"");
+  strcpy(resp,"");
+  strcpy(buf,"");
 
 #endif //CAT
-
-#ifndef RP2040         //This is the original ADX_UnO port definitions, nullified by the porting
-  pinMode(UP, INPUT);
-  pinMode(DOWN, INPUT);
-  pinMode(TXSW, INPUT);
-
-  pinMode(TX, OUTPUT);
-  pinMode(WSPR, OUTPUT);
-  pinMode(JS8, OUTPUT);
-  pinMode(FT4, OUTPUT);
-  pinMode(FT8, OUTPUT);
-  pinMode(RX, OUTPUT);
-
-  pinMode(7, INPUT); //PD7 = AN1 = HiZ, PD6 = AN0 = 0
-#endif //!RP2040
 
   /*-----------------------------
      Port definitions (pinout, direction and pullups used
   */
-#ifdef RP2040
-
   /*--------
      Initialize switches
   */
@@ -448,32 +373,35 @@ strcpy(buf,"");
   gpio_pull_up(FSKpin);
 
   /*---
-     Initialice I2C sub-system
+     Initialice I2C sub-system only if a Si5351 chip will be used
   */
 
+#ifndef DDSPIO
+  
   Wire.setSDA(I2C_SDA);
   Wire.setSCL(I2C_SCL);
   Wire.begin();
 
+#endif //!DDSPIO
+
   _INFOLIST("%s: I/O setup completed\n", __func__);
-
-#endif //RP2040 
-
   /*-----------
-     System initialization
+       System initialization
   */
   INIT();
 
+#ifndef DDSPIO
   //------------------------------- SET SI5351 VFO -----------------------------------
   // The crystal load value needs to match in order to have an accurate calibration
   //----------------------------------------------------------------------------------
   bool rc=si5351.init(SI5351_CRYSTAL_LOAD_8PF, 0, 0);
-  if(!rc)
-  {
+  
+  if(!rc) {
     _INFOLIST("%s Device not found on I2C bus!\n",__func__);
   } else {
     _INFOLIST("%s Device Si5351 found on I2C bus\n",__func__);
   }
+
   si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
   si5351.set_pll(SI5351_PLL_FIXED, SI5351_PLLA);
   si5351.drive_strength(SI5351_CLK0, SI5351_DRIVE_8MA);// SET For Max Power
@@ -481,49 +409,53 @@ strcpy(buf,"");
   si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
   _INFOLIST("%s si5351 clock initialization completed\n", __func__);
 
+#endif //!DDSPIO
 
   if ( digitalRead(DOWN) == LOW ) {
+
      #ifdef AUTOCAL
         _INFOLIST("%s Automatic calibration mode started\n", __func__);
         AutoCalibration();
+        _INFOLIST("%s Calibration mode started\n", __func__);
+        Calibration();
      #endif //AUTOCAL
      
-     _INFOLIST("%s Calibration mode started\n", __func__);
-     Calibration();
   }
 
-  /*-------[RP2040] The COMPA interrupt isn't present on the rp2040 and thus it's replaced
-           by a PIO based counting mechanism
+  /*--------------------------------------------------------------------------
+    PIO counting algorithm definition
   */
-#ifndef RP2040
-  TCCR1A = 0x00;
-  TCCR1B = 0x01; // Timer1 Timer 16 MHz
-  TCCR1B = 0x81; // Timer1 Input Capture Noise Canceller
-  ACSR |= (1 << ACIC); // Analog Comparator Capture Input
-
-  pinMode(7, INPUT); //PD7 = AN1 = HiZ, PD6 = AN0 = 0
-#endif //!RP2040 avoid using COMPA interrupt based counting method as it is not available on rp2040
-  /*--------*/
-
-#ifdef RP2040
   PIO_init();
   _INFOLIST("%s PIO sub-system initialized\n", __func__);
-#endif //Initialize the PIO based counting method used on rp2040
+
+
 
   /*--------------------
      Assign initial mode
   */
   Mode_assign();
 
+  /*--------------------------------------------------------------------------
+    ddsPIO enabled, setup and configure
+  */
+#ifdef DDSPIO
+/*------------------------------------
+  Configure PIO and set initial frequency
+*/
+
+  fpio=freq;
+  ddsPIO_configure();
+  ddsPIO_setFrequency(fpio);
+  _INFOLIST("%s DDSPIO sub-system initialized\n",__func__);
+
+#endif //DDSPIO 
+
+
   /*--------------------
      Place the receiver in reception mode
   */
   digitalWrite(RX, HIGH);
-
-
-
   _INFOLIST("%s setup completed successfully\n", __func__);
-
 
 }
 
@@ -581,10 +513,7 @@ void loop()
 
       addr = 40;                   //Save current mode in EEPROM
       EEPROM.put(addr, mode);
-
-#ifdef RP2040
       EEPROM.commit();   //rp2040 doesn't have any EEPROM, the core library emulates EEPROM on flash memory, but it requires a commit() to set
-#endif //RP2040          
       Mode_assign();
     }
   }
@@ -609,10 +538,7 @@ void loop()
       addr = 40;
       EEPROM.put(addr, mode);
 
-#ifdef RP2040
       EEPROM.commit(); //rp2040 doesn't have an EEPROM, the core library emulates EEPROM on flash memory and requires a commit() to set values permanently
-#endif //RP2040          
-
       Mode_assign();
 
     }
@@ -633,67 +559,6 @@ void loop()
     }
   }
 
-  /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-     This is the audio frequency counting algorithm the ADX board uses to obtain the audio tone to be sent
-     during the ft8 frame. Unfortunately the interrupt used for this algorithm isn't available on the rp2040
-     therefore a suitable replacement using a PIO microcode has been built instead.
-     The entire code segment is nullified when compiling with the RP2040 configuration
-    =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-#ifndef RP2040
-
-  unsigned int d1, d2;
-  int FSK = 10;
-  int FSKtx = 0;
-  while (FSK > 0) {
-    TCNT1 = 0;
-    while (ACSR & (1 << ACO)) {
-      if (TCNT1 > 65000) {
-        break;
-      }
-    }  while ((ACSR & (1 << ACO)) == 0) {
-      if (TCNT1 > 65000) {
-        break;
-      }
-    }
-    TCNT1 = 0;
-    while (ACSR & (1 << ACO)) {
-      if (TCNT1 > 65000) {
-        break;
-      }
-    }
-    d1 = ICR1;
-    while ((ACSR & (1 << ACO)) == 0) {
-      if (TCNT1 > 65000) {
-        break;
-      }
-    }
-    while (ACSR & (1 << ACO)) {
-      if (TCNT1 > 65000) {
-        break;
-      }
-    }
-    d2 = ICR1;
-    if (TCNT1 < 65000) {
-      unsigned long codefreq = 1600000000 / (d2 - d1);
-      if (codefreq < 350000) {
-        if (FSKtx == 0) {
-          TX_State = 1;
-          digitalWrite(TX, HIGH);
-          digitalWrite(RX, LOW);
-
-          si5351.output_enable(SI5351_CLK1, 0);   //RX off
-          si5351.output_enable(SI5351_CLK0, 1);   // TX on
-        }
-        si5351.set_freq((freq * 100 + codefreq), SI5351_CLK0);
-
-        FSKtx = 1;
-      }
-    }
-    else {
-      FSK--;
-    }
-  }
-#endif //!RP2040
   /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*
      This is the audio frequency counting algorithm to be used when operating under the rp2040 architecture
      A microkernel implemented on a PIO runs an edge detector on pin FSKpin raising an interrupt when it happens,
@@ -705,7 +570,6 @@ void loop()
      The entire code segment is nullified when NOT compiling with the RP2040 configuration
      The interrupt handler is defined in the freqPIO.cpp module and the PIO RISC ASM counting in freqPIO.pio.h
     =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-#ifdef RP2040
   int FSK = VOX_MAXTRY;
   int FSKtx = 0;
 
@@ -742,9 +606,16 @@ void loop()
            by less than 4 Hz.
         */
         if (abs(int(codefreq - prevfreq)) >= FSK_ERROR) {
-          unsigned long fx = ((unsigned long)(freq + codefreq)) * 100ULL;
-          _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n", __func__, freq, codefreq, fx);
-          si5351.set_freq(fx, SI5351_CLK0);
+          unsigned long fdds = ((unsigned long)(freq + codefreq));
+
+          #ifdef DDSPIO
+             _INFOLIST("%s freq=%ld codefreq=%ld ddsPIO(f)=%lu\n", __func__, freq, codefreq, fdds);
+             ddsPIO_setFrequency(fdds);
+          #else   
+             _INFOLIST("%s freq=%ld codefreq=%ld si5351(f)=%lu\n", __func__, freq, codefreq, fdds);
+             si5351.set_freq(fdds * 100ULL, SI5351_CLK0);
+          #endif //DDSPIO   
+
           prevfreq = codefreq;
           FSK = VOX_MAXTRY;
         }
@@ -765,17 +636,11 @@ void loop()
       }
     }
 #ifdef CAT  
-
     CAT_check();
     CAT_warning();
-  
 #endif //CAT
 
-
-
-
   }
-#endif //End the processing made by the FREQPIO algorithm    
   //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 
   /*---------
@@ -787,11 +652,8 @@ void loop()
   }
 
   #ifdef CAT  
-
-    CAT_check();
-  
+    CAT_check(); 
   #endif //CAT
-
 }
 //*********************[ END OF MAIN LOOP FUNCTION ]*************************
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
@@ -879,13 +741,19 @@ bool CAT_process(char *c,char *r,char *cmd,char *arg){
     return false;
   }
 
+//* ERROR 
+//* wrong definition of fx 
   if (strcmp(cmd,"FA")==0) {  
       if (strcmp(arg,"") != 0) {
-        unsigned long fx=strtol(arg, &q, 10);
-        freq=fx;        
-        freq1=fx;
-        si5351.set_freq(freq * 100ULL, SI5351_CLK0);
-        si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+        unsigned long fdds=strtol(arg, &q, 10);
+        freq=fdds;        
+        freq1=fdds;
+        #ifdef DDSPIO
+           ddsPIO_setFrequency(freq);
+        #else
+           si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+           si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+        #endif //DDSPIO
         CATT1=millis();
         CATT2=millis();
         setTX(LOW);
@@ -1147,57 +1015,51 @@ if (strcmp(serialBuf,"TX;ID;") == 0) {
 //=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 #endif //CAT
 
+/*--------------------------------------------
+  Convert a band in meters to the index into the Bands table [0..6]
+*/  
+int band2idx(int b){
+
+int i=0;
+
+switch(b) {
+  case 80: i=0; break;
+  case 40: i=1; break;
+  case 30: i=2; break;
+  case 20: i=3; break;
+  case 17: i=4; break;
+  case 15: i=5; break;
+  case 10: i=6; break;
+
+  default:
+    i=6; break;
+}
+_INFOLIST("%s band(%d) idx(%d)\n",__func__,b,i);
+return i;
+
+}
+
 //************************************[ MODE Assign ]**********************************
+/*-------------------------
+  Assign mode and set the configuration based on that
+*/
 
 void Mode_assign() {
 
   addr = 40;
   EEPROM.get(addr, mode);
-
-
-  if ( mode == 1) {
-    freq1 = F_WSPR;
-    digitalWrite(WSPR, HIGH);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
-
+  _INFOLIST("%s EEPROM got mode(%d) previously Band(%d)\n",__func__,mode,Band);
+  int b=band2idx(Band);
+  freq=Bands[b][mode-1];
+  clearLED();
+  switch(mode) {
+     case 1: setLED(WSPR,HIGH);break;
+     case 2: setLED(JS8,HIGH);break;
+     case 3: setLED(FT4,HIGH);break;
+     case 4: setLED(FT8,HIGH);break;
   }
+  _INFOLIST("%s mode(%d) Band(%d) index(%d) freq(%ld)\n",__func__,mode,Band,b,freq);
 
-  if ( mode == 2) {
-    freq1 = F_JS8;
-    digitalWrite(WSPR, LOW);
-    digitalWrite(JS8, HIGH);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
-
-
-
-  }
-
-  if ( mode == 3) {
-    freq1 = F_FT4;
-
-    digitalWrite(WSPR, LOW);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT4, HIGH);
-    digitalWrite(FT8, LOW);
-
-
-  }
-  if ( mode == 4) {
-    freq1 = F_FT8;
-
-    digitalWrite(WSPR, LOW);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, HIGH);
-
-
-  }
-  freq = freq1;
-  //freq = freq1 - 1000;
-  _INFOLIST("%s mode=%d freq=%ld\n", __func__, mode, freq);
 }
 
 //********************************[ END OF MODE ASSIGN ]*******************************
@@ -1205,165 +1067,66 @@ void Mode_assign() {
 //*********************[ Band dependent Frequency Assign Function ]********************
 void Freq_assign() {
 
-
-  //---------- 80m/3.5Mhz
-  if (Band == 80) {
-
-    F_FT8 = 3573000;
-    F_FT4 = 3575000;
-    F_JS8 = 3578000;
-    F_WSPR = 3568600;
-  }
-
-  //---------- 40m/7 Mhz
-  if (Band == 40) {
-
-    F_FT8 = 7074000;
-    F_FT4 = 7047500;
-    F_JS8 = 7078000;
-    F_WSPR = 7038600;
-  }
-
-
-  //---------- 30m/10 Mhz
-  if (Band == 30) {
-
-    F_FT8 = 10136000;
-    F_FT4 = 10140000;
-    F_JS8 = 10130000;
-    F_WSPR = 10138700;
-  }
-
-
-  //---------- 20m/14 Mhz
-  if (Band == 20) {
-
-    F_FT8 = 14074000;
-    F_FT4 = 14080000;
-    F_JS8 = 14078000;
-    F_WSPR = 14095600;
-  }
-
-
-  //---------- 17m/18 Mhz
-  if (Band == 17) {
-
-    F_FT8 = 18100000;
-    F_FT4 = 18104000;
-    F_JS8 = 18104000;
-    F_WSPR = 18104600;
-  }
-
-  //---------- 15m/ 21Mhz
-  if (Band == 15) {
-
-    F_FT8 = 21074000;
-    F_FT4 = 21140000;
-    F_JS8 = 21078000;
-    F_WSPR = 21094600;
-  }
-
-  //---------- 10m/ 28Mhz
-  if (Band == 10) {
-
-    F_FT8 = 28074000;
-    F_FT4 = 28180000;
-    F_JS8 = 28078000;
-    F_WSPR = 28124600;
-  }
-
   _INFOLIST("%s mode=%d freq=%ld\n", __func__, mode, freq);
 
 }
 //************************[ End of Frequency assign function ]*************************
 
 //******************************[ Band  Assign Function ]******************************
-
+/*-------------------------
+  Set a given LED
+*/
+void setLED(int LED,int state) {
+  digitalWrite(LED,state);
+  _INFOLIST("%s LED(%d) state(%d)\n",__func__,LED,state);
+}
+/*------------------------
+  Clear all LED
+*/
+void clearLED() {
+  for (int i=FT8;i<WSPR+1;i++){
+      setLED(i,LOW);
+  }
+  _INFOLIST("%s Clear LED[*]\n",__func__);
+}
+/*-----------------------
+  Blink selected LED 4 times
+*/
+void blinkLED(int LED){
+  for (int i=0;i<4;i++) {
+    setLED(LED,HIGH);
+    delay(Bdly);
+    setLED(LED,LOW);
+    delay(Bdly);
+  }
+  _INFOLIST("%s Flashing LED[%d]\n",__func__,LED);
+}
+/*---------------
+  Convert slot 2 band
+*/
+int slot2Band(int s) {
+  if (s < 1 || s > 4) {
+    s = 4;
+  }
+  int b=slot[s-1];
+  _INFOLIST("%s Slot(%d) --> Band(%d)\n",__func__,s,b);
+  return b;
+}
+/*----------------------------------------------------------
+  Assign band based on defaults or EEPROM saved data
+*/
 void Band_assign() {
 
-  digitalWrite(WSPR, LOW);
-  digitalWrite(JS8, LOW);
-  digitalWrite(FT4, LOW);
-  digitalWrite(FT8, LOW);
-
-
+  clearLED();
   addr = 50;
   EEPROM.get(addr, Band_slot);
-
-  if (Band_slot == 1) {
-    Band = Band1;
-
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 2) {
-    Band = Band2;
-
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 3) {
-    Band = Band3;
-
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-  }
-
-  if (Band_slot == 4) {
-    Band = Band4;
-
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-  }
-
+  Band=slot2Band(Band_slot);
+  blinkLED(Band_slot+3);
 
   delay(1000);
-  Freq_assign();
   Mode_assign();
 
-  _INFOLIST("%s band_slot=%d mode=%d freq=%ld\n", __func__, Band_slot, mode, freq);
+  _INFOLIST("%s band_slot=%d mode=%d band=%d\n", __func__, Band_slot, mode, Band);
 }
 //***************************[ End of Band assign function ]***************************
 
@@ -1373,20 +1136,28 @@ void setTX(bool tx) {
    if (tx) {
 
       TX_State = 1;
+      
       digitalWrite(RX, LOW);
       digitalWrite(TX, HIGH);
 
-      si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
-      si5351.output_enable(SI5351_CLK1, 0);   //RX off
-      si5351.output_enable(SI5351_CLK0, 1);   // TX on
+      #ifndef DDSPIO
+         si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
+         si5351.output_enable(SI5351_CLK1, 0);   //RX off
+         si5351.output_enable(SI5351_CLK0, 1);   // TX on
+      #endif //!DDSPIO
+
       _INFOLIST("%s TX+\n",__func__);
 
    } else {
 
       digitalWrite(TX, LOW);
-      si5351.output_enable(SI5351_CLK0, 0);   //TX off
-      si5351.set_freq(freq * 100ULL, SI5351_CLK1);
-      si5351.output_enable(SI5351_CLK1, 1);   //RX on
+      
+      #ifndef DDSPIO
+        si5351.output_enable(SI5351_CLK0, 0);   //TX off
+        si5351.set_freq(freq * 100ULL, SI5351_CLK1);
+        si5351.output_enable(SI5351_CLK1, 1);   //RX on
+      #endif //!DDSPIO
+
       TX_State = 0;
       digitalWrite(RX, HIGH);
       _INFOLIST("%s TX-\n",__func__);
@@ -1414,118 +1185,50 @@ EXIT_TX:
 //******************************[ BAND SELECT Function]********************************
 void Band_Select() {
 
+
   digitalWrite(TX, 1);
+
   addr = 50;
   EEPROM.get(addr, Band_slot);
 
-  digitalWrite(WSPR, LOW);
-  digitalWrite(JS8, LOW);
-  digitalWrite(FT4, LOW);
-  digitalWrite(FT8, LOW);
-
+  clearLED();
 
   if (Band_slot == 1) {
-
-
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
-    digitalWrite(WSPR, HIGH);
-    delay(Bdly);
-    digitalWrite(WSPR, LOW);
-    delay(Bdly);
+    blinkLED(WSPR);
   }
 
   if (Band_slot == 2) {
-
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
-    digitalWrite(JS8, HIGH);
-    delay(Bdly);
-    digitalWrite(JS8, LOW);
-    delay(Bdly);
+    blinkLED(JS8);
   }
 
   if (Band_slot == 3) {
-
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
-    digitalWrite(FT4, HIGH);
-    delay(Bdly);
-    digitalWrite(FT4, LOW);
-    delay(Bdly);
+    blinkLED(FT4);
   }
 
   if (Band_slot == 4) {
-
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
-    digitalWrite(FT8, HIGH);
-    delay(Bdly);
-    digitalWrite(FT8, LOW);
-    delay(Bdly);
+    blinkLED(FT8);
   }
 
 Band_cont:
 
   if (Band_slot == 1) {
-
-
-    digitalWrite(WSPR, HIGH);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
+    clearLED();
+    setLED(WSPR,HIGH);
   }
 
   if (Band_slot == 2) {
-
-
-    digitalWrite(JS8, HIGH);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, LOW);
-
+    clearLED();
+    setLED(JS8,HIGH);
   }
 
   if (Band_slot == 3) {
-    digitalWrite(FT4, HIGH);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(JS8, LOW);
-    digitalWrite(FT8, LOW);
-
-
-
+    clearLED();
+    setLED(FT4,HIGH);
   }
 
   if (Band_slot == 4) {
-    digitalWrite(JS8, LOW);
-    digitalWrite(WSPR, LOW);
-    digitalWrite(FT4, LOW);
-    digitalWrite(FT8, HIGH);
-
+    clearLED();
+    setLED(FT8,HIGH);
   }
 
 
@@ -1584,10 +1287,7 @@ Band_exit:
   addr = 50;
   EEPROM.put(addr, Band_slot);
 
-#ifdef RP2040
   EEPROM.commit();
-#endif //RP2040
-
   Band_assign();
   _INFOLIST("%s completed set Band_slot=%d\n", __func__, Band_slot);
 
@@ -1648,6 +1348,8 @@ void setCalibrationLED(uint16_t e) {
 //* To enable uncomment the #define AUTOCAL     1 statement
 //*************************************************************************************
 void AutoCalibration () {
+
+#ifndef DDSPIO    //Calibration isn't defined for ddsPIO  
 
 bool b = false;
 
@@ -1779,10 +1481,13 @@ bool b = false;
   while (true) {
     
   }
+#endif //!DDSPIO
 
 }
 //************************** [SI5351 VFO Calibration Function] ************************
 void Calibration() {
+
+#ifndef DDSPIO    //Calibration lack sense with ddsPIO enabled as it is only required when a Si5351 is used
 
   digitalWrite(FT8, LOW);
   digitalWrite(FT4, LOW);
@@ -1882,12 +1587,7 @@ Calibrate:
 
       addr = 10;
       EEPROM.put(addr, cal_factor);
-
-
-#ifdef RP2040
       EEPROM.commit();
-#endif //DEBUG
-
 
       digitalWrite(TX, HIGH);
       delay(Bdly);
@@ -1906,6 +1606,8 @@ Calibrate:
   }
 
   goto Calibrate;
+#endif //!DDSPIO
+
 }
 
 //****************************** [ End Of Calibration Function ]****************************************
@@ -1913,13 +1615,8 @@ Calibrate:
 //*********************************[ INITIALIZATION FUNCTION ]******************************************
 void INIT() {
 
-
-#ifdef RP2040
   EEPROM.begin(512);
   _INFOLIST("%s EEPROM.begin()\n", __func__);
-#endif //RP2040 The EEPROM emulation performed by the Arduino IDE core porting requires an initial reserve of flash space for it
-
-
 
   addr = 30;
   EEPROM.get(addr, temp);
@@ -1943,11 +1640,8 @@ void INIT() {
     EEPROM.put(addr, temp);
 
 
-#ifdef RP2040
     EEPROM.commit();
     _INFOLIST("%s EEPROM commit()\n", __func__);
-#endif //RP2040
-
 
   }
 
@@ -1970,9 +1664,11 @@ void INIT() {
 
   }
   Band_assign();
-  Freq_assign();
   Mode_assign();
-  si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
+
+  #ifndef DDSPIO
+      si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
+  #endif //!DDSPIO
 
   _INFOLIST("%s completed Band_slot=%d mode=%d freq=%ld\n", __func__, Band_slot, mode, freq);
 
