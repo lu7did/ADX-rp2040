@@ -43,15 +43,14 @@
 //#define UART                 1  //Uncomment to use UART0 as the main output
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT
- 
+#define DDSPIO               1  //ddsPIO activated (comment to activate Si5351 clock) 
 /*-----------------------------------------------------
    Definition of CAT (comment out if not desired)
 */
 
 /*--------------------------------------------------
-   Program configuration parameters
+   Audio FSK processing parameters
 */
-
 
 #define FSK_IDLE          1000    //Standard wait without signal
 #define FSK_ERROR            4
@@ -59,7 +58,6 @@
 #define FSKMAX            3000    //Maximum FSK frequency computed
 #define FSK_USEC       1000000    //Constant to convert T to f
 #define VOX_MAXTRY          15    //VOX control cycles
-
 
 /*-----------------------------------------------------
    Definitions for autocalibration
@@ -69,8 +67,6 @@
 #define CAL_STEP          500           //Calibration factor step up/down while in calibration (sweet spot experimentally found by Barb)
 #define CAL_COMMIT         12
 #define CAL_ERROR           1
-
-
 
 /*-----------------------------------------------------
  * External references to freqPIO variables and methods

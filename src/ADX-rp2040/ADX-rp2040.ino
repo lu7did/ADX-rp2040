@@ -8,17 +8,9 @@
 // This is a direct port into the rp2040 architecture of the ADX_UNO firmware code (baseline version 1.1).
 // (add) Apr,28th Added CAT functionality
 //
-//********************************[ CAT CONTROL SETTINGS and CAT Functionality ]********************
-// Extract from ADX_CAT V1.4 header
-// CAT CONTROL RIG EMULATION: KENWOOD TS2000
-// SERIAL PORT SETTINGS: 115200 baud,8 bit,1 stop bit
-// When CAT is active FT4 and JS8 leds will be solid lit.
-// In CAT mode none of the Switches and leds are active including TX SWITCH in order to avoid different setting clashes except TX LED. 
-// TX LED WILL BE LIT briefly on/off and then solid during TX WHEN TRANSMITTING IN CAT Mode.
-// In CAT mode ADX can be controlled ONLY by CAT interface. Frequency and TX can be controlled via CAT.
-// To get out of CAT mode and to use ADX with Switch and led interface just recycle power. Once activated CAT mode stays active as rig control Until power recycle. 
-// In CAT mode manual Band setup is deactivated and ADX can be operated on any band as long as the right lpf filter module is plugged in. 
-// IN CAT MODE MAKE SURE THE CORRECT LPF MODULE IS PLUGGED IN WHEN OPERATING BAND IS CHANGED!!! IF WRONG LPF FILTER MODULE IS PLUGGED IN then PA POWER MOSFETS CAN BE DAMAGED
+// Version 2.0
+// Addition of the ddsPIO feature where the Si5351 chip is replaced by firmware at the rp2040 providing
+// both CLK0 & CLK1 of the board
 //
 //*********************************************************************************************************
 // FW VERSION: ADX_UNO_V1.1 - Version release date: 08/05/2022
@@ -57,17 +49,49 @@
 // IP Stack: "IPv4 only"
 //
 // The firmware has not been tested with a Raspberry Pi Pico W version
-// ----------------------------------------------------------------------------------------------------------------------
-// Etherkit Si5351 (Needs to be installed via Library Manager to arduino ide)
-// SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
-//*****************************************************************************************************
-//* IMPORTANT NOTE: Use V2.1.3 of NT7S SI5351 Library. This is the only version compatible with ADX!!!*
-//*****************************************************************************************************
-// Arduino "Wire.h" I2C library(built-into arduino ide)
+//*----------------------------------------------------------------------------------------------------------------------
 // Arduino "EEPROM.h" EEPROM Library(built-into arduino ide)
-//=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//*************************************[ LICENCE and CREDITS ]*********************************************
-//  SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
+//*----------------------------------------------------------------------------------------------------------------------
+// if !ddsPIO (uses a Si5351 to generate the clock)
+//
+//    Etherkit Si5351 (Needs to be installed via Library Manager to arduino ide)
+//    SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
+//    IMPORTANT NOTE: Use V2.1.3 of NT7S SI5351 Library. This is the only version compatible with ADX!!!*
+//    Arduino "Wire.h" I2C library(built-into arduino ide)
+//    SI5351 Library by Jason Mildrum (NT7S) - https://github.com/etherkit/Si5351Arduino
+//    *********************************************************************************************
+//    *                        SI5351 VFO CALIBRATION PROCEDURE                                   *
+//    *********************************************************************************************
+//    For SI5351 VFO Calibration Procedure follow these steps:
+//    1 - Connect CAL test point and GND test point on ADX PCB to a Frequency meter or Scope
+//        that can measure 1 Mhz up to 1Hz accurately.
+//    2 - Press SW2 / --->(CAL) pushbutton and hold.
+//    3 - Power up with 12V or with 5V by using arduino USB socket while still pressing SW2 / --->(CAL) pushbutton.
+//    4 - FT8 and WSPR LEDs will flash 3 times and stay lit. Now Release SW2 / --->(CAL).
+//        Now Calibration mode is active.
+//    5 - Using SW1(<---) and SW2(--->) pushbuttons change the Calibration frequency.
+//    6 - Try to read 1 Mhz = 1000000 Hz exact on  Frequency counter or Oscilloscope.
+//        The waveform is Square wave so freqency calculation can be performed esaily.
+//    7 - If you read as accurate as possible 1000000 Hz then calibration is done.
+//    8 - Now we must save this calibration value to EEPROM location.
+//        In order to save calibration value, press TX button briefly. TX LED will flash 3
+//        times which indicates that Calibration value is saved.
+//    9 - Power off ADX.
+//*----------------------------------------------------------------------------------------------------------------------
+//    *********************************************************************************************
+//    *                        CAT CONTROL SETTINGS AND CAT FUNCTIONALITY                         *
+//    *********************************************************************************************
+//    Extract from ADX_CAT V1.4 header
+//    CAT CONTROL RIG EMULATION: KENWOOD TS2000
+//    SERIAL PORT SETTINGS: 115200 baud,8 bit,1 stop bit
+//    When CAT is active FT4 and JS8 leds will be solid lit.
+//         In CAT mode none of the Switches and leds are active including TX SWITCH in order to avoid different setting clashes except TX LED. 
+//         TX LED WILL BE LIT briefly on/off and then solid during TX WHEN TRANSMITTING IN CAT Mode.
+//    In CAT mode ADX can be controlled ONLY by CAT interface. Frequency and TX can be controlled via CAT.
+//         To get out of CAT mode and to use ADX with Switch and led interface just recycle power. Once activated CAT mode stays active as rig control Until power recycle. 
+//    In CAT mode manual Band setup is deactivated and ADX can be operated on any band as long as the right lpf filter module is plugged in. 
+//    In CAT MODE MAKE SURE THE CORRECT LPF MODULE IS PLUGGED IN WHEN OPERATING BAND IS CHANGED!!! IF WRONG LPF FILTER MODULE IS PLUGGED IN then PA POWER MOSFETS CAN BE DAMAGED
+//
 // License
 // -------
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -89,23 +113,10 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-//*****************[ SI5351 VFO CALIBRATION PROCEDURE ]****************************************
-// For SI5351 VFO Calibration Procedure follow these steps:
-// 1 - Connect CAL test point and GND test point on ADX PCB to a Frequency meter or Scope
-//     that can measure 1 Mhz up to 1Hz accurately.
-// 2 - Press SW2 / --->(CAL) pushbutton and hold.
-// 4-  Power up with 12V or with 5V by using arduino USB socket while still pressing SW2 / --->(CAL) pushbutton.
-// 5 - FT8 and WSPR LEDs will flash 3 times and stay lit. Now Release SW2 / --->(CAL).
-//     Now Calibration mode is active.
-// 6 - Using SW1(<---) and SW2(--->) pushbuttons change the Calibration frequency.
-// 7 - Try to read 1 Mhz = 1000000 Hz exact on  Frequency counter or Oscilloscope.
-//     The waveform is Square wave so freqency calculation can be performed esaily.
-// 8 - If you read as accurate as possible 1000000 Hz then calibration is done.
-// 9 - Now we must save this calibration value to EEPROM location.
-//     In order to save calibration value, press TX button briefly. TX LED will flash 3
-//     times which indicates that Calibration value is saved.
-// 10- Power off ADX.
-//*******************************[ LIBRARIES ]*************************************************
+//    *********************************************************************************************
+//    *                        Libraries being used                                               *
+//    *********************************************************************************************
+
 #include <si5351.h>
 #include "Wire.h"
 #include <EEPROM.h>
@@ -143,8 +154,8 @@
 */
 #define PROGNAME "ADX_rp2040"
 #define AUTHOR "Pedro E. Colla (LU7DZ)"
-#define VERSION  1.0
-#define BUILD     41
+#define VERSION  2.0
+#define BUILD     00
 
 /*-------------------------------------------------
    Macro expansions
@@ -163,40 +174,49 @@ extern volatile uint32_t   period;
 extern bool pioirq;
 extern void PIO_init();
 
-
-/*------------------------------------------------------
-   Main variables
+/*-----------------------------------------------------
+   External references to ddsPIO variables and methods
 */
+
+//    *********************************************************************************************
+//    *                        Variable definitions                                               *
+//    *********************************************************************************************
+
 char hi[128];
 uint32_t codefreq = 0;
 uint32_t prevfreq = 0;
+
 #endif //RP2040
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
                                    End of porting definitions
   =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
-//*******************************[ VARIABLE DECLERATIONS ]*************************************
-uint32_t val;
-int temp;
+
+//    *********************************************************************************************
+//    *                        Variable definitions (ADX original)                                *
+//    *********************************************************************************************
+int      temp;
+int      addr = 0;
+int      mode;
+int      TX_State = 0;
+int      Band_slot;
+int      Band = 0;
+int      UP_State;
+int      DOWN_State;
+int      TXSW_State;
+int      Bdly = 250;
+int      cat_stat = 0;
+int      CAT_mode = 2;   
+
 uint32_t val_EE;
-int addr = 0;
-int mode;
+uint32_t val;
+int32_t  cal_factor;
+
 unsigned long freq;
 unsigned long freq1;
-int32_t cal_factor;
-int TX_State = 0;
-
 unsigned long F_FT8;
 unsigned long F_FT4;
 unsigned long F_JS8;
 unsigned long F_WSPR;
-int Band_slot;
-int Band = 0;
-int UP_State;
-int DOWN_State;
-int TXSW_State;
-int Bdly = 250;
-int cat_stat = 0;
-int CAT_mode = 2;   
 
 #ifdef CAT
 
@@ -225,7 +245,6 @@ int      pwm_slice;
 uint32_t f_hi;
 uint32_t fclk     = 0;
 int32_t  error    = 0;
-// **********************************[ DEFINE's ]***********************************************
 //***********************************************************************************************
 //* The following defines the ports used to connect the hard switches (UP/DOWN/TX) and the LED
 //* to the rp2040 processor in replacement of the originally used for the ADX Arduino Nano or UNO
