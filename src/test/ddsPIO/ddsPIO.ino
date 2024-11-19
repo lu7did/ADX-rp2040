@@ -322,7 +322,8 @@ void loop() {
     fx = dataIn;
     PIO_setFrequency(fx);
     gpio_set_mask(1<<LED_BUILTIN);
-   
+    delay(250);
+    gpio_clr_mask(1<<LED_BUILTIN);   
   }
 
   delay(1);
