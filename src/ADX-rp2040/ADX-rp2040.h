@@ -50,13 +50,16 @@
  */
 #undef  UART
 
-#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
-//#define UART                 1  //Uncomment to use UART0 as the main output
 #define BAUD            115200
 #define CAT                  1  //Uncomment to activate CAT
 #define DDSPIO               1  //ddsPIO activated (comment to activate Si5351 clock) 
+//#define PICOW                1  //Define where the runtime is using a Pico-W board 
+//#define UART                 1  //Uncomment to use UART0 as the main output
+//#define DEBUG                1  //Uncomment to activate debugging traces (_INFOLIST(...) statements thru _SERIAL
 
-
+/*---------------------------------------------------
+ * Define band support
+*/
 #define NBANDS        7
 #define NMODES        4
 #define SLOT          4

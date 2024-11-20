@@ -270,8 +270,8 @@ void setup()
   Setup default LED
 */
 
-pinMode(LED_BUILTIN, OUTPUT);
-gpio_set_mask(1 << LED_BUILTIN);
+//pinMode(LED_BUILTIN, OUTPUT);
+//gpio_set_mask(1 << LED_BUILTIN);
 
 /*------------------------------------
   Setup Serial USB Monitor line
@@ -283,10 +283,10 @@ _SERIAL.setTimeout(4);
 
 #ifdef DEBUG
 while (!_SERIAL); 
-  gpio_set_mask(1<<LED_BUILTIN);
-  delay(250);
-  gpio_clr_mask(1<<LED_BUILTIN);
-  delay(250);
+  //gpio_set_mask(1<<LED_BUILTIN);
+  //delay(250);
+  //gpio_clr_mask(1<<LED_BUILTIN);
+  //delay(250);
 
 #endif //DEBUG
 
@@ -430,11 +430,7 @@ while (!_SERIAL);
 
 
 
-  /*--------------------
-     Assign initial mode
-  */
-  Mode_assign();
-
+  
   /*--------------------------------------------------------------------------
     ddsPIO enabled, setup and configure
   */
@@ -445,11 +441,16 @@ while (!_SERIAL);
 
   fpio=freq;
   ddsPIO_configure();
-  ddsPIO_setFrequency(fpio);
+//  ddsPIO_setFrequency(fpio);
   _INFOLIST("%s DDSPIO sub-system initialized\n",__func__);
 
 #endif //DDSPIO 
 
+/*--------------------
+     Assign initial band and mode
+  */
+  Band_assign();
+  //Mode_assign();
 
   /*--------------------
      Place the receiver in reception mode
@@ -1051,6 +1052,14 @@ void Mode_assign() {
   _INFOLIST("%s EEPROM got mode(%d) previously Band(%d)\n",__func__,mode,Band);
   int b=band2idx(Band);
   freq=Bands[b][mode-1];
+  #ifdef DDSPIO
+    fpio=freq;
+    _INFOLIST("%s ddsPIO(f)=%lu\n", __func__, freq);
+    ddsPIO_setFrequency(freq);
+  #else   
+    _INFOLIST("%s si5351(f)=%lu\n", __func__, freq);
+    si5351.set_freq(freq * 100ULL, SI5351_CLK0);
+  #endif //DDSPIO   
   clearLED();
   switch(mode) {
      case 1: setLED(WSPR,HIGH);break;
@@ -1078,7 +1087,7 @@ void Freq_assign() {
 */
 void setLED(int LED,int state) {
   digitalWrite(LED,state);
-  _INFOLIST("%s LED(%d) state(%d)\n",__func__,LED,state);
+  //_INFOLIST("%s LED(%d) state(%d)\n",__func__,LED,state);
 }
 /*------------------------
   Clear all LED
@@ -1087,7 +1096,7 @@ void clearLED() {
   for (int i=FT8;i<WSPR+1;i++){
       setLED(i,LOW);
   }
-  _INFOLIST("%s Clear LED[*]\n",__func__);
+  //_INFOLIST("%s Clear LED[*]\n",__func__);
 }
 /*-----------------------
   Blink selected LED 4 times
@@ -1140,7 +1149,10 @@ void setTX(bool tx) {
       digitalWrite(RX, LOW);
       digitalWrite(TX, HIGH);
 
-      #ifndef DDSPIO
+      #ifdef DDSPIO
+    fpio=freq;
+         ddsPIO_setFrequency(freq);
+      #else 
          si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);
          si5351.output_enable(SI5351_CLK1, 0);   //RX off
          si5351.output_enable(SI5351_CLK0, 1);   // TX on
@@ -1190,48 +1202,15 @@ void Band_Select() {
 
   addr = 50;
   EEPROM.get(addr, Band_slot);
-
   clearLED();
+  blinkLED(Band_slot+3);
 
-  if (Band_slot == 1) {
-    blinkLED(WSPR);
-  }
-
-  if (Band_slot == 2) {
-    blinkLED(JS8);
-  }
-
-  if (Band_slot == 3) {
-    blinkLED(FT4);
-  }
-
-  if (Band_slot == 4) {
-    blinkLED(FT8);
-  }
 
 Band_cont:
-
-  if (Band_slot == 1) {
-    clearLED();
-    setLED(WSPR,HIGH);
-  }
-
-  if (Band_slot == 2) {
-    clearLED();
-    setLED(JS8,HIGH);
-  }
-
-  if (Band_slot == 3) {
-    clearLED();
-    setLED(FT4,HIGH);
-  }
-
-  if (Band_slot == 4) {
-    clearLED();
-    setLED(FT8,HIGH);
-  }
-
-
+ 
+  clearLED();
+  setLED(Band_slot+3,HIGH);
+  
   UP_State = digitalRead(UP);
   DOWN_State = digitalRead(DOWN);
 
@@ -1272,9 +1251,7 @@ Band_cont:
 
     TX_State = digitalRead(TXSW);
     if (TX_State == LOW) {
-
       digitalWrite(TX, 0);
-
       goto Band_exit;
 
     }
@@ -1286,7 +1263,6 @@ Band_exit:
 
   addr = 50;
   EEPROM.put(addr, Band_slot);
-
   EEPROM.commit();
   Band_assign();
   _INFOLIST("%s completed set Band_slot=%d\n", __func__, Band_slot);
@@ -1306,38 +1282,38 @@ void pwm_int() {
 void setCalibrationLED(uint16_t e) {
 
   if (e>75) {
-     digitalWrite(WSPR,HIGH);
-     digitalWrite(JS8,HIGH);
-     digitalWrite(FT4,HIGH);
-     digitalWrite(FT8,HIGH);
+     setLED(WSPR,HIGH);
+     setLED(JS8,HIGH);
+     setLED(FT4,HIGH);
+     setLED(FT8,HIGH);
      return;
   }
   if (e>50) {
-     digitalWrite(WSPR,HIGH);
-     digitalWrite(JS8,HIGH);
-     digitalWrite(FT4,HIGH);
-     digitalWrite(FT8,LOW);
+     setLED(WSPR,HIGH);
+     setLED(JS8,HIGH);
+     setLED(FT4,HIGH);
+     setLED(FT8,LOW);
      return;
   }
   if (e>25) {
-     digitalWrite(WSPR,HIGH);
-     digitalWrite(JS8,HIGH);
-     digitalWrite(FT4,LOW);
-     digitalWrite(FT8,LOW);
+     setLED(WSPR,HIGH);
+     setLED(JS8,HIGH);
+     setLED(FT4,LOW);
+     setLED(FT8,LOW);
      return;
   }
 
   if (e>10) {
-     digitalWrite(WSPR,HIGH);
-     digitalWrite(JS8,LOW);
-     digitalWrite(FT4,LOW);
-     digitalWrite(FT8,LOW);
+     setLED(WSPR,HIGH);
+     setLED(JS8,LOW);
+     setLED(FT4,LOW);
+     setLED(FT8,LOW);
      return;
   }
-  digitalWrite(WSPR,LOW);
-  digitalWrite(JS8,LOW);
-  digitalWrite(FT4,LOW);
-  digitalWrite(FT8,LOW);
+  setLED(WSPR,LOW);
+  setLED(JS8,LOW);
+  setLED(FT4,LOW);
+  setLED(FT8,LOW);
   return;
 
 }
@@ -1349,8 +1325,9 @@ void setCalibrationLED(uint16_t e) {
 //*************************************************************************************
 void AutoCalibration () {
 
-#ifndef DDSPIO    //Calibration isn't defined for ddsPIO  
-
+#ifdef DDSPIO    //Calibration isn't defined for ddsPIO  
+  _INFOLIST("%s Function not available (or needed) with ddsPIO\n",__func__);
+#else
 bool b = false;
 
   if (!Serial) {
@@ -1487,48 +1464,22 @@ bool b = false;
 //************************** [SI5351 VFO Calibration Function] ************************
 void Calibration() {
 
-#ifndef DDSPIO    //Calibration lack sense with ddsPIO enabled as it is only required when a Si5351 is used
+#ifdef DDSPIO    //Calibration lack sense with ddsPIO enabled as it is only required when a Si5351 is used
+  _INFOLIST("%s Function not available when using the ddsPIO configuration\n",__func__);
+#else
+  clearLED();
+  
+  for (int i=0;i<4;i++){
 
-  digitalWrite(FT8, LOW);
-  digitalWrite(FT4, LOW);
-  digitalWrite(JS8, LOW);
-  digitalWrite(WSPR, LOW);
+    setLED(WSPR, HIGH);
+    setLED(FT8, HIGH);
+    delay(100);
+    
+    setLED(WSPR, LOW);
+    setLED(FT8, LOW);
+    delay(100);
 
-  digitalWrite(WSPR, HIGH);
-  digitalWrite(FT8, HIGH);
-  delay(100);
-
-  digitalWrite(WSPR, LOW);
-  digitalWrite(FT8, LOW);
-  delay(100);
-
-
-  digitalWrite(WSPR, HIGH);
-  digitalWrite(FT8, HIGH);
-  delay(100);
-
-  digitalWrite(WSPR, LOW);
-  digitalWrite(FT8, LOW);
-  delay(100);
-
-  digitalWrite(WSPR, HIGH);
-  digitalWrite(FT8, HIGH);
-  delay(100);
-
-  digitalWrite(WSPR, LOW);
-  digitalWrite(FT8, LOW);
-  delay(100);
-
-  digitalWrite(WSPR, HIGH);
-  digitalWrite(FT8, HIGH);
-  delay(100);
-
-  digitalWrite(WSPR, LOW);
-  digitalWrite(FT8, LOW);
-  delay(100);
-
-  digitalWrite(WSPR, HIGH);
-  digitalWrite(FT8, HIGH);
+  }
 
   addr = 10;
   EEPROM.get(addr, cal_factor);
@@ -1542,11 +1493,8 @@ Calibrate:
 
     UP_State = digitalRead(UP);
     if (UP_State == LOW) {
-
       cal_factor = cal_factor - 100;
-
       si5351.set_correction(cal_factor, SI5351_PLL_INPUT_XO);
-
 
       // Set CLK2 output
       si5351.set_freq(Cal_freq * 100, SI5351_CLK2);
@@ -1639,7 +1587,6 @@ void INIT() {
     temp = 1;
     EEPROM.put(addr, temp);
 
-
     EEPROM.commit();
     _INFOLIST("%s EEPROM commit()\n", __func__);
 
@@ -1661,10 +1608,9 @@ void INIT() {
     addr = 50;
     EEPROM.get(addr, Band_slot);
 
-
   }
   Band_assign();
-  Mode_assign();
+  //Mode_assign();
 
   #ifndef DDSPIO
       si5351.set_clock_pwr(SI5351_CLK2, 0); // Turn off Calibration Clock
