@@ -50,43 +50,43 @@ def best_clock_frequency(desired_frequency, vsc):
 frequency = 1e6
 frequencies = []
 errors_new = []
-vsc = valid_system_clocks(125e6, 133.1e6)
+#*---vsc = valid_system_clocks(125e6, 133.1e6)
+vsc = valid_system_clocks(125e6, 233.1e6)
 while frequency < 30e6:
   best_frequency = best_clock_frequency(frequency*4, vsc) 
   frequencies.append(frequency)
   errors_new.append(frequency-best_frequency/4)
   frequency += 0.001e6
-
 #*-------------------------------------------------------------
 #* Now compute if using a Pico 2 chip
 #*-------------------------------------------------------------
 frequency = 1e6
 errors_pico2 = []
-vsc = valid_system_clocks(125e6, 150.1e6)
-while frequency < 30e6:
-  best_frequency = best_clock_frequency(frequency*4, vsc) 
-  errors_pico2.append(frequency-best_frequency/4)
-  frequency += 0.001e6
+#vsc = valid_system_clocks(125e6, 150.1e6)
+#while frequency < 30e6:
+#  best_frequency = best_clock_frequency(frequency*4, vsc) 
+#  errors_pico2.append(frequency-best_frequency/4)
+#  frequency += 0.001e6
 
 #*-------------------------------------------------------------
 #* Finally run for old pico (assuming 125 MHz clock,  no change
 #*-------------------------------------------------------------
 frequency = 1e6
 errors_old = []
-vsc = valid_system_clocks(125e6, 125.1e6)
-while frequency < 30e6:
-  best_frequency = best_clock_frequency(frequency*4, vsc) 
-  errors_old.append(frequency-best_frequency/4)
-  frequency += 0.001e6
+#vsc = valid_system_clocks(125e6, 125.1e6)
+#while frequency < 30e6:
+#  best_frequency = best_clock_frequency(frequency*4, vsc) 
+#  errors_old.append(frequency-best_frequency/4)
+#  frequency += 0.001e6
 
 
 #*-------------------------------------------------------------
 #* Print and plot results
 #*-------------------------------------------------------------
 print("Raspberry pico (rp2040) clock simulator")
-print("pico2      min=%d max=%d" % (min(errors_pico2),max(errors_pico2)))
-print("pico ovclk min=%d max=%d" % (min(errors_pico2),max(errors_pico2)))
-print("pico std   min=%d max=%d" % (min(errors_pico2),max(errors_pico2)))
+print("pico2      min=%d max=%d" % (min(errors_new),max(errors_new)))
+#print("pico ovclk min=%d max=%d" % (min(errors_pico2),max(errors_pico2)))
+#print("pico std   min=%d max=%d" % (min(errors_old),max(errors_old)))
 
 #*-------------------------------------------------------------
 #* Draw results (Graph is best error for a given NCO frequency)
@@ -95,8 +95,8 @@ from matplotlib import pyplot as plt
 plt.title("Best NCO Frequency")
 plt.xlabel("Tuned Frequency MHz")
 plt.ylabel("Distance from Nearest kHz")
-plt.plot(np.array(frequencies)/1e6, np.array(errors_old)/1e3, label="125 MHz clock")
+#plt.plot(np.array(frequencies)/1e6, np.array(errors_old)/1e3, label="125 MHz clock")
 plt.plot(np.array(frequencies)/1e6, np.array(errors_new)/1e3, label="125-133 MHz overclock")
-plt.plot(np.array(frequencies)/1e6, np.array(errors_pico2)/1e3, label="125-150 MHz overclock Pico 2")
+#plt.plot(np.array(frequencies)/1e6, np.array(errors_pico2)/1e3, label="125-150 MHz overclock Pico 2")
 plt.legend()
 plt.show()

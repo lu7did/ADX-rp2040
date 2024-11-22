@@ -1,21 +1,11 @@
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//                                              dds_rp2040                                                 *
+//                                              ddsPIO2                                                    *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 // Pedro (Pedro Colla) - LU7DZ - 2024
 // Version 1.0
 // This is a rp2040 implementation of a quadrature oscilator in the range of 1 to 30 MHz
 //*-------------------------------------------------------------------------------------------------------------
-// Based on 
-// https://github.com/lu9da/quadrature_oscillator_pio 
-// by
-// Ricardo Suarez (LU9DA), 2024
-// https://lu9da.org
-//*-------------------------------------------------------------------------------------------------------------
-// Similar quadrature oscillator implementation
-// https://hackaday.io/project/192311-pi-pico-rx
-// https://github.com/dawsonjon/PicoRX
-// by 
-// Jon Dawson
+// Extracted from rp2040 Datasheet 
 //*-------------------------------------------------------------------------------------------------------------
 //  Porting by Dr. Pedro E. Colla (LU7DZ). 2024
 //  V1.0 Initial porting effort
@@ -79,7 +69,7 @@
 // Uso publico, si se comparte o usa en proyectos, este encabezado DEBE PERMANECER como esta
 // Public use, if shared or used in projects, this header MUST REMAIN as is
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-//                                              dds_rp2040                                                 *
+//                                              ddsPIO2                                                    *
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //
 //
@@ -88,23 +78,11 @@
 //               |    |    |    |
 //           *---*    *----*    *--
 //
-//                  *----*    *----*
-//    (GPIO1)       |    |    |    |
-//                  |    |    |    |
-//            *-----*    *----*    *--
-//             
-//     GPIO0    0  1  1  0  0 
-//     GPIO1    0  0  1  1  0
-//
-//  An internal finite state automata implemented using PIO would cycle the GPIO0/GPIO1 thru the sequence
-//  {0x00,0x01,0x02,0x03} as quick as possible
-//  The actual transition speed would be defined by the PIO clock which in turn is derived from the system
-//  clock using a number of divisors, so change the dividers frequencies in the range 1-30 MHz can be 
-//  obtained.
-//  As the dividers perform integer math no precise frequency match can be achieved, however the system 
-//  clock can be changed to reduce the error (difference) with the desired frequency, therefore each time
-//  a frequency change is made an inspection is performed to identify which system clock frequency will reduce
-//  the error to a minimum.
+// The finite state machine set the output to 1 and stays one cycle idle (2 cycles total), then it flips to 0
+// and jump back to the beginning (2 additional CPU cycles), then it's a total of 4 CPU cycles and thus
+// the output frequency is the (fsys/divisor)/4
+// With the appropriate selection of the divisor any frequency in the range of 1-30 MHz can be achieved with
+// a small error.
 //*-------------------------------------------------------------------------------------------------------------
 #include <Arduino.h>
 #include <stdarg.h>
@@ -116,9 +94,9 @@
 //*-------------------------------------------------------------------------------------------------------------
 //*
 //*-------------------------------------------------------------------------------------------------------------
-#include "ddsPIO.h"
+#include "ddsPIO2.h"
 //*-------------------------------------------------------------------------------------------------------------
-#define PROGRAM  "ddsPIO"
+#define PROGRAM  "ddsPIO2"
 #define VERSION  "1.0"
 #define BUILD    "0.0"
 #define AUTHOR   "Dr. Pedro E. Colla (LU7DZ)"
