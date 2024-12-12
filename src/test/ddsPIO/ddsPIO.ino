@@ -78,13 +78,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "./defines.h"
+#include "defines.h"
 #include "dco2.pio.h"
 #include "hardware/vreg.h"
 #include "pico/multicore.h"
 #include "pico/stdio/driver.h"
-#include "./lib/assert.h"
-#include "./debug/logutils.h"
 #include "hwdefs.h"
 #include "protos.h"
 #include <string.h>
@@ -95,12 +93,13 @@
 PioDco DCO; /* External in order to access in both cores. */
 char hi[80];
 uint32_t f=GEN_FRQ_HZ;
+const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
+
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                      Setup & initialization
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void setup() { 
 
-    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
     set_sys_clock_khz(clkhz / 1000L, true);
 
     Serial.begin(115200);
@@ -119,21 +118,19 @@ void setup() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 //*                                      Execution Loop
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
-
 void loop() {
 
         if (Serial.available() != 0) {
             int dataIn = Serial.parseInt();    // only numbers, frequency in Hz, without any kind of points, cr/lf or /n  
                                               // for example 7060000  tunes to 7.060,00 kHz 
             uint32_t fnew=dataIn*1000L;
-            if (fnew != f) {
-              f=fnew;
-              _INFOLIST("%s Keyboard entry (%d) KHz, new clock %ld Hz\n",__func__,dataIn,f);
-              PioDCOSetFreq(&DCO, f, 0u);           
-              gpio_set_mask(1<<LED_BUILTIN);
-              delay(250);
-              gpio_clr_mask(1<<LED_BUILTIN);   
-
+            if (fnew != f  && fnew != 0 && fnew != 1 && fnew != 2) {
+                    f=fnew;
+                    _INFOLIST("%s Keyboard entry (%d) KHz, new clock %ld Hz\n",__func__,dataIn,f);
+                    PioDCOSetFreq(&DCO, f, 0u);           
+                    gpio_set_mask(1<<LED_BUILTIN);
+                    delay(250);
+                    gpio_clr_mask(1<<LED_BUILTIN);   
             }
 
         }
@@ -143,10 +140,10 @@ void loop() {
 //*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
 void core1_entry()
 {
-    const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
+    //const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
 
     /* Initialize DCO */
-    PioDCOInit(&DCO, 6, clkhz);
+    PioDCOInit(&DCO, 0, clkhz);  //Initialize the two pins starting with GPIO0
 
     /* Run DCO. */
     PioDCOStart(&DCO);
@@ -191,23 +188,33 @@ volatile int32_t si32precise_cycles;
 int PioDCOInit(PioDco *pdco, int gpio, int cpuclkhz)
 {
     memset(pdco, 0, sizeof(PioDco));
-
     pdco->_clkfreq_hz = cpuclkhz;
-    pdco->_pio = pio0;
+    pdco->_pio = pio1;                                                 //Mapped to pio1 to avoid interference with pio0
     pdco->_gpio = gpio;
+    
     pdco->_offset = pio_add_program(pdco->_pio, &dco_program);
     pdco->_ism = pio_claim_unused_sm(pdco->_pio, true);
+    
+    gpio_init(pdco->_gpio);                                            //debe ejecutarse para cada PIN
+    gpio_set_dir(pdco->_gpio,true);
 
-    gpio_init(pdco->_gpio);
+    gpio_init(pdco->_gpio+1);                                            //debe ejecutarse para cada PIN
+    gpio_set_dir(pdco->_gpio+1,true);
+    
+    gpio_set_drive_strength(pdco->_gpio, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(pdco->_gpio+1, GPIO_DRIVE_STRENGTH_2MA);
+
     pio_gpio_init(pdco->_pio, pdco->_gpio);
-
+    pio_gpio_init(pdco->_pio, pdco->_gpio+1);
+                                //Debe ejecutarse para cada pin
     dco_program_init(pdco->_pio, pdco->_ism, pdco->_offset, pdco->_gpio);
     pdco->_pio_sm = dco_program_get_default_config(pdco->_offset);
-
     sm_config_set_out_shift(&pdco->_pio_sm, true, true, 32);           // Autopull.
     sm_config_set_fifo_join(&pdco->_pio_sm, PIO_FIFO_JOIN_TX);
-    sm_config_set_set_pins(&pdco->_pio_sm, pdco->_gpio, 1);
     
+    pio_set_gpio_base(pdco->_pio,pdco->_gpio);       
+    
+    sm_config_set_set_pins(&pdco->_pio_sm, pdco->_gpio, 2);            //OK    
     pio_sm_init(pdco->_pio, pdco->_ism, pdco->_offset, &pdco->_pio_sm);
 
     return 0;

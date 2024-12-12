@@ -51,7 +51,7 @@ frequency = 1e6
 frequencies = []
 errors_new = []
 #*---vsc = valid_system_clocks(125e6, 133.1e6)
-vsc = valid_system_clocks(125e6, 233.1e6)
+vsc = valid_system_clocks(100e6, 233.1e6)
 while frequency < 30e6:
   best_frequency = best_clock_frequency(frequency*4, vsc) 
   frequencies.append(frequency)

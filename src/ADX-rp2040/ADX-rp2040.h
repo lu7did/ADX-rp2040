@@ -91,7 +91,7 @@
  * ddsPIO definitions
  */
 
-#define DDSPIO               1                  //Use soft rp2040-based DDS
+//#define DDSPIO               1                  //Use soft rp2040-based DDS
 #define OVERCLOCK            1                  //Users extended clock range to improve PLL error at high frequencies
 #define PLL_BASE      12000000                  //PLL
 #define DDSFREQ       14000000                  //Initial DDS frequency

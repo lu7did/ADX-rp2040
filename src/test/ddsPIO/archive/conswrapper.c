@@ -48,8 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "hardware/uart.h"
-#include "./lib/assert.h"
-#include "piodco/piodco.h"
+#include "piodco.h"
 #include "protos.h"
 
 extern PioDco DCO;
