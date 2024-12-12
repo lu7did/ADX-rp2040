@@ -33,7 +33,9 @@
 #define _INFOLIST(...) (void)0
 #endif //_INFOLIST macro definition as NOP when not in debug mode, will consume one byte of nothingness
 
-
+//*---------------------------------------------------------------------------------------------------------
+#define GEN_FRQ_HZ 28074000L
+#define PICO_DEFAULT_LED_PIN 25
 //*---------------------------------------------------------------------------------------------------------
 enum PioDcoMode
 {

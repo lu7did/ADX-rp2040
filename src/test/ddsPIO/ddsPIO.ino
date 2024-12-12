@@ -79,7 +79,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "./defines.h"
-//#include "./piodco/piodco.h"
 #include "dco2.pio.h"
 #include "hardware/vreg.h"
 #include "pico/multicore.h"
@@ -92,9 +91,7 @@
 #include "./gpstime/GPStime.h"
 #include "ddsPIO.h"
 
-#define GEN_FRQ_HZ 28074000L
-#define PICO_DEFAULT_LED_PIN 25
-
+//*---------------------------------------------------------------------------------------------------------
 PioDco DCO; /* External in order to access in both cores. */
 char hi[80];
 uint32_t f=GEN_FRQ_HZ;
