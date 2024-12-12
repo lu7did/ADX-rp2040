@@ -159,9 +159,11 @@ extern void PIO_init();
    External references to ddsPIO variables and methods
 */
 
+#ifdef DDSPIO
 extern double fpio;
 extern void ddsPIO_configure();
 extern void ddsPIO_setFrequency(double f);
+#endif //DDSPIO
 
 //    *********************************************************************************************
 //    *                        Variable definitions                                               *
@@ -1150,7 +1152,7 @@ void setTX(bool tx) {
       digitalWrite(TX, HIGH);
 
       #ifdef DDSPIO
-    fpio=freq;
+         fpio=freq;
          ddsPIO_setFrequency(freq);
       #else 
          si5351.set_freq(freq1 * 100ULL, SI5351_CLK0);

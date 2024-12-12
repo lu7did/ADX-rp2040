@@ -1,0 +1,1336 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineSystem.cmake:200 (message)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      The target system is: PICO -  - cortex-m0plus
+      The host system is: Darwin - 23.3.0 - arm64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags:  
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+      
+      The CXX compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdCXX/CMakeCXXCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1165 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineASMCompiler.cmake:135 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:21 (project)"
+    message: |
+      Checking whether the ASM compiler is GNU using "--version" matched "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.07) 10.3.1 20210621 (release)
+      Copyright (C) 2020 Free Software Foundation, Inc.
+      This is free software; see the source for copying conditions.  There is NO
+      warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:21 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-qMCtTQ"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-qMCtTQ"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/Documents/GitHub/pico-sdk/cmake"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-qMCtTQ'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_4a4bf/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_4a4bf.dir/build.make CMakeFiles/cmTC_4a4bf.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-qMCtTQ'
+        Building C object CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11   -v -o CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o -c /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/cc1 -quiet -v -imultilib thumb/v6-m/nofp -iprefix /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/ -isysroot /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -D__USES_INITFINI__ -isystem /opt/anaconda3/include /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft -mlibarch=armv6s-m -march=armv6s-m -auxbase-strip CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o -O2 -std=gnu11 -version -ftree-vectorize -fPIC -fstack-protector-strong -o - |
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/as -v -march=armv6s-m -mfloat-abi=soft -meabi=5 -o CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o
+        GNU assembler version 2.36.1 (arm-none-eabi) using BFD version (GNU Arm Embedded Toolchain 10.3-2021.07) 2.36.1.20210621
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/local/include"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include-fixed"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/anaconda3/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include-fixed
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include
+        End of search list.
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: d91dc699e451f0517ab8d6ba716870d2
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+        Linking C executable cmTC_4a4bf.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4a4bf.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib -v CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o -o cmTC_4a4bf.elf
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        COLLECT_LTO_WRAPPER=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-nostdlib' '-L/opt/anaconda3/lib' '-v' '-o' 'cmTC_4a4bf.elf' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/collect2 -plugin /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/liblto_plugin.so -plugin-opt=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper -plugin-opt=-fresolution=/var/folders/kf/f6_kcpfx2zn2r2kxmf73r6sm0000gp/T//ccpa9Pio.res --sysroot=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -X -o cmTC_4a4bf.elf -L/opt/anaconda3/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1 -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib --build-id=none -headerpad_max_install_names -dead_strip_dylibs -rpath /opt/anaconda3/lib CMakeFiles/cmTC_4a4bf.dir/CMakeCCompilerABI.c.o
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_4a4bf.dir/build.make:99: cmTC_4a4bf.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-qMCtTQ'
+        make: *** [Makefile:127: cmTC_4a4bf/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:21 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/arm-none-eabi-gcc"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/Documents/GitHub/pico-sdk/cmake"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_8206a/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_8206a.dir/build.make CMakeFiles/cmTC_8206a.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM'
+        Building C object CMakeFiles/cmTC_8206a.dir/testCCompiler.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11 -o CMakeFiles/cmTC_8206a.dir/testCCompiler.c.o -c /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM/testCCompiler.c
+        Linking C executable cmTC_8206a.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8206a.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib  CMakeFiles/cmTC_8206a.dir/testCCompiler.c.o -o cmTC_8206a.elf
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_8206a.dir/build.make:99: cmTC_8206a.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-iTsofM'
+        make: *** [Makefile:127: cmTC_8206a/fast] Error 2
+        
+      exitCode: 2
+...
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x18): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags:  
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+      
+      The CXX compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdCXX/CMakeCXXCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1165 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineASMCompiler.cmake:135 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Checking whether the ASM compiler is GNU using "--version" matched "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.07) 10.3.1 20210621 (release)
+      Copyright (C) 2020 Free Software Foundation, Inc.
+      This is free software; see the source for copying conditions.  There is NO
+      warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-zS5Hd5"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-zS5Hd5"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-zS5Hd5'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_a807c/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_a807c.dir/build.make CMakeFiles/cmTC_a807c.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-zS5Hd5'
+        Building C object CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11   -v -o CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o -c /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/cc1 -quiet -v -imultilib thumb/v6-m/nofp -iprefix /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/ -isysroot /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -D__USES_INITFINI__ -isystem /opt/anaconda3/include /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft -mlibarch=armv6s-m -march=armv6s-m -auxbase-strip CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o -O2 -std=gnu11 -version -ftree-vectorize -fPIC -fstack-protector-strong -o - |
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/as -v -march=armv6s-m -mfloat-abi=soft -meabi=5 -o CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GNU assembler version 2.36.1 (arm-none-eabi) using BFD version (GNU Arm Embedded Toolchain 10.3-2021.07) 2.36.1.20210621
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/local/include"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include-fixed"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/anaconda3/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include-fixed
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include
+        End of search list.
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: d91dc699e451f0517ab8d6ba716870d2
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+        Linking C executable cmTC_a807c.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a807c.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib -v CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o -o cmTC_a807c.elf
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        COLLECT_LTO_WRAPPER=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-nostdlib' '-L/opt/anaconda3/lib' '-v' '-o' 'cmTC_a807c.elf' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/collect2 -plugin /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/liblto_plugin.so -plugin-opt=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper -plugin-opt=-fresolution=/var/folders/kf/f6_kcpfx2zn2r2kxmf73r6sm0000gp/T//ccTHF7ek.res --sysroot=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -X -o cmTC_a807c.elf -L/opt/anaconda3/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1 -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib --build-id=none -headerpad_max_install_names -dead_strip_dylibs -rpath /opt/anaconda3/lib CMakeFiles/cmTC_a807c.dir/CMakeCCompilerABI.c.o
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_a807c.dir/build.make:99: cmTC_a807c.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-zS5Hd5'
+        make: *** [Makefile:127: cmTC_a807c/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/arm-none-eabi-gcc"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_4f692/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_4f692.dir/build.make CMakeFiles/cmTC_4f692.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ'
+        Building C object CMakeFiles/cmTC_4f692.dir/testCCompiler.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11 -o CMakeFiles/cmTC_4f692.dir/testCCompiler.c.o -c /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ/testCCompiler.c
+        Linking C executable cmTC_4f692.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4f692.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib  CMakeFiles/cmTC_4f692.dir/testCCompiler.c.o -o cmTC_4f692.elf
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_4f692.dir/build.make:99: cmTC_4f692.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-wYZdPZ'
+        make: *** [Makefile:127: cmTC_4f692/fast] Error 2
+        
+      exitCode: 2
+...
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x18): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags:  
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+      
+      The CXX compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdCXX/CMakeCXXCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1165 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineASMCompiler.cmake:135 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Checking whether the ASM compiler is GNU using "--version" matched "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.07) 10.3.1 20210621 (release)
+      Copyright (C) 2020 Free Software Foundation, Inc.
+      This is free software; see the source for copying conditions.  There is NO
+      warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-x4f9Ub"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-x4f9Ub"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-x4f9Ub'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_00e34/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_00e34.dir/build.make CMakeFiles/cmTC_00e34.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-x4f9Ub'
+        Building C object CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11   -v -o CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o -c /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/cc1 -quiet -v -imultilib thumb/v6-m/nofp -iprefix /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/ -isysroot /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -D__USES_INITFINI__ -isystem /opt/anaconda3/include /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft -mlibarch=armv6s-m -march=armv6s-m -auxbase-strip CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o -O2 -std=gnu11 -version -ftree-vectorize -fPIC -fstack-protector-strong -o - |
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/as -v -march=armv6s-m -mfloat-abi=soft -meabi=5 -o CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GNU assembler version 2.36.1 (arm-none-eabi) using BFD version (GNU Arm Embedded Toolchain 10.3-2021.07) 2.36.1.20210621
+        GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/local/include"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include-fixed"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/anaconda3/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include-fixed
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include
+        End of search list.
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: d91dc699e451f0517ab8d6ba716870d2
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+        Linking C executable cmTC_00e34.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_00e34.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib -v CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o -o cmTC_00e34.elf
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        COLLECT_LTO_WRAPPER=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-nostdlib' '-L/opt/anaconda3/lib' '-v' '-o' 'cmTC_00e34.elf' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/collect2 -plugin /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/liblto_plugin.so -plugin-opt=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper -plugin-opt=-fresolution=/var/folders/kf/f6_kcpfx2zn2r2kxmf73r6sm0000gp/T//ccJJUNIs.res --sysroot=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -X -o cmTC_00e34.elf -L/opt/anaconda3/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1 -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib --build-id=none -headerpad_max_install_names -dead_strip_dylibs -rpath /opt/anaconda3/lib CMakeFiles/cmTC_00e34.dir/CMakeCCompilerABI.c.o
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_00e34.dir/build.make:99: cmTC_00e34.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-x4f9Ub'
+        make: *** [Makefile:127: cmTC_00e34/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/arm-none-eabi-gcc"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_d9217/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_d9217.dir/build.make CMakeFiles/cmTC_d9217.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2'
+        Building C object CMakeFiles/cmTC_d9217.dir/testCCompiler.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11 -o CMakeFiles/cmTC_d9217.dir/testCCompiler.c.o -c /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2/testCCompiler.c
+        Linking C executable cmTC_d9217.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d9217.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib  CMakeFiles/cmTC_d9217.dir/testCCompiler.c.o -o cmTC_d9217.elf
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_d9217.dir/build.make:99: cmTC_d9217.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-IfMVI2'
+        make: *** [Makefile:127: cmTC_d9217/fast] Error 2
+        
+      exitCode: 2
+...
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x18): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-gcc 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-isystem;/opt/anaconda3/include;-mcpu=cortex-m0plus;-mthumb
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags:  
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --c++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--c++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --ec++ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--ec++'; did you mean '-Weffc++'?
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: --target=arm-arm-none-eabi;-mcpu=cortex-m3 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      arm-none-eabi-g++: error: unrecognized command-line option '--target=arm-arm-none-eabi'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: -ftree-vectorize;-fPIC;-fstack-protector-strong;-O2;-pipe;-stdlib=libc++;-fvisibility-inlines-hidden;-fmessage-length=0;-isystem;/opt/anaconda3/include
+      Id flags: -c;-I__does_not_exist__ 
+      
+      The output was:
+      1
+      arm-none-eabi-g++: error: unrecognized command-line option '-stdlib=libc++'
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      1
+      /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): in function `exit':
+      exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+      collect2: error: ld returned 1 exit status
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/local/bin/arm-none-eabi-g++ 
+      Build flags: 
+      Id flags: -c 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+      
+      The CXX compiler identification is GNU, found in:
+        /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/3.29.5/CompilerIdCXX/CMakeCXXCompilerId.o
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerId.cmake:1165 (message)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineASMCompiler.cmake:135 (CMAKE_DETERMINE_COMPILER_ID_VENDOR)"
+      - "CMakeLists.txt:35 (project)"
+    message: |
+      Checking whether the ASM compiler is GNU using "--version" matched "(GNU assembler)|(GCC)|(Free Software Foundation)":
+      arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.07) 10.3.1 20210621 (release)
+      Copyright (C) 2020 Free Software Foundation, Inc.
+      This is free software; see the source for copying conditions.  There is NO
+      warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeDetermineCompilerABI.cmake:67 (try_compile)"
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-KRFoH6"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-KRFoH6"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-KRFoH6'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_7f80e/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_7f80e.dir/build.make CMakeFiles/cmTC_7f80e.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-KRFoH6'
+        Building C object CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11   -v -o CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o -c /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/cc1 -quiet -v -imultilib thumb/v6-m/nofp -iprefix /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/ -isysroot /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -D__USES_INITFINI__ -isystem /opt/anaconda3/include /opt/local/share/cmake-3.29/Modules/CMakeCCompilerABI.c -quiet -dumpbase CMakeCCompilerABI.c -mcpu=cortex-m0plus -mthumb -mfloat-abi=soft -mlibarch=armv6s-m -march=armv6s-m -auxbase-strip CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o -O2 -std=gnu11 -version -ftree-vectorize -fPIC -fstack-protector-strong -o - |
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/as -v -march=armv6s-m -mfloat-abi=soft -meabi=5 -o CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o
+        GNU assembler version 2.36.1 (arm-none-eabi) using BFD version (GNU Arm Embedded Toolchain 10.3-2021.07) 2.36.1.20210621
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/local/include"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/include-fixed"
+        ignoring duplicate directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/../../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include"
+        ignoring nonexistent directory "/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/usr/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /opt/anaconda3/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/include-fixed
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/include
+        End of search list.
+        GNU C11 (GNU Arm Embedded Toolchain 10.3-2021.07) version 10.3.1 20210621 (release) (arm-none-eabi)
+        	compiled by GNU C version 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17), GMP version 6.1.0, MPFR version 3.1.4, MPC version 1.0.3, isl version isl-0.18-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: d91dc699e451f0517ab8d6ba716870d2
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-std=gnu11' '-v' '-o' 'CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o' '-c' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+        Linking C executable cmTC_7f80e.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7f80e.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib -v CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o -o cmTC_7f80e.elf
+        Using built-in specs.
+        COLLECT_GCC=/usr/local/bin/arm-none-eabi-gcc
+        COLLECT_LTO_WRAPPER=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper
+        Target: arm-none-eabi
+        Configured with: /tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/src/gcc/configure --target=arm-none-eabi --prefix=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native --libexecdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/lib --infodir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/info --mandir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/man --htmldir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/html --pdfdir=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/share/doc/gcc-arm-none-eabi/pdf --enable-languages=c,c++ --enable-plugins --disable-decimal-float --disable-libffi --disable-libgomp --disable-libmudflap --disable-libquadmath --disable-libssp --disable-libstdcxx-pch --disable-nls --disable-shared --disable-threads --disable-tls --with-gnu-as --with-gnu-ld --with-newlib --with-headers=yes --with-python-dir=share/gcc-arm-none-eabi --with-sysroot=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/install-native/arm-none-eabi --build=x86_64-apple-darwin10 --host=x86_64-apple-darwin10 --with-gmp=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpfr=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-mpc=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-isl=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-libelf=/tmp/jenkins-GCC-10-pipeline-259_20210727_1627345004/build-native/host-libs/usr --with-host-libstdcxx='-static-libgcc -Wl,-lstdc++ -lm' --with-pkgversion='GNU Arm Embedded Toolchain 10.3-2021.07' --with-multilib-list=rmprofile,aprofile
+        Thread model: single
+        Supported LTO compression algorithms: zlib
+        gcc version 10.3.1 20210621 (release) (GNU Arm Embedded Toolchain 10.3-2021.07) 
+        COMPILER_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/
+        LIBRARY_PATH=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/:/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/
+        COLLECT_GCC_OPTIONS='-ftree-vectorize' '-fPIC' '-fstack-protector-strong' '-O2' '-pipe' '-isystem' '/opt/anaconda3/include' '-mcpu=cortex-m0plus' '-mthumb' '-nostdlib' '-L/opt/anaconda3/lib' '-v' '-o' 'cmTC_7f80e.elf' '-mfloat-abi=soft' '-mlibarch=armv6s-m' '-march=armv6s-m'
+         /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/collect2 -plugin /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/liblto_plugin.so -plugin-opt=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/lto-wrapper -plugin-opt=-fresolution=/var/folders/kf/f6_kcpfx2zn2r2kxmf73r6sm0000gp/T//ccnR8mnQ.res --sysroot=/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi -X -o cmTC_7f80e.elf -L/opt/anaconda3/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib/thumb/v6-m/nofp -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1 -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/lib -L/usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../arm-none-eabi/lib --build-id=none -headerpad_max_install_names -dead_strip_dylibs -rpath /opt/anaconda3/lib CMakeFiles/cmTC_7f80e.dir/CMakeCCompilerABI.c.o
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_7f80e.dir/build.make:99: cmTC_7f80e.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-KRFoH6'
+        make: *** [Makefile:127: cmTC_7f80e/fast] Error 2
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/opt/local/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:35 (project)"
+    checks:
+      - "Check for working C compiler: /usr/local/bin/arm-none-eabi-gcc"
+    directories:
+      source: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj"
+      binary: "/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "-ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb"
+      CMAKE_C_FLAGS_DEBUG: "-Og -g"
+      CMAKE_EXE_LINKER_FLAGS: "-Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib"
+      CMAKE_MODULE_PATH: "/Users/PCOLLA/.pico-sdk/sdk/2.1.0/cmake"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj'
+        
+        Run Build Command(s): /opt/local/bin/cmake -E env VERBOSE=1 /opt/anaconda3/bin/make -f Makefile cmTC_0b8c2/fast
+        /opt/anaconda3/bin/make  -f CMakeFiles/cmTC_0b8c2.dir/build.make CMakeFiles/cmTC_0b8c2.dir/build
+        make[1]: Entering directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj'
+        Building C object CMakeFiles/cmTC_0b8c2.dir/testCCompiler.c.o
+        /usr/local/bin/arm-none-eabi-gcc   -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -std=gnu11 -o CMakeFiles/cmTC_0b8c2.dir/testCCompiler.c.o -c /Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj/testCCompiler.c
+        Linking C executable cmTC_0b8c2.elf
+        /opt/local/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0b8c2.dir/link.txt --verbose=1
+        /usr/local/bin/arm-none-eabi-gcc -ftree-vectorize -fPIC -fstack-protector-strong -O2 -pipe -isystem /opt/anaconda3/include  -mcpu=cortex-m0plus -mthumb  -Wl,--build-id=none -nostdlib -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,/opt/anaconda3/lib -L/opt/anaconda3/lib  CMakeFiles/cmTC_0b8c2.dir/testCCompiler.c.o -o cmTC_0b8c2.elf
+        /usr/local/Cellar/arm-none-eabi-gcc/10.3-2021.07/gcc/bin/../lib/gcc/arm-none-eabi/10.3.1/../../../../arm-none-eabi/bin/ld: Error: unable to disambiguate: -dead_strip_dylibs (did you mean --dead_strip_dylibs ?)
+        collect2: error: ld returned 1 exit status
+        make[1]: *** [CMakeFiles/cmTC_0b8c2.dir/build.make:99: cmTC_0b8c2.elf] Error 1
+        make[1]: Leaving directory '/Users/PCOLLA/Documents/GitHub/pico-hf-oscillator/CMakeFiles/CMakeScratch/TryCompile-B3Nkdj'
+        make: *** [Makefile:127: cmTC_0b8c2/fast] Error 2
+        
+      exitCode: 2
+...
